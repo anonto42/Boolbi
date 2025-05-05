@@ -60,10 +60,23 @@ fun:
             -- make payment
 
     -- admin
+        -- get admin details
+        -- get notifications form all the hapends system
         -- dashboard get ( total users, revenue, job requests, job posts)
-        -- castomers list ( serial no, name, catagory, status, get one customer )
-            { after geting the customer 2 acction will hear send message & hold or block}
-         
-        
- 
+        -- get castomers list ( serial no, name, catagory, status, get one customer )
+            { after geting the customer 2 acction will hear [ send message & hold or block ] }
+        -- get service providers list ( filter, get one customer, 2 actions report or block send message)
+        -- get order requests ( serarch, view customer order, send message ) 
+        -- get payment history ( default commission 5% ), 
+        -- catagorys 
+            -- main catagorys ( add new, get one, update & delete )
+            -- add sub categorys under the main catagory
+        -- settings 
+            -- update profile informaion
+            -- change password
+            -- select language
+            -- write privacy policy & Terms and conditions
+            -- support request ( get info, & send replay )
+            -- add admin ( name, email, password ) & delete admins
+            -- logout
 
