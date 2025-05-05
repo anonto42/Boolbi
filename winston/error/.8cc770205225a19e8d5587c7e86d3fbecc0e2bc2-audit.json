@@ -1,0 +1,25 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 1
+    },
+    "auditLog": "D:\\Sohidul-Islam\\boolbi\\winston\\error\\.8cc770205225a19e8d5587c7e86d3fbecc0e2bc2-audit.json",
+    "files": [
+        {
+            "date": 1746425507263,
+            "name": "D:\\Sohidul-Islam\\boolbi\\winston\\error\\05-05-2025-12-error.log",
+            "hash": "6374f8f516eb3dd30a005eb530fb63d68b994a26afb20bd20db74256c364c255"
+        },
+        {
+            "date": 1746428416674,
+            "name": "D:\\Sohidul-Islam\\boolbi\\winston\\error\\05-05-2025-13-error.log",
+            "hash": "8ab5d07dc31d925d62747c6064e1399e45381759407dd9e3e85a1fff07074db3"
+        },
+        {
+            "date": 1746432073706,
+            "name": "D:\\Sohidul-Islam\\boolbi\\winston\\error\\05-05-2025-14-error.log",
+            "hash": "2f532765e1263afccf45383e55b228443730fe664ff0c3be85e4512eaee529cf"
+        }
+    ],
+    "hashType": "sha256"
+}
