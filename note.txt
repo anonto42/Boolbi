@@ -1,0 +1,69 @@
+fun: 
+    -- auth 
+        -- login
+            -- facebook
+            -- google
+            -- apple
+        -- sign up
+            -- castomer
+            -- service providers
+        -- verify accout with email 
+        -- forgot password
+            " give a email for send the the OTP create a new password "
+            ( Super user can only singin and reset password )
+
+    -- job
+        -- customer
+            -- show recommendad providers ( based on your serarch )
+            -- get all category ( catagory should have catagory image  )
+            -- search services and return all the similar services & search by filtering ( catagory, sub-catagory, location, distance )
+            -- get service single (
+                can add on the favorite list,
+                can create order on service
+            ) 
+            -- create order on service & get that orders & remove orders & (
+                can message the service provider by that service 
+            )
+            -- create the a job post ( that service providers can send offer ) & edite the job post & withdrow or end ( can upload the image of the company )
+            -- get offer request list from created jobs  ( wone jobs  ) & accept or decline services
+            -- Show engagement of the customer & service providers ( on project ) & get order status
+            -- Get completed Projects & individual also ( with track status and details)
+            -- Can get delivery request form completed orders & accept or contact for more changes (
+                send a popup as completed order
+            )
+            -- can give feedback on order complition ( rating & review message ) or skip
+            -- get profile info & Private policy & terms conditions & change password & updated info & change language & delete account 
+            -- send message ( image & text ) to the super-admin 
+            -- make payment
+
+            ---[ message:( send text and image using web sockets ) ]
+
+        -- service provider
+            -- get profile information
+            -- filterout by ( catagory, sub-catagory, location, distance )
+            -- get all recommendad job post ( recommend by previous job serarch )
+            -- Search order
+            -- create offer on jobs ( file upload max 20 )
+            -- get all notifications 
+            -- get all offers that previously created and the withdrow
+            -- get order from customers & can ( approve or decline )
+            -- create a offer on the customers oreder 
+            -- Show engagement of the customer & service providers ( on project ) & get order status
+            -- send delivery request on order
+            -- get deliveryed Projects
+            -- project relatied message with customer ( text & image  )
+            -- update profile & have to verification with national informaion 
+            -- change account status active or off 
+            -- change password & language & delete account
+            -- get terms & conditions
+            -- send message to super-user
+            -- make payment
+
+    -- admin
+        -- dashboard get ( total users, revenue, job requests, job posts)
+        -- castomers list ( serial no, name, catagory, status, get one customer )
+            { after geting the customer 2 acction will hear send message & hold or block}
+         
+        
+ 
+
