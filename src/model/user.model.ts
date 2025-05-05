@@ -1,10 +1,11 @@
 import { Schema, model } from "mongoose";
 import { IUser } from "../Interfaces/User.interface";
+import { USER_ROLES } from "../enums/user.enums";
 
 // Define the schema
 const UserSchema = new Schema<IUser>(
   {
-    name: {
+    fullName: {
       type: String,
       required: [true, "Name is required"],
       trim: true,
@@ -21,8 +22,9 @@ const UserSchema = new Schema<IUser>(
     },
     role: {
       type: String,
-      enum: ["user", "admin"],
-      default: "user",
+      enum: USER_ROLES,
+      default: "USER",
+      required: true
     },
   },
   {
