@@ -6,10 +6,21 @@ const orderSchema = new Schema<IOrder>({
   deliveryDate: Date,
   totalPrice: Number,
   serviceProvider: Types.ObjectId,
-  submittedForApprovalOn: Date,
-  serviceProviderAcceptationOn: Date,
-  paymentEstimatedOn: Date,
+  submittedForApprovalOn:{
+    type: Date || Boolean,
+    default: false
+  },
+  serviceProviderAcceptationOn:{
+    type: Date || Boolean,
+    default: false
+  },
+  paymentEstimatedOn:{
+    type: Date || Boolean,
+    default: false
+  },
   isProgressDone: Boolean 
+},{
+  timestamps: true
 });
 
 const Order = models.Order || model('order', orderSchema);
