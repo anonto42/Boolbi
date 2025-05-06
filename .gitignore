@@ -53,4 +53,4 @@ debug.log
 # Passport session files (if any custom)
 sessions/
 uploads/
-winston/
+winston/*
