@@ -11,5 +11,6 @@ export interface IOffer extends Document {
     jobLocation: string;
     deadline: string;
     description: string;
+    status: string;
     companyImages: string[];
 }

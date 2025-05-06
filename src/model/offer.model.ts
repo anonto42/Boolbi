@@ -1,5 +1,6 @@
 import { model, models, Schema } from "mongoose";
 import { IOffer } from "../Interfaces/offer.interface";
+import { OFFER_STATUS } from "../enums/offer.enum";
 
 const offerSchema = new Schema<IOffer>({
   customer: {
@@ -50,6 +51,10 @@ const offerSchema = new Schema<IOffer>({
     required: true,
     trim: true,
     min: 8
+  },
+  status:{
+    type: String,
+    enum: OFFER_STATUS
   },
   companyImages:[{
     type: String,
