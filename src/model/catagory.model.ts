@@ -17,6 +17,8 @@ const categorySchema = new Schema<ICatagory>({
     trim: true,
     min: 8
   }]
+},{
+  timestamps: true
 });
   
 const Catagroy = models.User || model('catagory', categorySchema);
