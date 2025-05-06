@@ -5,9 +5,13 @@ import { UserController } from '../controller/user.controller';
 const router = Router();
 
 router
+    .route("/user")
     .get(
-        "/test",
+
         UserController.signupUser
+    )
+    .post(
+        
     )
 
 
