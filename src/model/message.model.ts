@@ -18,6 +18,8 @@ const messageSchema = new Schema<IMessage>({
   image:[{
     type: String
   }]
+},{
+  timestamps: true
 });
 
 const Message = models.Order || model('message', messageSchema);

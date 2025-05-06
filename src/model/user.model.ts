@@ -1,5 +1,5 @@
 import { model, models, Schema } from "mongoose";
-import { IUser } from "../Interfaces/User.interface";
+import { IUser, Verification_For } from "../Interfaces/User.interface";
 import { ACCOUNT_STATUS, ACCOUTN_ACTVITY_STATUS, SELECTED_LANGUAGE, USER_ROLES } from "../enums/user.enums";
 
 const userSchema = new Schema<IUser>({
@@ -96,10 +96,21 @@ const userSchema = new Schema<IUser>({
     type: Boolean, 
     default: false 
   },
+  refreshToken:{
+    type: String,
+    trim: true
+  },
+  otpVerification:{
+    otp: Number,
+    time: Date,
+    verificationType:{
+      type: String,
+      enum: Verification_For,
+    }
+  }
 },{
   timestamps: true
 });
-
 
 const User = models.User || model('user', userSchema);
 export default User;

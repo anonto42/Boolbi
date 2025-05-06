@@ -1,7 +1,7 @@
 import { model, models, Schema } from "mongoose";
 import { IDR } from "../Interfaces/deliveryRequest.interface";
 
-const categorySchema = new Schema<IDR>({
+const deliveryRequestSchema = new Schema<IDR>({
   projectDoc:{
     type: String,
     required: true,
@@ -31,5 +31,5 @@ const categorySchema = new Schema<IDR>({
     timestamps: true
 });
   
-const Catagroy = models.User || model('catagory', categorySchema);
-export default Catagroy;
+const DeliveryRequest = models.User || model('deliveryRequest', deliveryRequestSchema);
+export default DeliveryRequest;
