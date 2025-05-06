@@ -1,21 +1,26 @@
-import { Document } from "mongoose";
-import { ACCOUNT_STATUS, ACCOUNT_VERIFICATION_STATUS, SELECTED_LANGUAGE } from "../enums/user.enums";
+import { Document, Types } from "mongoose";
 
 export interface IUser extends Document {
     fullName: string;
     email: string;
     role: string;
     password: string;
-    category: string;
-    subCatagory: string;
+    phone: string;
+    category: Types.ObjectId;
+    subCatagory: Types.ObjectId;
+    job: Types.ObjectId[];
+    createdOrder: Types.ObjectId[];
+    favouriteServices: Types.ObjectId[];
+    searchedCatagory: Types.ObjectId[];
+    offers: Types.ObjectId[];
     city: string;
     postalCode: string;
     address: string;
+    profileImage: string;
     samplePictures: string[];
     accountVerificationsPictures: string[];
-    accountActivityStatus: ACCOUNT_STATUS;
-    language: SELECTED_LANGUAGE;
-    profile_verification: ACCOUNT_VERIFICATION_STATUS;
-    createdAt: Date;
-    updatedAt: Date;
+    accountActivityStatus: string;
+    accountStatus: string;
+    language: string;
+    isVerified: boolean;
 }

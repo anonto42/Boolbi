@@ -5,9 +5,15 @@ export enum USER_ROLES {
   USER = 'USER',
 }
 
-export enum ACCOUNT_STATUS {
+export enum ACCOUTN_ACTVITY_STATUS {
   ACTIVE = 'ACTIVE',
   INACTIVE = "INACTIVE"
+}
+
+export enum ACCOUNT_STATUS {
+  ACTIVE = 'ACTIVE',
+  BLOCK = 'BLOCK',
+  REPORT = 'REPORT'
 }
 
 export enum SELECTED_LANGUAGE {
