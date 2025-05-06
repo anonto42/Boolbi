@@ -31,7 +31,7 @@ const userSchema = new Schema<IUser>({
   },
   job:[{
     type: Schema.Types.ObjectId,
-    ref: "job"
+    ref: "post"
   }],
   favouriteServices:[{
     type: Schema.Types.ObjectId,
