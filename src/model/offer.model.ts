@@ -56,6 +56,8 @@ const offerSchema = new Schema<IOffer>({
     required: true,
     trim: true
   }]
+},{
+  timestamps: true
 });
 
 const Offer = models.User || model('offer', offerSchema);
