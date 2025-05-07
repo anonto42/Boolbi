@@ -8,13 +8,11 @@ export type ILoginData = {
   password: string;
 };
 
-export type IAuthResetPassword = {
-  newPassword: string;
-  confirmPassword: string;
-};
 
 export type IChangePassword = {
   currentPassword: string;
-  newPassword: string;
+  password: string;
   confirmPassword: string;
+  email: string;
+  oparationType: "CHANGE_PASSWORD" | "FORGET_PASSWORD",
 };

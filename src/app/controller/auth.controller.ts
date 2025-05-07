@@ -43,7 +43,35 @@ const getOpt = catchAsync(
         sendResponse(res, {
             success: true,
             statusCode: StatusCodes.OK,
-            message: "An OTP has been sent to ${user.email}. Please check your inbox and continue!",
+            message: `An OTP has been sent to ${result.user.email}. Please check your inbox and continue!`,
+            data: result
+        })
+    }
+)
+
+const verifyOtp = catchAsync(
+    async( req: Request, res: Response ) => {
+        const {...data} = req.body;
+        const result = await AuthServices.verifyOtp(data);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Your OTP is verifyed successfully now you can change your password!",
+            data: result
+        })
+    }
+)
+
+const changePassword = catchAsync(
+    async( req: Request, res: Response ) => {
+        const {...data} = req.body;
+        const result = await AuthServices.changePassword(data);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Your pasword was changed successfully",
             data: result
         })
     }
@@ -53,4 +81,6 @@ const getOpt = catchAsync(
 export const AuthController = {
     SignIn,
     getOpt,
+    verifyOtp,
+    changePassword
 }

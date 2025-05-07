@@ -19,5 +19,19 @@ router
         AuthController.getOpt
     )
 
+router
+    .route("/verify-otp")
+    .post(
+        validateRequest(Validation.OTPZodSchema),
+        AuthController.verifyOtp
+    )
+
+router
+    .route("/change-password")
+    .post(
+        validateRequest(Validation.changePasswordZodSchema),
+        AuthController.changePassword
+    )
+
 
 export const AuthRouter = router;

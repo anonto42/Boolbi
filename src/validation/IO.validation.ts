@@ -39,8 +39,37 @@ const authEmailOTPZodSchema =  z.object({
   })
 });
 
+const OTPZodSchema =  z.object({
+  body: z.object({
+    email: z
+      .string({ required_error: "You must give your email to process next steps." })
+      .min(1, "Email is required.")
+      .email("Please provide a valid email address.")
+      .regex(emailRegex, "Email format is invalid."),
+    otp: z.string({ required_error: "You must give the otp"})
+  })
+});
+
+const changePasswordZodSchema =  z.object({
+  body: z.object({
+    email: z
+      .string({ required_error: "You must give your email to process next steps." })
+      .min(1, "Email is required.")
+      .email("Please provide a valid email address.")
+      .regex(emailRegex, "Email format is invalid."),
+    password: z.string({ required_error: "You must give the password"}),
+    confirmPassword: z.string({ required_error: "You must give the confirm password"}),
+    oparationType: z.enum(["CHANGE_PASSWORD" , "FORGET_PASSWORD"], {
+      required_error: "You must give your operation type to perform the operation"
+    })
+  })
+});
+
+
 export const Validation = {
   singnUpZodSchema,
   signInZodSchema,
-  authEmailOTPZodSchema
+  authEmailOTPZodSchema,
+  OTPZodSchema,
+  changePasswordZodSchema
 };
