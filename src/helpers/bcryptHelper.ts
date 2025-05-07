@@ -1,8 +1,10 @@
 import bcrypt from "bcryptjs";
 import config from "../config";
 
-const Hash = async ( input: string | number ) => {
-    return await bcrypt.hash( input.toString(), config.bcrypt_sart_rounds )
+const Hash = async ( input: string | number ) => { 
+    const saltRounds = parseInt(config.bcrypt_sart_rounds.toString(), 10);
+    
+    return await bcrypt.hash( input.toString(), saltRounds )
 }
 
 const compare = async ( plain: string | number, hashed: string ) => {
