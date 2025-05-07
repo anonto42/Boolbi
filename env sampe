@@ -1,0 +1,31 @@
+NODE_ENV=development
+ORIGIN=*
+PORT=3000
+
+DATABASE_URL=mongodb://localhost:27017
+DB_NAME=boolbi
+
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+JWT_SECRET=thisisThseJWTSecret
+JWT_EXPIRE_IN=7d
+
+BCRYPT_SALT_ROUNDS=1
+
+EMAIL_FROM=nnsnajmussakib@gmail.com
+EMAIL_USER=nnsnajmussakib@gmail.com
+EMAIL_PORT=587
+EMAIL_HOST=smtp.gmail.com
+#  EMAIL_PASS=zdcn xvxx hptc xbgc
+EMAIL_PASS=wgle inkd sbpo bofh
+
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_CALL_BACK_URL=
+
+FACEBOOK_APP_ID=your-facebook-app-id
+FACEBOOK_APP_SECRET=your-facebook-app-secret
+FACEBOOK_CALL_BACK_URL=
+
+SESSION_SECRET=
