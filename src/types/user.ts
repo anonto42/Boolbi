@@ -7,3 +7,8 @@ export type ISignUpData = {
     phone?: string, 
     role: "USER" | "SERVICE_PROVIDER"
 }
+
+export type SignInData = {
+    email: string,
+    password: string
+}
