@@ -1,13 +1,16 @@
 import { NextFunction, Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { Secret } from 'jsonwebtoken';
-import config from '../../config';
-import ApiError from '../../errors/ApiError';
-import { jwtHelper } from '../../helpers/jwtHelper';
+import { JwtPayload } from 'jsonwebtoken';
+import ApiError from '../errors/ApiError';
+import { jwtHelper } from '../helpers/jwtHelper';
+
+export interface ExpressReqest extends Request {
+  verifyedUser: JwtPayload
+}
 
 const auth =
   (...roles: string[]) =>
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: ExpressReqest, res: Response, next: NextFunction) => {
     try {
       const tokenWithBearer = req.headers.authorization;
       if (!tokenWithBearer) {
@@ -18,12 +21,9 @@ const auth =
         const token = tokenWithBearer.split(' ')[1];
 
         //verify token
-        const verifyUser = jwtHelper.verifyToken(
-          token,
-          config.jwt.jwt_secret as Secret
-        );
+        const verifyUser = jwtHelper.verifyToken(token);
         //set user to header
-        req.user = verifyUser;
+        req.verifyedUser = verifyUser;
 
         //guard user
         if (roles.length && !roles.includes(verifyUser.role)) {
