@@ -2,7 +2,8 @@ import { Document, Types } from "mongoose";
 
 export enum Verification_For { 
     FORMAT_PASSWORD = "FORMAT_PASSWORD", 
-    CHANGE_PASSWORD = "CHANGE_PASSWORD"
+    CHANGE_PASSWORD = "CHANGE_PASSWORD",
+    NULL = ""
 }
 
 export interface IUser extends Document {
@@ -32,6 +33,10 @@ export interface IUser extends Document {
     privacyPolicy: string;
     termsConditions: string;
     otpVerification: {
+        isVerified: {
+            status: boolean,
+            time: Date
+        },
         otp: number,
         time: Date,
         verificationType: Verification_For
