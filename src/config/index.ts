@@ -11,9 +11,10 @@ export default {
   email_pass: process.env.EMAIL_PASS,
   email_host: process.env.EMAIL_HOST,
   email_port: process.env.EMAIL_PORT,
+  email_from: process.env.EMAIL_FROM,
   db_url: process.env.DATABASE_URL,
   db_name: process.env.DB_NAME,
   port: process.env.PORT || 3000,
   origin: process.env.ORIGIN || "*",
-  session_secret: process.env.SESSION_SECRET!
+  session_secret: process.env.SESSION_SECRET!,
 };
