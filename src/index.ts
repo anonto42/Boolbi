@@ -9,11 +9,12 @@ import chalk from 'chalk';
 import globalErrorHandler from "./middlewares/globalErrorHandler";
 import { Morgan } from "./shared/morgen";
 import passport from "./helpers/OAuth.strategy"
+import config from "./config";
 
 // Initializing
 const app = express();
-const port = process.env.PORT || 3000;
-const origin = process.env.ORIGIN || "*";
+const port = config.port;
+const origin = config.origin;
 
 //Env config
 dotenv.config({
@@ -36,7 +37,7 @@ app.use(cors({
 // Sesstion
 app.use(
   session({
-    secret: process.env.SESSION_SECRET! || "default_secret",
+    secret: config.session_secret || "default_secret",
     resave: false,
     saveUninitialized: true
   })

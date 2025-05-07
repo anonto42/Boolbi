@@ -5,9 +5,10 @@ import handleValidationError from '../errors/handleValidationError';
 import ApiError from '../errors/ApiError';
 import { IErrorMessage } from '../types/errors.types';
 import { errorLogger } from '../shared/logger';
+import config from '../config';
 
 const globalErrorHandler: ErrorRequestHandler = (error, req, res, next) => {
-  process.env.NODE_ENV === 'development'
+  config.node_env === 'development'
     ? console.log('🚨 globalErrorHandler ~~ ', error)
     : errorLogger.error('🚨 globalErrorHandler ~~ ', error);
 
@@ -64,7 +65,7 @@ const globalErrorHandler: ErrorRequestHandler = (error, req, res, next) => {
     success: false,
     message,
     errorMessages,
-    stack: process.env.NODE_ENV !== 'production' ? error?.stack : undefined,
+    stack: config.node_env !== 'production' ? error?.stack : undefined,
   });
 };
 

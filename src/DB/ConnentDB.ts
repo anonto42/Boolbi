@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
+import config from '../config';
 const DBConnection = async () => {
-    const MONGO_URI = process.env.DATABASE_URL;
-    const DB_NAME = process.env.DB_NAME;
+    const MONGO_URI = config.db_url;
+    const DB_NAME = config.db_name;
     
     if (!MONGO_URI) {
         throw new Error("DATABASE_URL environment variable is not defined!");

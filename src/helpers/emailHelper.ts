@@ -1,14 +1,15 @@
 import nodemailer from 'nodemailer';
 import { errorLogger, logger } from '../shared/logger';
 import { ISendEmail } from '../types/email';
+import config from '../config';
 
 const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: Number(process.env.EMAIL_PORT),
+  host: config.email_host,
+  port: Number(config.email_port),
   secure: false,
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: config.email_user,
+    pass: config.email_pass,
   },
 });
 
