@@ -95,9 +95,9 @@ const userSchema = new Schema<IUser>({
     type: Boolean, 
     default: false 
   },
-  refreshToken:{
-    type: String,
-    trim: true
+  accountBalance:{
+    type: Number,
+    default: 0
   },
   otpVerification:{
     otp: Number,
