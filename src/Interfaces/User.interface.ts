@@ -29,6 +29,8 @@ export interface IUser extends Document {
     language: string;
     isVerified: boolean;
     refreshToken: string;
+    privacyPolicy: string;
+    termsConditions: string;
     otpVerification: {
         otp: number,
         time: Date,

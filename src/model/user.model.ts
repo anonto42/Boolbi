@@ -107,6 +107,14 @@ const userSchema = new Schema<IUser>({
       type: String,
       enum: Verification_For,
     }
+  },
+  privacyPolicy:{
+    type: String,
+    trim: true
+  },
+  termsConditions:{
+    type: String,
+    trim: true
   }
 },{
   timestamps: true
