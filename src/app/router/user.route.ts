@@ -1,17 +1,15 @@
 import { Router } from 'express';
 import { UserController } from '../controller/user.controller';
-
+import validateRequest from '../../middlewares/validateRequest';
+import { Validation } from '../../validation/IO.validation';
 
 const router = Router();
 
 router
-    .route("/user")
-    .get(
-
-        UserController.signupUser
-    )
+    .route("/")
     .post(
-        
+        validateRequest(Validation.singnUpZodSchema),
+        UserController.signupUser
     )
 
 
