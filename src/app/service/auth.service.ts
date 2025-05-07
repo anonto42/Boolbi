@@ -4,6 +4,9 @@ import User from "../../model/user.model";
 import { SignInData } from "../../types/user"
 import { jwtHelper } from "../../helpers/jwtHelper";
 import { bcryptjs } from "../../helpers/bcryptHelper";
+import generateOTP from "../../util/generateOTP";
+import { emailTemplate } from "../../shared/emailTemplate";
+import { emailHelper } from "../../helpers/emailHelper";
 
 
 const signIn = async ( 
@@ -26,6 +29,38 @@ const signIn = async (
     return { token, user: userWithoutPassword }
 }
 
+const emailSend = async (
+    payload : { email: string, verificationType: "FORMAT_PASSWORD" | "CHANGE_PASSWORD" | "ACCOUNT_VERIFICATION" }
+) => {
+    const { email } = payload;
+    const isUser = await User.findOne({email});
+    if (!isUser) {
+        throw new ApiError(StatusCodes.NOT_FOUND,`No account exists with this ( ${email} ) email`)
+    };
+    
+    // generate otp
+    const otp = generateOTP();
+
+    //Send Mail
+    const forgetPassword = emailTemplate.sendMail({otp, email,name: isUser.fullName, subjet: payload.verificationType});
+    emailHelper.sendEmail(forgetPassword);
+
+    await User.updateOne(
+        { email },
+        {
+          $set: {
+            'otpVerification.otp': otp,
+            'otpVerification.time': new Date(Date.now() + 3 * 60000),
+            'otpVerification.verificationType': payload.verificationType,
+          },
+        }
+    );
+      
+    return {}
+}
+
+
 export const AuthServices = {
-    signIn
+    signIn,
+    emailSend,
 }

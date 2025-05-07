@@ -35,6 +35,22 @@ const SignIn = catchAsync(
     }
 )
 
+const getOpt = catchAsync(
+    async( req: Request, res: Response ) => {
+        const {...data} = req.body;
+        const result = await AuthServices.emailSend(data);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "An OTP has been sent to ${user.email}. Please check your inbox and continue!",
+            data: result
+        })
+    }
+)
+
+
 export const AuthController = {
-    SignIn
+    SignIn,
+    getOpt,
 }

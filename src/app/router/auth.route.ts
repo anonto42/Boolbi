@@ -12,5 +12,12 @@ router
         AuthController.SignIn
     )
 
+router
+    .route("/send-otp")
+    .post(
+        validateRequest(Validation.authEmailOTPZodSchema),
+        AuthController.getOpt
+    )
+
 
 export const AuthRouter = router;
