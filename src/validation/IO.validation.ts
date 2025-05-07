@@ -11,7 +11,15 @@ const singnUpZodSchema = z.object({
   }),
 });
 
+const signInZodSchema = z.object({
+  body: z.object({
+    email: z.string({ required_error: "Email is mandatory. Please provide a valid email address to singin."}),
+    password: z.string({ required_error: "Please provide your password."})
+  })
+})
+
 
 export const Validation = {
-  singnUpZodSchema
+  singnUpZodSchema,
+  signInZodSchema
 };
