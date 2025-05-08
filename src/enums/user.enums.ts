@@ -17,10 +17,10 @@ export enum ACCOUNT_STATUS {
 }
 
 export enum SELECTED_LANGUAGE {
-  GERMAN = 'GERMAN',
-  TURKISH = 'TURKISH',
-  ENGLISH = 'ENGLISH',
-  SPANISH = 'SPANISH'
+  ENGLISH = 'en',
+  GERMAN = 'de',
+  TURKISH = 'tr',
+  SPANISH = 'es',
 }
 
 export enum ACCOUNT_VERIFICATION_STATUS {
