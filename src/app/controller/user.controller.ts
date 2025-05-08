@@ -18,6 +18,56 @@ const signupUser = catchAsync(
     }
 )
 
+const profile = catchAsync(
+    async( req, res ) => {
+        const user = (req as any)?.user;
+        console.log({user})
+        const result = await UserServices.profle(user)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "User profile data get successfully",
+            data: result
+        })
+    }
+)
+
+const update = catchAsync(
+    async( req, res ) => {
+        const user = (req as any)?.user;
+        const {...Data} = req.body;
+        console.log({user})
+        const result = await UserServices.UP(user,Data)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Profile update successfully",
+            data: result
+        })
+    }
+)
+
+const language = catchAsync(
+    async( req:Request, res:Response ) => {
+        const user = (req as any)?.user;
+        const {...Data} = req.body;
+        console.log({user})
+        const result = await UserServices.UP(user,Data)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Profile update successfully",
+            data: result
+        })
+    }
+)
+
 export const UserController = {
     signupUser,
+    profile,
+    update,
+    language
 }

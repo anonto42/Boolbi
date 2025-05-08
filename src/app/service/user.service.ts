@@ -1,11 +1,11 @@
 import { StatusCodes } from "http-status-codes";
-import { USER_ROLES } from "../../enums/user.enums"
 import ApiError from "../../errors/ApiError";
 import User from "../../model/user.model";
 import { ISignUpData } from "../../types/user"
 import { jwtHelper } from "../../helpers/jwtHelper";
 import { bcryptjs } from "../../helpers/bcryptHelper";
 import { IUser } from "../../Interfaces/User.interface";
+import { JwtPayload } from "jsonwebtoken";
 
 //User signUp
 const signUp = async ( 
@@ -47,14 +47,73 @@ const signUp = async (
     const createToken = jwtHelper.createToken(
         {
             userID: user._id,
-            language: user.language,
-            role: user.role
+            role: user.role,
         }
     )
 
     return { user: userObject, token: createToken }
 }
 
+//All Profile Information // aggrigation will use later in hear
+const profle = async ( 
+    payload : JwtPayload
+) => {
+    const { userID, role } = payload;
+
+    const isExist = await User.findOne({_id: userID})
+    if (!isExist) {
+        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
+    };
+
+    return isExist
+}
+
+const UP = async ( 
+    payload : JwtPayload,
+    data : IUser
+) => {
+    const { userID } = payload;
+    const { fullName, email, phone, city, address, postalCode, language, category, subCatagory, samplePictures, profileImage, serviceDescription } = data;
+
+    const isExist = await User.findOne({_id: userID})
+    if (!isExist) {
+        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
+    };
+
+    const dataForUpdate = { 
+        fullName, 
+        email, 
+        phone, 
+        city, 
+        address, 
+        postalCode, 
+        language, 
+        category, 
+        subCatagory, 
+        samplePictures, 
+        profileImage, 
+        serviceDescription 
+    }
+
+    const updatedUser = await User.findOneAndUpdate({_id: isExist._id},dataForUpdate)
+
+    return updatedUser
+}
+
+const language = async (
+    {
+        language,
+        payload
+    }: {
+        language: string,
+        payload: JwtPayload
+    }
+) => {
+    
+}
+
 export const UserServices = {
-    signUp
+    signUp,
+    profle,
+    UP
 }
