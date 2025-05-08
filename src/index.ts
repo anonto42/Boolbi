@@ -1,14 +1,12 @@
 import express from "express";
 import cors from 'cors';
 import cookie from 'cookie-parser';
-import session from "express-session";
 import dotenv from "dotenv";
 import router from "./routes/index.route";
 import DBConnection from "./DB/ConnentDB";
 import chalk from 'chalk';
 import globalErrorHandler from "./middlewares/globalErrorHandler";
 import { Morgan } from "./shared/morgen";
-import passport from "./helpers/OAuth.strategy"
 import config from "./config";
 
 // Initializing
@@ -33,19 +31,6 @@ app.use(cors({
   origin: origin,
   credentials: true
 }));
-
-// Sesstion
-app.use(
-  session({
-    secret: config.session_secret || "default_secret",
-    resave: false,
-    saveUninitialized: true
-  })
-)
-
-//Passport
-// app.use(passport.initialize());
-// app.use(passport.session());
 
 //Api endpoints
 app.use("/api/v1",router)

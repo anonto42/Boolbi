@@ -50,7 +50,7 @@ const OTPZodSchema =  z.object({
   })
 });
 
-const changePasswordZodSchema =  z.object({
+const changePasswordZodSchema = z.object({
   body: z.object({
     email: z
       .string({ required_error: "You must give your email to process next steps." })
@@ -65,11 +65,19 @@ const changePasswordZodSchema =  z.object({
   })
 });
 
+const socalLoginZodSchema = z.object({
+  body: z.object({
+    appID: z.string({ required_error: "You must give the appID of login." }),
+    provider: z.string({required_error: "You must your login provider"})
+  })
+});
+
 
 export const Validation = {
   singnUpZodSchema,
   signInZodSchema,
   authEmailOTPZodSchema,
   OTPZodSchema,
-  changePasswordZodSchema
+  changePasswordZodSchema,
+  socalLoginZodSchema
 };

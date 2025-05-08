@@ -33,5 +33,12 @@ router
         AuthController.changePassword
     )
 
+router
+    .route("/socal-login")
+    .post(
+        validateRequest(Validation.socalLoginZodSchema),
+        AuthController.socalLogin
+    )
+
 
 export const AuthRouter = router;

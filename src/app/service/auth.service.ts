@@ -7,8 +7,7 @@ import { bcryptjs } from "../../helpers/bcryptHelper";
 import generateOTP from "../../util/generateOTP";
 import { emailTemplate } from "../../shared/emailTemplate";
 import { emailHelper } from "../../helpers/emailHelper";
-import { IChangePassword } from "../../types/auth";
-
+import { IChangePassword, ISocalLogin } from "../../types/auth";
 
 const signIn = async ( 
     payload : SignInData
@@ -38,6 +37,10 @@ const emailSend = async (
     if (!isUser) {
         throw new ApiError(StatusCodes.NOT_FOUND,`No account exists with this ( ${email} ) email`)
     };
+
+    if (isUser.isSocialAccount.isSocial) {
+        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,`Your can't set your password on your account because you have create your user with socal credentials!`)
+    }
     
     // generate otp
     const otp = generateOTP();
@@ -150,10 +153,40 @@ const changePassword = async (
     return true;
 } 
 
+const socalLogin = async (
+    {
+        appID,
+        provider
+    } : ISocalLogin,
+) => {
+    const isUserExist = await User.findOne({
+        'isSocialAccount.socialIdentity': appID
+    });
+
+    // Create user if there is not any user
+    if ( !isUserExist ) {
+        const user = await User.create({
+            'isSocialAccount.isSocial': true,
+            'isSocialAccount.socialIdentity': appID,
+            'isSocialAccount.provider': provider,
+            password: "__",
+            email: "--",
+            fullName: "--",
+            role: "USER"
+        })
+        
+        const token = jwtHelper.createToken({language: "en", role: user.role, userID: user._id});
+        return { token };
+    };
+    
+    const token = jwtHelper.createToken({language: "en", role: isUserExist.role, userID: isUserExist});
+    return { token };
+} 
 
 export const AuthServices = {
     signIn,
     emailSend,
     verifyOtp,
-    changePassword
+    changePassword,
+    socalLogin
 }

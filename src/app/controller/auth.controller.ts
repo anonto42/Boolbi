@@ -77,10 +77,24 @@ const changePassword = catchAsync(
     }
 )
 
+const socalLogin = catchAsync(
+    async( req: Request, res: Response ) => {
+        const {...data} = req.body;
+        const result = await AuthServices.socalLogin(data);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Authintication is completed successfully",
+            data: result
+        })
+    }
+)
 
 export const AuthController = {
     SignIn,
     getOpt,
     verifyOtp,
-    changePassword
+    changePassword,
+    socalLogin
 }

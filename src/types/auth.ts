@@ -8,7 +8,6 @@ export type ILoginData = {
   password: string;
 };
 
-
 export type IChangePassword = {
   currentPassword: string;
   password: string;
@@ -16,3 +15,8 @@ export type IChangePassword = {
   email: string;
   oparationType: "CHANGE_PASSWORD" | "FORGET_PASSWORD",
 };
+
+export type ISocalLogin = {
+  appID: string;
+  provider: string
+}

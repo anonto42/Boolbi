@@ -16,5 +16,4 @@ export default {
   db_name: process.env.DB_NAME,
   port: process.env.PORT || 3000,
   origin: process.env.ORIGIN || "*",
-  session_secret: process.env.SESSION_SECRET!,
 };

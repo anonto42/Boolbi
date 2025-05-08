@@ -121,6 +121,19 @@ const userSchema = new Schema<IUser>({
   termsConditions:{
     type: String,
     trim: true
+  },
+  isSocialAccount:{
+    isSocal:{
+      type: Boolean,
+      default: false
+    },
+    provider:{
+      type: String,
+      default: ""
+    },
+    socialIdentity:{
+      type: String
+    }
   }
 },{
   timestamps: true

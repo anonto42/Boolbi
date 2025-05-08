@@ -1,4 +1,5 @@
 import { Document, Types } from "mongoose";
+import { string } from "zod";
 
 export enum Verification_For { 
     FORMAT_PASSWORD = "FORMAT_PASSWORD", 
@@ -40,5 +41,10 @@ export interface IUser extends Document {
         otp: number,
         time: Date,
         verificationType: Verification_For
-    }
+    };
+    isSocialAccount:{
+        isSocal: boolean;
+        provider: string;
+        socialIdentity: string;
+    };
 }
