@@ -21,7 +21,6 @@ const signupUser = catchAsync(
 const profile = catchAsync(
     async( req, res ) => {
         const user = (req as any)?.user;
-        console.log({user})
         const result = await UserServices.profle(user)
 
         sendResponse(res, {
@@ -37,7 +36,6 @@ const update = catchAsync(
     async( req, res ) => {
         const user = (req as any)?.user;
         const {...Data} = req.body;
-        console.log({user})
         const result = await UserServices.UP(user,Data)
 
         sendResponse(res, {
@@ -51,10 +49,9 @@ const update = catchAsync(
 
 const language = catchAsync(
     async( req:Request, res:Response ) => {
-        const user = (req as any)?.user;
-        const {...Data} = req.body;
-        console.log({user})
-        const result = await UserServices.UP(user,Data)
+        const payload = (req as any)?.user;
+        const { language } = req.body;
+        const result = await UserServices.language({payload,language})
 
         sendResponse(res, {
             success: true,

@@ -102,18 +102,26 @@ const UP = async (
 
 const language = async (
     {
+        payload,
         language,
-        payload
     }: {
+        payload: JwtPayload,
         language: string,
-        payload: JwtPayload
     }
 ) => {
-    
+    const isUserExist = await User.findById(payload.userID);
+    if (!isUserExist) {
+        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
+    };
+
+    const user = await User.findOneAndUpdate(isUserExist._id,{ $set: { language }})
+
+    return user
 }
 
 export const UserServices = {
     signUp,
     profle,
-    UP
+    UP,
+    language
 }
