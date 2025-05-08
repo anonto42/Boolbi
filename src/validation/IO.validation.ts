@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SELECTED_LANGUAGE } from '../enums/user.enums';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -72,6 +73,29 @@ const socalLoginZodSchema = z.object({
   })
 });
 
+const userUpdateProfileZodSchem = z.object({
+  body: z.object({
+    fullName: z.string().optional(), 
+    email: z.string().optional(), 
+    phone: z.string().optional(), 
+    city: z.string().optional(), 
+    address: z.string().optional(), 
+    postalCode: z.string().optional(), 
+    language: z.string().optional(), 
+    category: z.string().optional(), 
+    subCatagory: z.string().optional(), 
+    samplePictures: z.string().optional(),
+    profileImage: z.string().optional(), 
+    serviceDescription: z.string().optional() 
+  })
+}); 
+
+const updateUserLangouageZodSchem =  z.object({
+  body: z.object({
+    language: z
+      .enum(["ENGLISH","SPANISH","TURKISH","GERMAN"])
+  })
+});
 
 export const Validation = {
   singnUpZodSchema,
@@ -79,5 +103,7 @@ export const Validation = {
   authEmailOTPZodSchema,
   OTPZodSchema,
   changePasswordZodSchema,
-  socalLoginZodSchema
+  socalLoginZodSchema,
+  userUpdateProfileZodSchem,
+  updateUserLangouageZodSchem
 };

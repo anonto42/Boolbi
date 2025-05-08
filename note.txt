@@ -1,16 +1,16 @@
 fun: 
-    -- auth 
-        -- login
-            -- facebook
-            -- google
-            -- apple
-        -- sign up
-            -- castomer
-            -- service providers
-        -- verify accout with email 
-        -- forgot password
-            " give a email for send the the OTP create a new password "
-            ( Super user can only singin and reset password )
+#    -- auth 
+#        -- login
+#            -- facebook
+#            -- google
+#            -- apple
+#        -- sign up
+#            -- castomer
+#            -- service providers
+#        -- verify accout with email 
+#        -- forgot password
+#            " give a email for send the the OTP create a new password "
+#            ( Super user can only singin and reset password )
 
     -- job
         -- customer

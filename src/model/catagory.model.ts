@@ -12,11 +12,11 @@ const categorySchema = new Schema<ICatagory>({
     type: String,
     required: true,
   },
-  subCatagorys:[{
+  subCatagorys:{
     type: String,
     trim: true,
     min: 8
-  }]
+  }
 },{
   timestamps: true
 });

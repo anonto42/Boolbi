@@ -22,12 +22,10 @@ const userSchema = new Schema<IUser>({
     trim: true
   },
   category:{
-    type: Schema.Types.ObjectId,
-    ref: "catagory"
+    type: String
   },
   subCatagory:{
-    type: Schema.Types.ObjectId,
-    ref: "sub_catagory"
+    type: String
   },
   job:[{
     type: Schema.Types.ObjectId,
@@ -75,6 +73,7 @@ const userSchema = new Schema<IUser>({
   },
   samplePictures: [ { type: String } ],
   profileImage: String,
+  serviceDescription: String,
   accountVerificationsPictures: [{ type: String }],
   accountActivityStatus: { 
     type: String, 

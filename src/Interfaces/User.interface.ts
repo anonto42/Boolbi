@@ -13,8 +13,8 @@ export interface IUser extends Document {
     role: string;
     password: string;
     phone: string;
-    category: Types.ObjectId;
-    subCatagory: Types.ObjectId;
+    category: string;
+    subCatagory: string;
     job: Types.ObjectId[];
     createdOrder: Types.ObjectId[];
     favouriteServices: Types.ObjectId[];
@@ -33,6 +33,7 @@ export interface IUser extends Document {
     accountBalance: number;
     privacyPolicy: string;
     termsConditions: string;
+    serviceDescription: string;
     otpVerification: {
         isVerified: {
             status: boolean,
