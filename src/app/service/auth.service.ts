@@ -75,7 +75,7 @@ const verifyOtp = async (
 
     await User.findByIdAndUpdate({_id: isUser._id},{$set: {
         "otpVerification.isVerified.status": true,
-        "otpVerification.isVerified.time": new Date( Date.now() + 10 * 6000 )
+        "otpVerification.isVerified.time": new Date(Date.now() + 10 * 60 * 1000)
     }});
 
     await User.updateOne(
@@ -83,7 +83,7 @@ const verifyOtp = async (
         {
           $set: {
             'otpVerification.otp': 0,
-            'otpVerification.time': new Date( 0 ),
+            'otpVerification.time': new Date(),
             'otpVerification.verificationType': ""
           },
         }
@@ -100,17 +100,20 @@ const changePassword = async (
     if (!isUser) {
         throw new ApiError(StatusCodes.NOT_FOUND,`No account exists with this ( ${email} ) email`)
     };
-
-    if ( !isUser.otpVerification.status ) {
+    
+    console.log("first")
+    if ( !isUser.otpVerification.isVerified.status ) {
         throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"Your verification date is over now you can't change the password!")
     };
 
-    if ( isUser.otpVerification.time < new Date( Date.now())  ) {
+    console.log("second")
+    if ( isUser.otpVerification.isVerified.time < new Date( Date.now())  ) {
         throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"Your verification date is over now you can't change the password!")
     };
-
+    
+    console.log("therd")
     if (password !== confirmPassword) {
-        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"please check your new password and the confirm password!")
+        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"Please check your new password and the confirm password!")
     };
 
     if ( oparationType === "CHANGE_PASSWORD" ) {
