@@ -3,6 +3,8 @@ import catchAsync from "../../shared/catchAsync"
 import sendResponse from "../../shared/sendResponse";
 import { StatusCodes } from "http-status-codes";
 import { UserServices } from "../service/user.service";
+import { getMultipleFilesPath } from "../../shared/getFilePath";
+import ApiError from "../../errors/ApiError";
 
 const signupUser = catchAsync(
     async( req: Request, res: Response ) => {
@@ -47,6 +49,23 @@ const update = catchAsync(
     }
 )
 
+const uploadImages = catchAsync(
+    async( req, res ) => {
+        const user = (req as any)?.user;
+        const {...Data} = req.body;
+
+        const image = getMultipleFilesPath(req.files,"image")
+        const result = await UserServices.Images(user,Data,image!)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully got the images",
+            data: result
+        })
+    }
+)
+
 const language = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
@@ -66,5 +85,6 @@ export const UserController = {
     signupUser,
     profile,
     update,
-    language
+    language,
+    uploadImages
 }

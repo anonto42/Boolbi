@@ -11,3 +11,8 @@ export interface IPost extends Document {
     showcaseImages: string[];
     creatorID: Types.ObjectId;
 }
+
+export interface IPhotos{
+    fildName: string;
+    images: File[];
+}

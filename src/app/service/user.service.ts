@@ -6,6 +6,8 @@ import { jwtHelper } from "../../helpers/jwtHelper";
 import { bcryptjs } from "../../helpers/bcryptHelper";
 import { IUser } from "../../Interfaces/User.interface";
 import { JwtPayload } from "jsonwebtoken";
+import { IPhotos } from "../../Interfaces/post.interface";
+import unlinkFile from "../../shared/unlinkFile";
 
 //User signUp
 const signUp = async ( 
@@ -68,6 +70,7 @@ const profle = async (
     return isExist
 }
 
+//Update the user profile
 const UP = async ( 
     payload : JwtPayload,
     data : IUser
@@ -90,8 +93,7 @@ const UP = async (
         language, 
         category, 
         subCatagory, 
-        samplePictures, 
-        profileImage, 
+        samplePictures,
         serviceDescription 
     }
 
@@ -100,6 +102,45 @@ const UP = async (
     return updatedUser
 }
 
+//Profile images update
+const Images = async ( 
+    payload : JwtPayload,
+    data : IPhotos,
+    images: string[] | string
+) => {
+    const { userID } = payload;
+    const { fildName } = data;
+    if (!fildName) throw new ApiError(StatusCodes.BAD_REQUEST,"You must give the the name of your fild to add the images");
+
+    const isExist = await User.findOne({_id: userID});
+    if (!isExist) {
+        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
+    };
+
+    if (fildName !== "profileImage" && images.length > 1) {
+
+        if ( images.length < 2 ) unlinkFile(images[0])
+        else (images as string[]).map( (e: any) => unlinkFile(e))
+
+        throw new ApiError(StatusCodes.BAD_GATEWAY,"You are not able to do that!")
+    };
+
+    if (fildName === "profileImage") {
+        await User.updateOne({_id: isExist._id},{ profileImage: images[0] })
+        return images[0]
+    };
+
+    if ( fildName === "samplePictures") {
+        await User.updateOne({_id: isExist._id},{ samplePictures: images })
+        return images
+    };
+
+    if ( fildName !== "samplePictures" && fildName !== "profileImage" ) {
+        throw new ApiError(StatusCodes.BAD_REQUEST,"You give a wrong inpout on the fildName you must give profileImage or samplePictures")
+    };
+}
+
+//Change the langouage of the user
 const language = async (
     {
         payload,
@@ -119,9 +160,13 @@ const language = async (
     return user
 }
 
+//
+
+
 export const UserServices = {
     signUp,
     profle,
     UP,
-    language
+    language,
+    Images
 }
