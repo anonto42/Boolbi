@@ -4,7 +4,6 @@ import sendResponse from "../../shared/sendResponse";
 import { StatusCodes } from "http-status-codes";
 import { UserServices } from "../service/user.service";
 import { getMultipleFilesPath } from "../../shared/getFilePath";
-import ApiError from "../../errors/ApiError";
 
 const signupUser = catchAsync(
     async( req: Request, res: Response ) => {
@@ -81,10 +80,27 @@ const language = catchAsync(
     }
 )
 
+const postJob = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const { ...data } = req.body;
+        const images = getMultipleFilesPath(req.files,"image")
+        const result = await UserServices.jobPost(payload, data, images as string[])
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully posted your job Post",
+            data: result
+        })
+    }
+)
+
 export const UserController = {
     signupUser,
     profile,
     update,
     language,
-    uploadImages
+    uploadImages,
+    postJob
 }

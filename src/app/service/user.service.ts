@@ -1,13 +1,15 @@
 import { StatusCodes } from "http-status-codes";
 import ApiError from "../../errors/ApiError";
 import User from "../../model/user.model";
-import { ISignUpData } from "../../types/user"
+import { ISignUpData, JobPost } from "../../types/user"
 import { jwtHelper } from "../../helpers/jwtHelper";
 import { bcryptjs } from "../../helpers/bcryptHelper";
 import { IUser } from "../../Interfaces/User.interface";
 import { JwtPayload } from "jsonwebtoken";
-import { IPhotos } from "../../Interfaces/post.interface";
+import { IPhotos, IPost } from "../../Interfaces/post.interface";
 import unlinkFile from "../../shared/unlinkFile";
+import Post from "../../model/post.model";
+import { Types } from "mongoose";
 
 //User signUp
 const signUp = async ( 
@@ -160,13 +162,54 @@ const language = async (
     return user
 }
 
-//
+//Create job post
+const jobPost =  async (
+    payload: JwtPayload,
+    data: JobPost,
+    images: string[]
+) => {
+    const { userID } = payload;
+    const {catagory, companyName, deadline, description, location, title, postType} = data;
+    const isUserExist = await User.findOne({_id: userID });
+    if (!isUserExist) {
+        throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
+    };
+    const isJobExistWithTitle = await Post.findOne({title});
+    if (isJobExistWithTitle) {
+        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,`A job already exist on named ${title}`);
+    };
 
+    if ( images?.length < 1 ) {
+        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"You must give at least one image to public the job post")
+    };
+
+    const jobData = {
+        title,
+        catagory: catagory,
+        postType,
+        companyName,
+        location,
+        deadline,
+        jobDescription: description,
+        showcaseImages: images,
+        creatorID: isUserExist._id
+    };
+ 
+    const post = await Post.create(jobData);
+    if (!post) {
+        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"Somting was problem on create the job pleas try again")
+    };
+
+    await isUserExist?.post?.push(post._id as Types.ObjectId)
+
+    return post;
+}
 
 export const UserServices = {
     signUp,
     profle,
     UP,
     language,
-    Images
+    Images,
+    jobPost
 }

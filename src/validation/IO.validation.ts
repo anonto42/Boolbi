@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { SELECTED_LANGUAGE } from '../enums/user.enums';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -97,6 +96,18 @@ const updateUserLangouageZodSchem =  z.object({
   })
 });
 
+const jobPostZodSchem =  z.object({
+  body: z.object({
+    catagory: z.string({required_error: "You must give the job catagory"}), 
+    companyName: z.string({required_error: "You must give the company name"}), 
+    deadline: z.string({required_error: "You must give the job deadline"}),
+    description: z.string({required_error: "You must give the job description"}), 
+    location: z.string({required_error: "You must give the job location"}), 
+    title: z.string({required_error: "You must give the job title"}),
+    postType: z.enum(["JOB","SERVICE"])
+  })
+});
+
 export const Validation = {
   singnUpZodSchema,
   signInZodSchema,
@@ -105,5 +116,6 @@ export const Validation = {
   changePasswordZodSchema,
   socalLoginZodSchema,
   userUpdateProfileZodSchem,
-  updateUserLangouageZodSchem
+  updateUserLangouageZodSchem,
+  jobPostZodSchem
 };

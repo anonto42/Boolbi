@@ -39,9 +39,11 @@ router
 
 router
     .route("/job")
-    .get()
     .post(
-        auth( USER_ROLES.USER )
+        auth( USER_ROLES.USER ),
+        fileUploadHandler(),
+        validateRequest( Validation.jobPostZodSchem ),
+        UserController.postJob
     )
 
 
