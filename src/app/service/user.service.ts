@@ -10,7 +10,7 @@ import { IPhotos } from "../../Interfaces/post.interface";
 import unlinkFile from "../../shared/unlinkFile";
 import Post from "../../model/post.model";
 import { Types } from "mongoose";
-import { ACCOUNT_STATUS, ACCOUTN_ACTVITY_STATUS } from "../../enums/user.enums";
+import { ACCOUNT_STATUS, ACCOUTN_ACTVITY_STATUS, USER_ROLES } from "../../enums/user.enums";
 
 //User signUp
 const signUp = async ( 
@@ -226,6 +226,52 @@ const accountStatus = async (
     return user;
 }
 
+//Privacy & Policy
+const privacy = async ( 
+    payload : JwtPayload
+) => {
+    const { userID } = payload;
+
+    const isExist = await User.findOne({_id: userID})
+    if (!isExist) {
+        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
+    };
+
+    if ( isExist.accountStatus === ACCOUNT_STATUS.DELETE || isExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
+    };
+
+    const privacy = await User.findOne({ role: USER_ROLES.SUPER_ADMIN });
+    if (!privacy) {
+        return ""
+    }
+
+    return privacy.privacyPolicy;
+}
+
+//Terms & Conditions
+const conditions = async ( 
+    payload : JwtPayload
+) => {
+    const { userID } = payload;
+
+    const isExist = await User.findOne({_id: userID})
+    if (!isExist) {
+        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
+    };
+
+    if ( isExist.accountStatus === ACCOUNT_STATUS.DELETE || isExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
+    };
+
+    const condition = await User.findOne({ role: USER_ROLES.SUPER_ADMIN });
+    if (!condition) {
+        return ""
+    }
+
+    return condition.termsConditions;
+}
+
 //Create job post
 const jobPost =  async (
     payload: JwtPayload,
@@ -282,5 +328,7 @@ export const UserServices = {
     language,
     Images,
     jobPost,
-    accountStatus
+    accountStatus,
+    privacy,
+    conditions
 }

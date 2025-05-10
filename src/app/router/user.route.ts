@@ -41,6 +41,20 @@ router
     )
 
 router
+    .route('/privacy')
+    .get(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        UserController.privacy
+    )
+
+router
+    .route('/condition')
+    .get(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        UserController.condition
+    )
+
+router
     .route("/image")
     .patch(
         auth( USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER ),

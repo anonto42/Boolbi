@@ -108,6 +108,34 @@ const status = catchAsync(
     }
 )
 
+const privacy = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const result = await UserServices.privacy(payload)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Seccessfully got the privacy & Policy",
+            data: result
+        })
+    }
+)
+
+const condition = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const result = await UserServices.conditions(payload)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully got the terms & conditions",
+            data: result
+        })
+    }
+)
+
 const postJob = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
@@ -132,5 +160,7 @@ export const UserController = {
     uploadImages,
     postJob,
     profileDelete,
-    status
+    status,
+    privacy,
+    condition
  }
