@@ -152,6 +152,79 @@ const postJob = catchAsync(
     }
 )
 
+const post = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const result = await UserServices.post(payload)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully got all Post",
+            data: result
+        })
+    }
+)
+
+const deletePost = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const {...Data} = await req.body;
+        const result = await UserServices.deleteJob(payload,Data)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully delete the Post",
+            data: result
+        })
+    }
+)
+
+const favorite = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const {...Data} = await req.body;
+        const result = await UserServices.favorite(payload,Data)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully added to the favorite list",
+            data: result
+        })
+    }
+)
+
+const getFavorite = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const result = await UserServices.getFavorite(payload)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "All favorite item list",
+            data: result
+        })
+    }
+)
+
+const removeFavorite = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const {...Data} = await req.body;
+        const result = await UserServices.removeFavorite(payload,Data)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Removed from favorite",
+            data: result
+        })
+    }
+)
+
 export const UserController = {
     signupUser,
     profile,
@@ -162,5 +235,10 @@ export const UserController = {
     profileDelete,
     status,
     privacy,
-    condition
+    condition,
+    post,
+    favorite,
+    getFavorite,
+    removeFavorite,
+    deletePost
  }

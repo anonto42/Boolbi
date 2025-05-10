@@ -315,11 +315,188 @@ const jobPost =  async (
     if (!post) {
         throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"Somting was problem on create the job pleas try again")
     };
+    
+    isUserExist.job.push(post._id as Types.ObjectId)
 
-    await isUserExist?.post?.push(post._id as Types.ObjectId)
+    await isUserExist.save() 
 
     return post;
 }
+
+//Wone Created jobs 
+const post = async (
+    payload: JwtPayload
+) => {
+    const { userID } = payload;
+    const isUserExist = await User.findById(userID);
+    if (!isUserExist) {
+        throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
+    };
+    
+    if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
+    };
+
+    const jobs = await User.aggregate([
+        {
+            $match: { _id: isUserExist._id }
+        },
+        {
+            $lookup: {
+              from: "posts",
+              let: { jobIds: "$job", userId: "$_id" },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $and: [
+                        { $in: ["$_id", "$$jobIds"] },
+                        { $eq: ["$creatorID", "$$userId"] }
+                      ]
+                    }
+                  }
+                }
+              ],
+              as: "userPosts"
+            }
+        }
+    ]) 
+
+    return (jobs as any)[0].userPosts
+}
+
+//Delete Wone Created job
+const deleteJob = async (
+    payload: JwtPayload,
+    Data: { postID: string }
+  ) => {
+    const { userID } = payload;
+    const { postID } = Data;
+  
+    if (!postID) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, "You must provide the post ID to remove");
+    }
+  
+    const isUserExist = await User.findById(userID);
+    if (!isUserExist) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+    }
+  
+    if (
+      isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
+      isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
+    ) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        `Your account is ${isUserExist.accountStatus.toLowerCase()}!`
+      );
+    }
+  
+    const hasJob = isUserExist.job.includes(postID);
+    if (!hasJob) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "This post is not linked to your account");
+    }
+
+    isUserExist.job = isUserExist.job.filter((e: any) => e.toString() !== postID);
+    await isUserExist.save();
+  
+    const deletedPost = await Post.findByIdAndDelete(postID);
+    if (!deletedPost) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Post not found");
+    }
+  
+    return true;
+};
+  
+//Add to the favorite list 
+const favorite = async (
+    payload: JwtPayload,
+    data: { postID: string }
+) => {
+    const { userID } = payload;
+    const { postID } = data;
+
+    const isUserExist = await User.findById(userID);
+    if (!isUserExist) {
+        throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
+    };
+    
+    if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
+    };
+
+    if (!postID) {
+        throw new ApiError(StatusCodes.BAD_REQUEST,"You must give the service _id")
+    };
+
+    if (isUserExist.favouriteServices.some((e: any) => e.toString() === postID)) {
+        throw new ApiError(StatusCodes.NOT_ACCEPTABLE, "You have already added this service to your favorite list");
+    }
+
+    isUserExist.favouriteServices.push(postID);
+
+    await isUserExist.save()
+
+    return true;
+}
+
+//favorites list 
+const getFavorite = async (
+    payload: JwtPayload
+) => {
+    const { userID } = payload;
+    const isUserExist = await User.findById(userID);
+    if (!isUserExist) {
+        throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
+    };
+    
+    if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
+    };
+
+    const jobs = await User.aggregate([
+        {
+            $match: { _id: isUserExist._id }
+        },
+        {
+            $lookup: {
+              from: "posts",
+              localField: "favouriteServices",
+              foreignField: "_id",
+              as: "favourites"
+            }
+        },
+    ]) 
+    
+    return (jobs as any)[0].favourites
+}
+
+//remove favorite 
+const removeFavorite = async (
+    payload: JwtPayload,
+    Data: { postID: string }
+) => {
+    const { userID } = payload;
+    const { postID } = Data;
+    const isUserExist = await User.findById(userID);
+    if (!isUserExist) {
+        throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
+    };
+    
+    if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
+    };
+    const hasJob = isUserExist.favouriteServices.includes(postID);
+    if (!hasJob) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "This post is not linked to your favorite");
+    }
+
+    isUserExist.favouriteServices = isUserExist.favouriteServices.filter((e: any) => e.toString() !== postID);
+    await isUserExist.save();
+
+    return true;
+}
+
 
 export const UserServices = {
     signUp,
@@ -331,5 +508,10 @@ export const UserServices = {
     jobPost,
     accountStatus,
     privacy,
-    conditions
+    conditions,
+    post,
+    favorite,
+    getFavorite,
+    removeFavorite,
+    deleteJob
 }

@@ -63,12 +63,35 @@ router
     )
 
 router
-    .route("/job")
+    .route("/post")
+    .get(
+        auth(USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER),
+        UserController.post
+    )
     .post(
-        auth( USER_ROLES.USER ),
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER),
         fileUploadHandler(),
         validateRequest( Validation.jobPostZodSchem ),
         UserController.postJob
+    )
+    .delete(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER),
+        UserController.deletePost
+    )
+
+router
+    .route("/favorite")
+    .get(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        UserController.getFavorite
+    )
+    .patch(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        UserController.favorite
+    )
+    .delete(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        UserController.removeFavorite
     )
 
 
