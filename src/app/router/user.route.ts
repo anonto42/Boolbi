@@ -34,6 +34,13 @@ router
     )
 
 router
+    .route("/status")
+    .patch(
+        auth( USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER ),
+        UserController.status
+    )
+
+router
     .route("/image")
     .patch(
         auth( USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER ),

@@ -94,6 +94,20 @@ const language = catchAsync(
     }
 )
 
+const status = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const result = await UserServices.accountStatus(payload)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Status changed successfully",
+            data: result
+        })
+    }
+)
+
 const postJob = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
@@ -117,5 +131,6 @@ export const UserController = {
     language,
     uploadImages,
     postJob,
-    profileDelete
+    profileDelete,
+    status
  }

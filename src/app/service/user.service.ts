@@ -10,7 +10,7 @@ import { IPhotos } from "../../Interfaces/post.interface";
 import unlinkFile from "../../shared/unlinkFile";
 import Post from "../../model/post.model";
 import { Types } from "mongoose";
-import { ACCOUNT_STATUS } from "../../enums/user.enums";
+import { ACCOUNT_STATUS, ACCOUTN_ACTVITY_STATUS } from "../../enums/user.enums";
 
 //User signUp
 const signUp = async ( 
@@ -200,6 +200,32 @@ const language = async (
     return user
 }
 
+//Change the langouage of the user
+const accountStatus = async (
+    payload: JwtPayload
+) => {
+    const isUserExist = await User.findById(payload.userID);
+    if (!isUserExist) {
+        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
+    };
+    
+    if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
+    };
+
+    let user;
+
+    if ( isUserExist.accountActivityStatus === ACCOUTN_ACTVITY_STATUS.ACTIVE ) {
+        user = await User.findByIdAndUpdate(isUserExist._id,{accountActivityStatus: "INACTIVE" },{ new: true})
+    }
+
+    if ( isUserExist.accountActivityStatus === ACCOUTN_ACTVITY_STATUS.INACTIVE ) {
+        user = await User.findByIdAndUpdate(isUserExist._id,{accountActivityStatus: "ACTIVE" },{ new: true })
+    }
+
+    return user;
+}
+
 //Create job post
 const jobPost =  async (
     payload: JwtPayload,
@@ -255,5 +281,6 @@ export const UserServices = {
     profileDelete,
     language,
     Images,
-    jobPost
+    jobPost,
+    accountStatus
 }
