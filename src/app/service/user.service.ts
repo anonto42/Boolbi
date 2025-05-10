@@ -662,7 +662,6 @@ const offers = async (
   
 }
 
-
 //Create a offer 
 const COrder = async (
     payload: JwtPayload,
@@ -719,6 +718,35 @@ const COrder = async (
     return offer;
 }
 
+// offer intraction
+const intracatOffer = async(
+    payload: JwtPayload,
+    data: { 
+        acction: "DECLINE" | "APPROVE" |  "WATING",
+        offerId: string
+    }
+)=>{
+    const { userID } = payload;
+    const { acction,offerId } = data;
+    if (!acction) {
+        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"You can't create any request with out acction payload")
+    };
+    if (!offerId) {
+        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"You must give the offer id")
+    };
+    const isUserExist = await User.findById(userID);
+    if (!isUserExist) {
+        throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
+    };
+    if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
+    };
+
+    
+
+
+}
+
 
 export const UserServices = {
     signUp,
@@ -739,5 +767,6 @@ export const UserServices = {
     offers,
     UPost,
     singlePost,
-    COrder
+    COrder,
+    intracatOffer
 }

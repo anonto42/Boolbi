@@ -279,6 +279,21 @@ const cOffer = catchAsync(
     }
 )
 
+const IOffer = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const {...Data} = await req.body;
+        const result = await UserServices.intracatOffer(payload,Data)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully accepted the offer",
+            data: result
+        })
+    }
+)
+
 export const UserController = {
     signupUser,
     profile,
@@ -297,5 +312,6 @@ export const UserController = {
     deletePost,
     updateJob,
     offers,
-    cOffer
+    cOffer,
+    IOffer
  }

@@ -112,6 +112,9 @@ router
         validateRequest(Validation.orderValidation),
         UserController.cOffer
     )
+    .patch(
+        UserController.IOffer
+    )
 
 
 export const UserRouter = router;
