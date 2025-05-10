@@ -74,6 +74,12 @@ router
         validateRequest( Validation.jobPostZodSchem ),
         UserController.postJob
     )
+    .put(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        fileUploadHandler(),
+        validateRequest( Validation.jobPostZodSchem ),
+        UserController.updateJob
+    )
     .delete(
         auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER),
         UserController.deletePost
@@ -92,6 +98,13 @@ router
     .delete(
         auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
         UserController.removeFavorite
+    )
+
+router
+    .route("/order")
+    .get(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER),
+        UserController.orders
     )
 
 

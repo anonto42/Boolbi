@@ -152,15 +152,39 @@ const postJob = catchAsync(
     }
 )
 
-const post = catchAsync(
+const updateJob = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
-        const result = await UserServices.post(payload)
+        const { ...data } = req.body;
+        const images = getMultipleFilesPath((req as any).files,"image")
+        const result = await UserServices.UPost(payload, {...data,images})
 
         sendResponse(res, {
             success: true,
             statusCode: StatusCodes.OK,
-            message: "Successfully got all Post",
+            message: "Successfully updated your job Post",
+            data: result
+        })
+    }
+)
+
+const post = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const postID = req.query.postID as string
+        console.log(postID)
+
+        let result;
+        if (postID) {
+            result = await UserServices.singlePost(payload,{postID: postID})    
+        } else if ( !postID ) {
+            result = await UserServices.post(payload)
+        }
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully got Post data",
             data: result
         })
     }
@@ -225,6 +249,36 @@ const removeFavorite = catchAsync(
     }
 )
 
+const offers = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const result = await UserServices.orders(payload)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "successfully get all orders",
+            data: result
+        })
+    }
+)
+
+const cOffer = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const {...Data} = await req.body;
+        const images = getMultipleFilesPath((req as any).files,"image")
+        const result = await UserServices.COrder(payload,Data,images as string[])
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully created the offer",
+            data: result
+        })
+    }
+)
+
 export const UserController = {
     signupUser,
     profile,
@@ -240,5 +294,8 @@ export const UserController = {
     favorite,
     getFavorite,
     removeFavorite,
-    deletePost
+    deletePost,
+    updateJob,
+    offers,
+    cOffer
  }

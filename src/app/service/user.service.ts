@@ -1,16 +1,18 @@
 import { StatusCodes } from "http-status-codes";
 import ApiError from "../../errors/ApiError";
 import User from "../../model/user.model";
-import { ISignUpData, JobPost } from "../../types/user"
+import { ISignUpData, JobPost, TOffer } from "../../types/user"
 import { jwtHelper } from "../../helpers/jwtHelper";
 import { bcryptjs } from "../../helpers/bcryptHelper";
 import { IUser } from "../../Interfaces/User.interface";
 import { JwtPayload } from "jsonwebtoken";
-import { IPhotos } from "../../Interfaces/post.interface";
+import { IPhotos, IPost } from "../../Interfaces/post.interface";
 import unlinkFile from "../../shared/unlinkFile";
 import Post from "../../model/post.model";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { ACCOUNT_STATUS, ACCOUTN_ACTVITY_STATUS, USER_ROLES } from "../../enums/user.enums";
+import { OFFER_STATUS } from "../../enums/offer.enum";
+import Offer from "../../model/offer.model";
 
 //User signUp
 const signUp = async ( 
@@ -365,6 +367,64 @@ const post = async (
     return (jobs as any)[0].userPosts
 }
 
+//Update a job 
+const UPost = async (
+    payload: JwtPayload,
+    body: {
+      postID: string;
+      [key: string]: any;
+    }
+  ) => {
+    const { userID } = payload;
+    const { postID, ...updateFields } = body;
+  
+    const isUserExist = await User.findById(userID);
+    if (!isUserExist) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+    }
+  
+    if (
+      isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
+      isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
+    ) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
+      );
+    }
+  
+    const post = await Post.findById(postID);
+    if (!post) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Post not found");
+    }
+  
+    if (post.creatorID.toString() !== userID.toString()) {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, "You are not the owner of this post");
+    }
+  
+    let isChanged = false;
+  
+    for (const key in updateFields) {
+      if (
+        Object.prototype.hasOwnProperty.call(updateFields, key) &&
+        updateFields[key] !== undefined &&
+        post[key] !== updateFields[key]
+      ) {
+        post[key] = updateFields[key];
+        isChanged = true;
+      }
+    }
+  
+    if (isChanged) {
+      await post.save();
+    }
+  
+    return {
+      updated: isChanged,
+      post,
+    };
+};
+
 //Delete Wone Created job
 const deleteJob = async (
     payload: JwtPayload,
@@ -406,6 +466,73 @@ const deleteJob = async (
     }
   
     return true;
+};
+
+//A job
+const singlePost = async (
+    payload: JwtPayload,
+    Data: { postID: string }
+  ) => {
+    const { userID } = payload;
+    const { postID } = Data;
+  
+    if (!postID) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, "You must provide the post ID to remove");
+    };
+  
+    const isUserExist = await User.findById(userID);
+    if (!isUserExist) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+    };
+  
+    if (
+      isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
+      isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
+    ) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        `Your account is ${isUserExist.accountStatus.toLowerCase()}!`
+      );
+    }
+  
+    const post = await Post.aggregate([
+        {
+            $match:{
+                _id: new mongoose.Types.ObjectId(postID)
+            }
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "creatorID",
+            foreignField: "_id",
+            as: "creator"
+          }
+        },
+        {
+            $unwind: "$creator"
+        },
+        {
+            $project:{
+                "creator.fullName": 1,
+                "creator.email": 1,
+                "creator.language": 1,
+                "creator.phone": 1,
+                title: 1,
+                catagory: 1,
+                subCatagory: 1,
+                companyName: 1,
+                location: 1,
+                deadline:1 ,
+                jobDescription: 1,
+                showcaseImages: 1,
+                createdAt: 1,
+                updatedAt: 1
+            }
+        }
+    ])
+  
+    return post[0];
 };
   
 //Add to the favorite list 
@@ -497,6 +624,101 @@ const removeFavorite = async (
     return true;
 }
 
+//all order
+const orders = async (
+    payload: JwtPayload
+) => {
+    const { userID } = payload;
+    const isUserExist = await User.findById(userID);
+    if (!isUserExist) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+    };
+  
+    if (
+      isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
+      isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
+    ) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
+      );
+    };
+
+    const aggregate = await User.aggregate([
+        {
+            $match: { _id: isUserExist._id }
+        },
+        {
+            $lookup: {
+              from: "orders",
+              localField: "orders",
+              foreignField: "_id",
+              as: "orders"
+            }
+        },
+    ])
+
+    return aggregate[0].orders
+  
+}
+
+
+//Create a offer 
+const COrder = async (
+    payload: JwtPayload,
+    data: TOffer,
+    images: string[]
+) => {
+    const { userID } = payload;
+    const { 
+        category, 
+        companyName,
+        deadline, 
+        jobLocation, 
+        myBudget,
+        orderDescription, 
+        projectName, 
+        subCatagory,
+        serviceProvider
+    } = data;
+    const isUserExist = await User.findById(userID);
+    if (!isUserExist) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+    };
+  
+    if (
+      isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
+      isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
+    ) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
+      );
+    };
+
+    const offerData = {
+        customer: userID,
+        serviceProvider,
+        companyName,
+        projectName,
+        catagory: category,
+        subCatagory,
+        budget: myBudget,
+        jobLocation,
+        description: orderDescription,
+        status: OFFER_STATUS.WATING,
+        companyImages: images,
+        deadline
+    }
+
+    const offer = await Offer.create(offerData);
+
+    isUserExist.offers.push(offer._id);
+    await isUserExist.save();
+
+    return offer;
+}
+
 
 export const UserServices = {
     signUp,
@@ -513,5 +735,9 @@ export const UserServices = {
     favorite,
     getFavorite,
     removeFavorite,
-    deleteJob
+    deleteJob,
+    orders,
+    UPost,
+    singlePost,
+    COrder
 }

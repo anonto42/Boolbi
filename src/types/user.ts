@@ -23,3 +23,15 @@ export type JobPost = {
     postType: "JOB" | "SERVICE";
     subCatagory: string;
 }
+
+export type TOffer = {
+    companyName: string;
+    projectName: string;
+    category: string;
+    subCatagory: string;
+    myBudget: number;
+    jobLocation: string;
+    deadline: Date;
+    orderDescription: string;
+    serviceProvider: string;
+}

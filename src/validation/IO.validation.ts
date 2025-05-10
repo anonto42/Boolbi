@@ -109,6 +109,33 @@ const jobPostZodSchem =  z.object({
   })
 });
 
+const UpdatejobPostZodSchem =  z.object({
+  body: z.object({
+    category: z.string().optional(), 
+    subCatagory: z.string().optional(), 
+    companyName: z.string().optional(), 
+    deadline: z.string().optional(),
+    description:z.string().optional(), 
+    location:z.string().optional(), 
+    title:z.string().optional(),
+    postType: z.enum(["JOB","SERVICE"])
+  })
+});
+
+const orderValidation = z.object({
+  body: z.object({
+    category: z.string({ required_error: "You must give the category"}), 
+    companyName: z.string({ required_error: "You must give the company name"}),
+    deadline: z.string({ required_error: "You must give the deadline"}),
+    jobLocation: z.string({ required_error: "You must give the job location"}),
+    myBudget: z.string({ required_error: "You must give you project budget"}),
+    orderDescription: z.string({ required_error: "You must give the description"}), 
+    projectName: z.string({ required_error: "You must give the project name"}),
+    subCatagory: z.string({ required_error: "You must give the sub category"}),
+    serviceProvider: z.string({ required_error: "You must give the serviceProvider id"}),
+  })
+})
+
 export const Validation = {
   singnUpZodSchema,
   signInZodSchema,
@@ -118,5 +145,7 @@ export const Validation = {
   socalLoginZodSchema,
   userUpdateProfileZodSchem,
   updateUserLangouageZodSchem,
-  jobPostZodSchem
+  jobPostZodSchem,
+  UpdatejobPostZodSchem,
+  orderValidation
 };

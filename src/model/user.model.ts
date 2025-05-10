@@ -39,14 +39,11 @@ const userSchema = new Schema<IUser>({
     type: Schema.Types.ObjectId,
     ref: "offer"
   }],
-  createdOrder:[{
+  orders:[{
     type: Schema.Types.ObjectId,
     ref: "order"
   }],
-  searchedCatagory:[{
-    type: Schema.Types.ObjectId,
-    ref: "catagory"
-  }],
+  searchedCatagory: String,
   city:{
     type: String,
     trim: true,

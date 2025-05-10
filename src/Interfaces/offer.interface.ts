@@ -3,6 +3,8 @@ import { Document, Types } from "mongoose";
 export interface IOffer extends Document {
     customer: Types.ObjectId;
     serviceProvider: Types.ObjectId;
+    jobID: Types.ObjectId;
+    status: "DECLINE" | "APPROVE" | "WATING";
     companyName: string;
     projectName: string;
     catagory: string;
@@ -11,6 +13,5 @@ export interface IOffer extends Document {
     jobLocation: string;
     deadline: string;
     description: string;
-    status: string;
     companyImages: string[];
 }

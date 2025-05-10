@@ -10,9 +10,9 @@ export interface IUser extends Document {
     category: string;
     subCatagory: string;
     job: Types.ObjectId[];
-    createdOrder: Types.ObjectId[];
+    orders: Types.ObjectId[];
     favouriteServices: Types.ObjectId[];
-    searchedCatagory: Types.ObjectId[];
+    searchedCatagory: string;
     offers: Types.ObjectId[];
     city: string;
     postalCode: string;
