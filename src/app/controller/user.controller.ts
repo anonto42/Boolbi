@@ -252,7 +252,7 @@ const removeFavorite = catchAsync(
 const offers = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
-        const result = await UserServices.orders(payload)
+        const result = await UserServices.offers(payload)
 
         sendResponse(res, {
             success: true,

@@ -624,8 +624,8 @@ const removeFavorite = async (
     return true;
 }
 
-//all order
-const orders = async (
+//all offers
+const offers = async (
     payload: JwtPayload
 ) => {
     const { userID } = payload;
@@ -650,15 +650,15 @@ const orders = async (
         },
         {
             $lookup: {
-              from: "orders",
-              localField: "orders",
+              from: "offers",
+              localField: "offers",
               foreignField: "_id",
-              as: "orders"
+              as: "offers"
             }
         },
     ])
 
-    return aggregate[0].orders
+    return aggregate[0].offers
   
 }
 
@@ -736,7 +736,7 @@ export const UserServices = {
     getFavorite,
     removeFavorite,
     deleteJob,
-    orders,
+    offers,
     UPost,
     singlePost,
     COrder
