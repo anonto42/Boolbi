@@ -101,10 +101,16 @@ router
     )
 
 router
-    .route("/order")
+    .route("/offer")
     .get(
         auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER),
-        UserController.orders
+        UserController.offers
+    )
+    .post(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        fileUploadHandler(),
+        validateRequest(Validation.orderValidation),
+        UserController.cOffer
     )
 
 
