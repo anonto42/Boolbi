@@ -33,5 +33,5 @@ export type TOffer = {
     jobLocation: string;
     deadline: Date;
     orderDescription: string;
-    serviceProvider: string;
+    customer: string;
 }

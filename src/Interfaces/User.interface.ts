@@ -13,7 +13,8 @@ export interface IUser extends Document {
     orders: Types.ObjectId[];
     favouriteServices: Types.ObjectId[];
     searchedCatagory: string;
-    offers: Types.ObjectId[];
+    iOffered: Types.ObjectId[];
+    myOffer: Types.ObjectId[];
     city: string;
     postalCode: string;
     address: string;

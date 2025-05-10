@@ -678,13 +678,16 @@ const COrder = async (
         orderDescription, 
         projectName, 
         subCatagory,
-        serviceProvider
+        customer
     } = data;
     const isUserExist = await User.findById(userID);
     if (!isUserExist) {
       throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
     };
-  
+    const ifCustomerExist = await User.findById(customer);
+    if (!ifCustomerExist) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+    };
     if (
       isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
       isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
@@ -694,10 +697,19 @@ const COrder = async (
         `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
       );
     };
+    if (
+      ifCustomerExist.accountStatus === ifCustomerExist.DELETE ||
+      ifCustomerExist.accountStatus === ifCustomerExist.BLOCK
+    ) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
+      );
+    };
 
     const offerData = {
-        customer: userID,
-        serviceProvider,
+        customer,
+        serviceProvider: userID,
         companyName,
         projectName,
         catagory: category,
@@ -712,7 +724,9 @@ const COrder = async (
 
     const offer = await Offer.create(offerData);
 
-    isUserExist.offers.push(offer._id);
+    isUserExist.iOffered.push(offer._id);
+    ifCustomerExist.myOffer.push(offer._id);
+    await ifCustomerExist.save();
     await isUserExist.save();
 
     return offer;

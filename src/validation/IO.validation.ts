@@ -132,7 +132,7 @@ const orderValidation = z.object({
     orderDescription: z.string({ required_error: "You must give the description"}), 
     projectName: z.string({ required_error: "You must give the project name"}),
     subCatagory: z.string({ required_error: "You must give the sub category"}),
-    serviceProvider: z.string({ required_error: "You must give the serviceProvider id"}),
+    customer: z.string({ required_error: "You must give the serviceProvider id"}),
   })
 })
 

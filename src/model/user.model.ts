@@ -35,7 +35,11 @@ const userSchema = new Schema<IUser>({
     type: Schema.Types.ObjectId,
     ref: "service"
   }],
-  offers:[{
+  iOffered:[{
+    type: Schema.Types.ObjectId,
+    ref: "offer"
+  }],
+  myOffer:[{
     type: Schema.Types.ObjectId,
     ref: "offer"
   }],
