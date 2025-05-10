@@ -98,7 +98,8 @@ const updateUserLangouageZodSchem =  z.object({
 
 const jobPostZodSchem =  z.object({
   body: z.object({
-    catagory: z.string({required_error: "You must give the job catagory"}), 
+    category: z.string({required_error: "You must give the job category"}), 
+    subCatagory: z.string({required_error: "You must give the job catagory"}), 
     companyName: z.string({required_error: "You must give the company name"}), 
     deadline: z.string({required_error: "You must give the job deadline"}),
     description: z.string({required_error: "You must give the job description"}), 
