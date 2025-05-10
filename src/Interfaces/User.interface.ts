@@ -1,11 +1,5 @@
 import { Document, Types } from "mongoose";
-import { string } from "zod";
-
-export enum Verification_For { 
-    FORMAT_PASSWORD = "FORMAT_PASSWORD", 
-    CHANGE_PASSWORD = "CHANGE_PASSWORD",
-    NULL = ""
-}
+import { Verification_For } from "../enums/user.enums";
 
 export interface IUser extends Document {
     fullName: string;

@@ -6,10 +6,11 @@ import { jwtHelper } from "../../helpers/jwtHelper";
 import { bcryptjs } from "../../helpers/bcryptHelper";
 import { IUser } from "../../Interfaces/User.interface";
 import { JwtPayload } from "jsonwebtoken";
-import { IPhotos, IPost } from "../../Interfaces/post.interface";
+import { IPhotos } from "../../Interfaces/post.interface";
 import unlinkFile from "../../shared/unlinkFile";
 import Post from "../../model/post.model";
 import { Types } from "mongoose";
+import { ACCOUNT_STATUS } from "../../enums/user.enums";
 
 //User signUp
 const signUp = async ( 
@@ -62,11 +63,15 @@ const signUp = async (
 const profle = async ( 
     payload : JwtPayload
 ) => {
-    const { userID, role } = payload;
+    const { userID } = payload;
 
     const isExist = await User.findOne({_id: userID})
     if (!isExist) {
         throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
+    };
+
+    if ( isExist.accountStatus === ACCOUNT_STATUS.DELETE || isExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
     };
 
     return isExist
@@ -78,11 +83,15 @@ const UP = async (
     data : IUser
 ) => {
     const { userID } = payload;
-    const { fullName, email, phone, city, address, postalCode, language, category, subCatagory, samplePictures, profileImage, serviceDescription } = data;
+    const { fullName, email, phone, city, address, postalCode, language, category, subCatagory, samplePictures, serviceDescription } = data;
 
     const isExist = await User.findOne({_id: userID})
     if (!isExist) {
         throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
+    };
+    
+    if ( isExist.accountStatus === ACCOUNT_STATUS.DELETE || isExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
     };
 
     const dataForUpdate = { 
@@ -104,6 +113,27 @@ const UP = async (
     return updatedUser
 }
 
+//Delete Profile
+const profileDelete = async (
+    payload: JwtPayload
+) => {
+    const { userID } = payload;
+    const isUser = await User.findById(userID);
+    if ( !isUser ) {
+        throw new ApiError(StatusCodes.BAD_GATEWAY,"Your account not exist!");        
+    };
+
+    if ( isUser.accountStatus === ACCOUNT_STATUS.DELETE || isUser.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUser.accountStatus.toLowerCase()}!`)
+    };
+
+    isUser.accountStatus = ACCOUNT_STATUS.DELETE;
+
+    await isUser.save();
+
+    return true;
+}
+
 //Profile images update
 const Images = async ( 
     payload : JwtPayload,
@@ -117,6 +147,10 @@ const Images = async (
     const isExist = await User.findOne({_id: userID});
     if (!isExist) {
         throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
+    };
+    
+    if ( isExist.accountStatus === ACCOUNT_STATUS.DELETE || isExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
     };
 
     if (fildName !== "profileImage" && images.length > 1) {
@@ -156,6 +190,10 @@ const language = async (
     if (!isUserExist) {
         throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
     };
+    
+    if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
+    };
 
     const user = await User.findOneAndUpdate(isUserExist._id,{ $set: { language }})
 
@@ -174,6 +212,11 @@ const jobPost =  async (
     if (!isUserExist) {
         throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
     };
+    
+    if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
+    };
+
     const isJobExistWithTitle = await Post.findOne({title});
     if (isJobExistWithTitle) {
         throw new ApiError(StatusCodes.NOT_ACCEPTABLE,`A job already exist on named ${title}`);
@@ -209,6 +252,7 @@ export const UserServices = {
     signUp,
     profle,
     UP,
+    profileDelete,
     language,
     Images,
     jobPost

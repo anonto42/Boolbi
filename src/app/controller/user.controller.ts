@@ -53,13 +53,27 @@ const uploadImages = catchAsync(
         const user = (req as any)?.user;
         const {...Data} = req.body;
 
-        const image = getMultipleFilesPath(req.files,"image")
+        const image = getMultipleFilesPath((req as any).files,"image")
         const result = await UserServices.Images(user,Data,image!)
 
         sendResponse(res, {
             success: true,
             statusCode: StatusCodes.OK,
             message: "Successfully got the images",
+            data: result
+        })
+    }
+)
+
+const profileDelete = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const result = await UserServices.profileDelete(payload)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Profile delete successfully",
             data: result
         })
     }
@@ -84,7 +98,7 @@ const postJob = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
         const { ...data } = req.body;
-        const images = getMultipleFilesPath(req.files,"image")
+        const images = getMultipleFilesPath((req as any).files,"image")
         const result = await UserServices.jobPost(payload, data, images as string[])
 
         sendResponse(res, {
@@ -102,5 +116,6 @@ export const UserController = {
     update,
     language,
     uploadImages,
-    postJob
-}
+    postJob,
+    profileDelete
+ }

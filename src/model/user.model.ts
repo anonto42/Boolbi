@@ -1,6 +1,6 @@
 import { model, models, Schema } from "mongoose";
-import { IUser, Verification_For } from "../Interfaces/User.interface";
-import { ACCOUNT_STATUS, ACCOUTN_ACTVITY_STATUS, SELECTED_LANGUAGE, USER_ROLES } from "../enums/user.enums";
+import { IUser } from "../Interfaces/User.interface";
+import { ACCOUNT_STATUS, ACCOUTN_ACTVITY_STATUS, SELECTED_LANGUAGE, USER_ROLES, Verification_For } from "../enums/user.enums";
 
 const userSchema = new Schema<IUser>({
   role: { 

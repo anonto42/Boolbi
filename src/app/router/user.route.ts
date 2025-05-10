@@ -28,6 +28,10 @@ router
         validateRequest(Validation.updateUserLangouageZodSchem),
         UserController.language
     )
+    .delete(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        UserController.profileDelete
+    )
 
 router
     .route("/image")

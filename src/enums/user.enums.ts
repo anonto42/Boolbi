@@ -13,17 +13,24 @@ export enum ACCOUTN_ACTVITY_STATUS {
 export enum ACCOUNT_STATUS {
   ACTIVE = 'ACTIVE',
   BLOCK = 'BLOCK',
-  REPORT = 'REPORT'
+  REPORT = 'REPORT',
+  DELETE = "DELETE"
 }
 
 export enum SELECTED_LANGUAGE {
-  ENGLISH = 'en',
-  GERMAN = 'de',
-  TURKISH = 'tr',
-  SPANISH = 'es',
+  ENGLISH = 'ENGLISH',
+  GERMAN = 'GERMAN',
+  TURKISH = 'TURKISH',
+  SPANISH = 'SPANISH',
 }
 
 export enum ACCOUNT_VERIFICATION_STATUS {
   VERIFIED = 'true',
   UNVERIFIED = 'false'
+}
+
+export enum Verification_For { 
+    FORMAT_PASSWORD = "FORMAT_PASSWORD", 
+    CHANGE_PASSWORD = "CHANGE_PASSWORD",
+    NULL = ""
 }

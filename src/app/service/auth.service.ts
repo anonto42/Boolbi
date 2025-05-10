@@ -8,6 +8,7 @@ import generateOTP from "../../util/generateOTP";
 import { emailTemplate } from "../../shared/emailTemplate";
 import { emailHelper } from "../../helpers/emailHelper";
 import { IChangePassword, ISocalLogin } from "../../types/auth";
+import { ACCOUNT_STATUS } from "../../enums/user.enums";
 
 const signIn = async ( 
     payload : SignInData
@@ -16,6 +17,10 @@ const signIn = async (
     const isUser = await User.findOne({email});
     if (!isUser) {
         throw new ApiError(StatusCodes.NOT_FOUND,"Your account is not exist!")
+    };
+
+    if ( isUser.accountStatus === ACCOUNT_STATUS.DELETE || isUser.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUser.accountStatus.toLowerCase()}!`)
     };
 
     const isTrue = await bcryptjs.compare(password, isUser.password);
@@ -36,6 +41,10 @@ const emailSend = async (
     const isUser = await User.findOne({email});
     if (!isUser) {
         throw new ApiError(StatusCodes.NOT_FOUND,`No account exists with this ( ${email} ) email`)
+    };
+
+    if ( isUser.accountStatus === ACCOUNT_STATUS.DELETE || isUser.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUser.accountStatus.toLowerCase()}!`)
     };
 
     if (isUser.isSocialAccount.isSocial) {
@@ -72,6 +81,10 @@ const verifyOtp = async (
         throw new ApiError(StatusCodes.NOT_FOUND,`No account exists with this ( ${email} ) email`)
     };
 
+    if ( isUser.accountStatus === ACCOUNT_STATUS.DELETE || isUser.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUser.accountStatus.toLowerCase()}!`)
+    };
+
     if (otp !== isUser.otpVerification.otp && !isUser.otpVerification.isVerified && isUser.otpVerification.time < new Date( Date.now() )) {
         throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"Your otp verification in not acceptable for this moment!")
     };
@@ -103,18 +116,17 @@ const changePassword = async (
     if (!isUser) {
         throw new ApiError(StatusCodes.NOT_FOUND,`No account exists with this ( ${email} ) email`)
     };
-    
-    console.log("first")
+    if ( isUser.accountStatus === ACCOUNT_STATUS.DELETE || isUser.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUser.accountStatus.toLowerCase()}!`)
+    };
     if ( !isUser.otpVerification.isVerified.status ) {
         throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"Your verification date is over now you can't change the password!")
     };
-
-    console.log("second")
+    
     if ( isUser.otpVerification.isVerified.time < new Date( Date.now())  ) {
         throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"Your verification date is over now you can't change the password!")
     };
     
-    console.log("therd")
     if (password !== confirmPassword) {
         throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"Please check your new password and the confirm password!")
     };
@@ -162,6 +174,10 @@ const socalLogin = async (
     const isUserExist = await User.findOne({
         'isSocialAccount.socialIdentity': appID
     });
+
+    if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
+    };
 
     // Create user if there is not any user
     if ( !isUserExist ) {
