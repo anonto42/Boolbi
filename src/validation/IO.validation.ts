@@ -136,6 +136,13 @@ const orderValidation = z.object({
   })
 })
 
+const offerValidation = z.object({
+  body: z.object({
+    acction: z.enum(["DECLINE", "APPROVE"]),
+    offerId: z.string({required_error:"You must give the id of created offer to prosed next stape"})
+  })
+})
+
 export const Validation = {
   singnUpZodSchema,
   signInZodSchema,
@@ -147,5 +154,6 @@ export const Validation = {
   updateUserLangouageZodSchem,
   jobPostZodSchem,
   UpdatejobPostZodSchem,
-  orderValidation
+  orderValidation,
+  offerValidation
 };

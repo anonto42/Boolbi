@@ -113,6 +113,8 @@ router
         UserController.cOffer
     )
     .patch(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        validateRequest( Validation.offerValidation ),
         UserController.IOffer
     )
 
