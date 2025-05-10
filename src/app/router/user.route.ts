@@ -73,22 +73,3 @@ router
 
 
 export const UserRouter = router;
-
-
-
-/*
-{
-    "fullName": "MD Sohidul Islam Ananto",
-    "email": "anonto.fl.42@gmail.com",
-    "phone": "01600101074",
-    "city": "Narayangonj",
-    "address": "Siddhirgonj, Mizmizy, Pinadi",
-    "postalCode": "1430",
-    "language": "SPANISH", // "ENGLISH" or "SPANISH" or "TURKISH" or "GERMAN"
-    "category": "MERN Stack",
-    "subCatagory": "FullStack",
-    "samplePictures": "",
-    "profileImage": "/uploads/profile.jpg",
-    "serviceDescription": "If you only want a quick fix and don’t care about global types right now, you can use a type assertion in the middleware like:"
-}
-*/

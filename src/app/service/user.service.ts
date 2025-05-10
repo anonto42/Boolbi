@@ -279,7 +279,7 @@ const jobPost =  async (
     images: string[]
 ) => {
     const { userID } = payload;
-    const {catagory, companyName, deadline, description, location, title, postType} = data;
+    const {category, companyName, deadline, description, location, title, postType, subCatagory} = data;
     const isUserExist = await User.findOne({_id: userID });
     if (!isUserExist) {
         throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
@@ -300,7 +300,8 @@ const jobPost =  async (
 
     const jobData = {
         title,
-        catagory: catagory,
+        catagory: category,
+        subCatagory,
         postType,
         companyName,
         location,

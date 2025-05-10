@@ -18,6 +18,10 @@ const jobPostSchema = new Schema<IPost>({
     required: true,
     trim: true
   },
+  subCatagory:{
+    type: String,
+    requird: true
+  },
   companyName:{
     type: String,
     required: true,

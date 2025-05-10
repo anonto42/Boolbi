@@ -15,10 +15,11 @@ export type SignInData = {
 
 export type JobPost = {
     title: string;
-    catagory: string;
+    category: string;
     companyName: string;
     location: string;
     deadline: Date;
     description: string;
-    postType: "JOB" | "SERVICE"
+    postType: "JOB" | "SERVICE";
+    subCatagory: string;
 }

@@ -10,6 +10,7 @@ export interface IPost extends Document {
     jobDescription: string;
     showcaseImages: string[];
     creatorID: Types.ObjectId;
+    subCatagory: string;
 }
 
 export interface IPhotos{
