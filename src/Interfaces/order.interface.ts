@@ -5,8 +5,23 @@ export interface IOrder extends Document{
     deliveryDate: Date,
     totalPrice: number,
     serviceProvider: Types.ObjectId
-    submittedForApprovalOn: Date | boolean,
-    serviceProviderAcceptationOn: Date | boolean,
-    paymentEstimatedOn: Date | boolean,
-    isProgressDone: Boolean
+    deliveryRequest: {
+        isRequested: boolean,
+        requestID: Types.ObjectId
+    },
+    trackStatus: {
+        submiteForAdminApproval:{
+            date: Date,
+            status: boolean
+        },
+        approval:{
+            date: Date,
+            status: boolean
+        },
+        paymentProcessed:{
+            date: Date,
+            status: boolean
+        },
+    },
+    isProgressDone: boolean
 } 

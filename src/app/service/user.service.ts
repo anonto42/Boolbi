@@ -13,6 +13,8 @@ import mongoose, { Types } from "mongoose";
 import { ACCOUNT_STATUS, ACCOUTN_ACTVITY_STATUS, USER_ROLES } from "../../enums/user.enums";
 import { OFFER_STATUS } from "../../enums/offer.enum";
 import Offer from "../../model/offer.model";
+import Order from "../../model/order.model";
+import { IOrder } from "../../Interfaces/order.interface";
 
 //User signUp
 const signUp = async ( 
@@ -742,8 +744,11 @@ const intracatOffer = async(
 )=>{
     const { userID } = payload;
     const { acction,offerId } = data;
-    
     const isUserExist = await User.findById(userID);
+    const isOfferExist = await Offer.findById(offerId)
+    if (!isOfferExist) {
+        throw new ApiError(StatusCodes.NOT_FOUND,"Offer not founded");
+    };
     if (!isUserExist) {
         throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
     };
@@ -751,8 +756,63 @@ const intracatOffer = async(
         throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
     };
 
-    
+    if ( acction === "DECLINE") {
+        isOfferExist.status = "DECLINE";
+        await isOfferExist.save();
+        return "Offer Decline"
+    };
 
+    const orderCreationData = {
+        customer: isOfferExist.customer,
+        serviceProvider: userID,
+        deliveryDate: isOfferExist.deadline,
+        totalPrice: isOfferExist.budget,
+    }
+
+    const order = await Order.create(orderCreationData);
+
+    return order;
+
+}
+
+// offer intraction
+const deleteOffer = async(
+    payload: JwtPayload,
+    data: { 
+        acction: "DECLINE" | "APPROVE" |  "WATING",
+        offerId: string
+    }
+)=>{
+    const { userID } = payload;
+    const { acction,offerId } = data;
+    const isUserExist = await User.findById(userID);
+    const isOfferExist = await Offer.findById(offerId)
+    if (!isOfferExist) {
+        throw new ApiError(StatusCodes.NOT_FOUND,"Offer not founded");
+    };
+    if (!isUserExist) {
+        throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
+    };
+    if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
+    };
+
+    if ( acction === "DECLINE") {
+        isOfferExist.status = "DECLINE";
+        await isOfferExist.save();
+        return "Offer Decline"
+    };
+
+    const orderCreationData = {
+        customer: isOfferExist.customer,
+        serviceProvider: userID,
+        deliveryDate: isOfferExist.deadline,
+        totalPrice: isOfferExist.budget,
+    }
+
+    const order = await Order.create(orderCreationData);
+
+    return order;
 
 }
 

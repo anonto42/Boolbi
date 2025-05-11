@@ -1,24 +1,48 @@
-import { model, models, Schema, Types } from "mongoose";
+import { model, models, Schema } from "mongoose";
 import { IOrder } from "../Interfaces/order.interface";
 
 const orderSchema = new Schema<IOrder>({
-  customer: Types.ObjectId,
+  customer: Schema.Types.ObjectId,
   deliveryDate: Date,
   totalPrice: Number,
-  serviceProvider: Types.ObjectId,
-  submittedForApprovalOn:{
-    type: Date || Boolean,
-    default: false
+  serviceProvider: Schema.Types.ObjectId,
+  deliveryRequest:{
+    isRequested: {
+      type: Boolean,
+      default: false
+    },
+    requestID: {
+      type: Schema.Types.ObjectId,
+      ref: "deliveryRequest"
+    }
   },
-  serviceProviderAcceptationOn:{
-    type: Date || Boolean,
-    default: false
+  trackStatus: {
+    submiteForAdminApproval:{
+        date: Date,
+        status: {
+          type: Boolean,
+          default: false
+        }
+    },
+    approval:{
+        date: Date,
+        status: {
+          type: Boolean,
+          default: false
+        }
+    },
+    paymentProcessed:{
+        date: Date,
+        status: {
+          type: Boolean,
+          default: false
+        }
+    },
   },
-  paymentEstimatedOn:{
-    type: Date || Boolean,
+  isProgressDone: {
+    type: Boolean,
     default: false
-  },
-  isProgressDone: Boolean 
+  } 
 },{
   timestamps: true
 });
