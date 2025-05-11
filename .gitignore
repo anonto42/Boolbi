@@ -16,7 +16,6 @@ pids/
 
 # dotenv environment variables
 .env
-.env.*
 
 # TypeScript compiled output
 dist/
