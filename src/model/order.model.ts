@@ -4,13 +4,17 @@ import { IOrder } from "../Interfaces/order.interface";
 const orderSchema = new Schema<IOrder>({
   customer: {
     type: Schema.Types.ObjectId,
-    ref: "user"
+    ref: "users"
   },
   deliveryDate: Date,
   totalPrice: Number,
+  serviceID:{
+    type: Schema.Types.ObjectId,
+    ref: "posts"
+  },
   serviceProvider: {
     type: Schema.Types.ObjectId,
-    ref: "user"
+    ref: "users"
   },
   offerID : {
     type: Schema.Types.ObjectId,

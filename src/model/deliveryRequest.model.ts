@@ -1,31 +1,34 @@
 import { model, models, Schema } from "mongoose";
 import { IDR } from "../Interfaces/deliveryRequest.interface";
+import { DELIVERY_STATUS } from "../enums/delivery.enum";
 
 const deliveryRequestSchema = new Schema<IDR>({
+  orderID:{
+    type: Schema.Types.ObjectId,
+    ref: "orders"
+  },
+  customer:{
+    type: Schema.Types.ObjectId,
+    ref: "user"
+  },
   projectDoc:{
     type: String,
-    required: true,
-    trim: true
+    required: true
   },
-  uploatedLink:{
+  uploatedProject:{
     type: String,
-    required: true,
-    trim: true
+    required: true
   },
-  pdfLink:{
+  pdf:{
+    type: String
+  },
+  projectImage:{
+    type: String
+  },
+  requestStatus:{
     type: String,
-    required: true,
-    trim: true
-  },
-  photoLink :{
-    type: String,
-    required: true,
-    trim: true
-  },
-  isAccepted:{
-    type: Boolean,
-    required: true,
-    trim: true
+    enum: DELIVERY_STATUS,
+    default: DELIVERY_STATUS.WATING
   },
 },{
     timestamps: true

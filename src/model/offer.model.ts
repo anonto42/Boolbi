@@ -7,6 +7,10 @@ const offerSchema = new Schema<IOffer>({
     type: Schema.Types.ObjectId,
     ref: "user"
   },
+  serviceID:{
+    type: Schema.Types.ObjectId,
+    ref:"posts"
+  },
   serviceProvider: {
     type: Schema.Types.ObjectId,
     ref: "user"

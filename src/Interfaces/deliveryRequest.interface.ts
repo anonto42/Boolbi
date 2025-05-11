@@ -1,9 +1,11 @@
-import { Document } from "mongoose";
+import { Document, Types } from "mongoose";
 
 export interface IDR extends Document {
+    orderID: Types.ObjectId,
+    customer: Types.ObjectId,
     projectDoc: string,
-    uploatedLink: string,
-    pdfLink: string,
-    photoLink: string,
-    isAccepted: boolean
+    uploatedProject: string,
+    pdf: string,
+    projectImage: string,
+    requestStatus: string,
 }

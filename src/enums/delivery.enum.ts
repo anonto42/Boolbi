@@ -1,0 +1,7 @@
+
+
+export enum DELIVERY_STATUS {
+    DECLINE = "DECLINE",
+    APPROVE = "APPROVE",
+    WATING = "WATING"
+}

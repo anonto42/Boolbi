@@ -4,6 +4,8 @@ import { StatusCodes } from "http-status-codes";
 import ApiError from "../../errors/ApiError";
 import { ACCOUNT_STATUS } from "../../enums/user.enums";
 import Order from "../../model/order.model";
+import DeliveryRequest from "../../model/deliveryRequest.model";
+import { Types } from "mongoose";
 
 
 const singleOrder = async (
@@ -83,8 +85,46 @@ const dOrder = async (
     return true
 }
 
+const deliveryRequest = async (
+    payload: JwtPayload,
+    data: { orderID: string, uploatedProject: string, projectDoc: string},
+    pdf: string,
+    image: string
+) => {
+    const {userID} = payload;
+    const { orderID, uploatedProject, projectDoc} = data;
+    const isOrderExist = await Order.findOne({_id: orderID});
+    const isUserExist = await User.findOne({_id: userID});
+    if (!isUserExist) {
+        throw new ApiError(StatusCodes.NOT_FOUND,"User not exist!")
+    };
+    if (!isOrderExist) {
+        throw new ApiError(StatusCodes.NOT_FOUND,"Order not exist!")
+    };
+    if ( isOrderExist.accountStatus === ACCOUNT_STATUS.DELETE || isOrderExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isOrderExist.accountStatus.toLowerCase()}!`)
+    };
+    if (!pdf && !image) {
+        throw new ApiError(StatusCodes.BAD_REQUEST,"You must give atlast one image of file for send a delivery request")
+    };
+
+    const delivaryData = {
+        orderID,
+        projectDoc,
+        uploatedProject,
+        pdf,
+        projectImage: image,
+        customer: isOrderExist.customer
+    }
+
+    const delivaryRequest = await DeliveryRequest.create(delivaryData)
+
+    return delivaryRequest;
+
+}
 
 export const ProviderService = {
+    deliveryRequest,
     singleOrder,
     AllOrders,
     dOrder
