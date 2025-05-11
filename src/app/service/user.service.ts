@@ -14,7 +14,6 @@ import { ACCOUNT_STATUS, ACCOUTN_ACTVITY_STATUS, USER_ROLES } from "../../enums/
 import { OFFER_STATUS } from "../../enums/offer.enum";
 import Offer from "../../model/offer.model";
 import Order from "../../model/order.model";
-import { IOrder } from "../../Interfaces/order.interface";
 
 //User signUp
 const signUp = async ( 
@@ -770,8 +769,10 @@ const intracatOffer = async(
     }
     const order = await Order.create(orderCreationData);
 
+    isUserExist.createdOrder.push(order._id)
     isOfferExist.status = "APPROVE"
     await isOfferExist.save();
+    await isUserExist.save();
 
     return order;
 
