@@ -2,6 +2,7 @@ import express from 'express';
 import { UserRouter } from '../app/router/user.route';
 import { AuthRouter } from '../app/router/auth.route';
 import { ProviderRoter } from '../app/router/provider.route';
+import { AdminRoter } from '../app/router/admin.route';
 const router = express.Router();
 
 const apiRoutes = [
@@ -16,6 +17,10 @@ const apiRoutes = [
   {
     path: '/provider',
     route: ProviderRoter
+  },
+  {
+    path: '/admin',
+    route: AdminRoter
   }
 ];
 
