@@ -2,7 +2,7 @@ import { StatusCodes } from "http-status-codes";
 import catchAsync from "../../shared/catchAsync";
 import sendResponse from "../../shared/sendResponse";
 import { ProviderService } from "../service/provider.service";
-import { getSingleFilePath } from "../../shared/getFilePath";
+import { getMultipleFilesPath, getSingleFilePath } from "../../shared/getFilePath";
 
 
 const gOrder = catchAsync(
@@ -86,10 +86,27 @@ const requestStatueUpdate = catchAsync(
     }
 ) 
 
+const providerAccountVerification = catchAsync(
+    async( req, res ) => {
+        const user = (req as any)?.user;
+        const images = getMultipleFilesPath(req.files,"image");
+        const license = getSingleFilePath(req.files,"doc")
+        const result = await ProviderService.providerAccountVerification(user,images as string[],license as string);
+        
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Account verification updated successfully!",
+            data: result
+        })
+    }
+) 
+
 export const ProviderController = {
     gOrder,
     DOrder,
     CDelivery,
     GDRequest,
-    requestStatueUpdate
+    requestStatueUpdate,
+    providerAccountVerification
 }

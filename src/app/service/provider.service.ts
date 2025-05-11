@@ -174,11 +174,56 @@ const reqestAction = async (
     return delivaryRequest
 }
 
+const providerAccountVerification = async (
+    user: JwtPayload,
+    images: string[],
+    doc: string
+) => {
+    const { userID } = user;
+
+    const isUser = await User.findById(userID);
+    if (!isUser) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "User not exist!");
+    }
+
+    if (
+        isUser.accountStatus === ACCOUNT_STATUS.DELETE ||
+        isUser.accountStatus === ACCOUNT_STATUS.BLOCK
+    ) {
+        throw new ApiError(StatusCodes.FORBIDDEN, `Your account was ${isUser.accountStatus.toLowerCase()}!`);
+    }
+
+    if (!images || images.length < 1) {
+        throw new ApiError(StatusCodes.BAD_GATEWAY, "You should provide at least 1 image");
+    }
+
+    if (!isUser.isVerified) isUser.isVerified = {};
+    if (!Array.isArray(isUser.isVerified.sampleImages)) isUser.isVerified.sampleImages = [];
+    if (!isUser.isVerified) isUser.isVerified = {};
+
+    isUser.isVerified.trdLicense = doc;
+
+    isUser.isVerified.sampleImages.push(...images);
+
+    if (
+        isUser.isVerified.trdLicense &&
+        isUser.isVerified.sampleImages.length > 0
+    ) {
+        isUser.isVerified.status = true;
+    }
+
+    await isUser.save();
+
+    return true;
+};
+
+
 export const ProviderService = {
     deliveryRequest,
     singleOrder,
     AllOrders,
     dOrder,
     getDeliveryReqests,
-    reqestAction
+    reqestAction,
+    providerAccountVerification
 }

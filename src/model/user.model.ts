@@ -91,7 +91,9 @@ const userSchema = new Schema<IUser>({
   },
   isVerified: { 
     trdLicense: String,
-    sampleImages: [String],
+    sampleImages: [{
+      type: String
+    }],
     status: {
       type: Boolean,
       default: false

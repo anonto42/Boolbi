@@ -41,4 +41,12 @@ router
         ProviderController.requestStatueUpdate
     )
 
+router 
+    .route("/verify")
+    .patch(
+        auth( USER_ROLES.SERVICE_PROVIDER ),
+        fileUploadHandler(),
+        ProviderController.providerAccountVerification
+    )
+
 export const ProviderRoter = router;
