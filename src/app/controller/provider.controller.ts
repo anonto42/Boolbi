@@ -71,9 +71,25 @@ const GDRequest = catchAsync(
     }
 ) 
 
+const requestStatueUpdate = catchAsync(
+    async( req, res ) => {
+        const user = (req as any)?.user;
+        const {...data} = req.body;
+        const result = await ProviderService.reqestAction(user,data);
+        
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Delivery request updated successfully!",
+            data: result
+        })
+    }
+) 
+
 export const ProviderController = {
     gOrder,
     DOrder,
     CDelivery,
-    GDRequest
+    GDRequest,
+    requestStatueUpdate
 }

@@ -35,5 +35,10 @@ router
         validateRequest( DelivaryValidation.createRequest ),
         ProviderController.CDelivery
     )
+    .patch(
+        auth( USER_ROLES.USER ),
+        validateRequest( DelivaryValidation.acceptdelivaryRequestZodSchema ),
+        ProviderController.requestStatueUpdate
+    )
 
 export const ProviderRoter = router;

@@ -149,10 +149,36 @@ const getDeliveryReqests = async (
     return deliveryRequest;
 }
 
+const reqestAction = async (
+    user: JwtPayload,
+    requestData: {
+        acction: "DECLINE" | "APPROVE";
+        requestID: string
+    }
+) => {
+    const { userID } = user;
+    const { acction, requestID } = requestData;
+    const isUser = await User.findOne({_id: userID});
+    if (!isUser) {
+        throw new ApiError(StatusCodes.NOT_FOUND,"User not exist!")
+    };
+    if ( isUser.accountStatus === ACCOUNT_STATUS.DELETE || isUser.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUser.accountStatus.toLowerCase()}!`)
+    };
+
+    const delivaryRequest = await DeliveryRequest.findByIdAndUpdate(requestID,{ requestStatus: acction },{new: true});
+    if (!delivaryRequest) {
+        throw new ApiError(StatusCodes.FAILED_DEPENDENCY,"Something was problem on delivery request oparation!")
+    }
+
+    return delivaryRequest
+}
+
 export const ProviderService = {
     deliveryRequest,
     singleOrder,
     AllOrders,
     dOrder,
-    getDeliveryReqests
+    getDeliveryReqests,
+    reqestAction
 }

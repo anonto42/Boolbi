@@ -1,6 +1,5 @@
 import { z } from "zod"
 
-
 const createRequest = z.object({
     body: z.object({
         projectDoc: z.string({required_error:"You must give the project documentation for send a delivery request"}),
@@ -9,8 +8,15 @@ const createRequest = z.object({
     })
 })
 
+const acceptdelivaryRequestZodSchema = z.object({
+    body: z.object({
+        requestID: z.string({required_error:"You must give the request id to accept"}),
+        acction: z.enum(["DECLINE", "APPROVE"])
+    })
+})
 
 
 export const DelivaryValidation = {
     createRequest,
+    acceptdelivaryRequestZodSchema
 }
