@@ -288,7 +288,22 @@ const IOffer = catchAsync(
         sendResponse(res, {
             success: true,
             statusCode: StatusCodes.OK,
-            message: "Successfully accepted the offer",
+            message: "Successfully order placed",
+            data: result
+        })
+    }
+)
+
+const DOffer = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const offerID = req.query.offerID;
+        const result = await UserServices.deleteOffer(payload,offerID as string);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully delete the offer",
             data: result
         })
     }
@@ -313,5 +328,6 @@ export const UserController = {
     updateJob,
     offers,
     cOffer,
-    IOffer
+    IOffer,
+    DOffer
  }

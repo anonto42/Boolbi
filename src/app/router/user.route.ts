@@ -117,6 +117,11 @@ router
         validateRequest( Validation.offerValidation ),
         UserController.IOffer
     )
+    .delete(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        validateRequest( Validation.offerDeletaionValidationZod ),
+        UserController.DOffer
+    )
 
 
 export const UserRouter = router;

@@ -768,8 +768,10 @@ const intracatOffer = async(
         deliveryDate: isOfferExist.deadline,
         totalPrice: isOfferExist.budget,
     }
-
     const order = await Order.create(orderCreationData);
+
+    isOfferExist.status = "APPROVE"
+    await isOfferExist.save();
 
     return order;
 
@@ -778,18 +780,10 @@ const intracatOffer = async(
 // offer intraction
 const deleteOffer = async(
     payload: JwtPayload,
-    data: { 
-        acction: "DECLINE" | "APPROVE" |  "WATING",
-        offerId: string
-    }
+    offerID: string
 )=>{
     const { userID } = payload;
-    const { acction,offerId } = data;
     const isUserExist = await User.findById(userID);
-    const isOfferExist = await Offer.findById(offerId)
-    if (!isOfferExist) {
-        throw new ApiError(StatusCodes.NOT_FOUND,"Offer not founded");
-    };
     if (!isUserExist) {
         throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
     };
@@ -797,22 +791,13 @@ const deleteOffer = async(
         throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
     };
 
-    if ( acction === "DECLINE") {
-        isOfferExist.status = "DECLINE";
-        await isOfferExist.save();
-        return "Offer Decline"
+    const offer = await Offer.findByIdAndDelete(offerID)
+    
+    if (!offer) {
+        throw new ApiError(StatusCodes.NOT_FOUND,"Offer not founded");
     };
 
-    const orderCreationData = {
-        customer: isOfferExist.customer,
-        serviceProvider: userID,
-        deliveryDate: isOfferExist.deadline,
-        totalPrice: isOfferExist.budget,
-    }
-
-    const order = await Order.create(orderCreationData);
-
-    return order;
+    return offer;
 
 }
 
@@ -837,5 +822,6 @@ export const UserServices = {
     UPost,
     singlePost,
     COrder,
-    intracatOffer
+    intracatOffer,
+    deleteOffer
 }

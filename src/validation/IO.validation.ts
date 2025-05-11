@@ -143,6 +143,12 @@ const offerValidation = z.object({
   })
 })
 
+const offerDeletaionValidationZod = z.object({
+  query: z.object({
+    offerID: z.string({ required_error: "you must give the offer "})
+  })
+})
+
 export const Validation = {
   singnUpZodSchema,
   signInZodSchema,
@@ -155,5 +161,6 @@ export const Validation = {
   jobPostZodSchem,
   UpdatejobPostZodSchem,
   orderValidation,
-  offerValidation
+  offerValidation,
+  offerDeletaionValidationZod
 };
