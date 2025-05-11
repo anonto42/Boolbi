@@ -769,7 +769,7 @@ const intracatOffer = async(
     }
     const order = await Order.create(orderCreationData);
 
-    isUserExist.createdOrder.push(order._id)
+    isUserExist.orders.push(order._id)
     isOfferExist.status = "APPROVE"
     await isOfferExist.save();
     await isUserExist.save();
