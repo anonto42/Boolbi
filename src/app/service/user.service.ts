@@ -766,6 +766,7 @@ const intracatOffer = async(
         serviceProvider: userID,
         deliveryDate: isOfferExist.deadline,
         totalPrice: isOfferExist.budget,
+        offerID: isOfferExist._id
     }
     const order = await Order.create(orderCreationData);
 

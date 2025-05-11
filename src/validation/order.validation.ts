@@ -6,7 +6,14 @@ const single = z.object({
     }).optional()
 })
 
+const deleteOrder = z.object({
+    query: z.object({
+        orderID: z.string({ required_error:"You must give the order id to delete the order"})
+    })
+})
+
 
 export const OrderValidator = {
-    single
+    single,
+    deleteOrder
 }

@@ -4,7 +4,8 @@ export interface IOrder extends Document{
     customer: Types.ObjectId,
     deliveryDate: Date,
     totalPrice: number,
-    serviceProvider: Types.ObjectId
+    serviceProvider: Types.ObjectId,
+    offerID: Types.ObjectId
     deliveryRequest: {
         isRequested: boolean,
         requestID: Types.ObjectId

@@ -2,10 +2,20 @@ import { model, models, Schema } from "mongoose";
 import { IOrder } from "../Interfaces/order.interface";
 
 const orderSchema = new Schema<IOrder>({
-  customer: Schema.Types.ObjectId,
+  customer: {
+    type: Schema.Types.ObjectId,
+    ref: "user"
+  },
   deliveryDate: Date,
   totalPrice: Number,
-  serviceProvider: Schema.Types.ObjectId,
+  serviceProvider: {
+    type: Schema.Types.ObjectId,
+    ref: "user"
+  },
+  offerID : {
+    type: Schema.Types.ObjectId,
+    ref: "offers"
+  },
   deliveryRequest:{
     isRequested: {
       type: Boolean,
