@@ -6,8 +6,20 @@ import { ProviderController } from "../controller/provider.controller";
 import { OrderValidator } from "../../validation/order.validation";
 import { DelivaryValidation } from "../../validation/delivary.validation";
 import fileUploadHandler from "../../middlewares/fileUploadHandler";
+import { AdminController } from "../controller/admin.controller";
 
 
 const router = Router();
+
+router
+    .route("/")
+    .get(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        AdminController.overView
+    )
+    .post()
+    .put()
+    .patch()
+    .delete()
 
 export const AdminRoter = router;
