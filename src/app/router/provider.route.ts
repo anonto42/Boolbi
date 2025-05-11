@@ -16,6 +16,11 @@ router
         validateRequest( OrderValidator.single ),
         ProviderController.gOrder
     )
+    .delete(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        validateRequest( OrderValidator.deleteOrder ),
+        ProviderController.DOrder
+    )
 
 
 

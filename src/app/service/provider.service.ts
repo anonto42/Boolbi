@@ -60,10 +60,32 @@ const AllOrders = async (
     return allOrders[0].createdOrder
 }
 
+const dOrder = async (
+    user: JwtPayload,
+    orderID: string
+) => {
+    const { userID } = user;
+    const isExist = await User.findById(userID)
+    if (!isExist) {
+        throw new ApiError(StatusCodes.NOT_FOUND,"User not exist!")
+    };
+    if ( isExist.accountStatus === ACCOUNT_STATUS.DELETE || isExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
+    };
+    const order = await Order.findById(orderID);
+    if (!order) {
+        throw new ApiError(StatusCodes.NOT_FOUND,"Order not exist!")
+    };
 
+    isExist.orders = isExist.orders.filter( (e:any) => e !== order._id);
+    isExist.save();
+
+    return true
+}
 
 
 export const ProviderService = {
     singleOrder,
-    AllOrders
+    AllOrders,
+    dOrder
 }

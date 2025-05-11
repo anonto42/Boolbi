@@ -24,7 +24,28 @@ const gOrder = catchAsync(
     }
 )
 
+const DOrder = catchAsync(
+    async( req, res ) => {
+        const user = (req as any)?.user;
+        const orderID = req.query.orderID;
+        let result;
+        if (orderID) {
+            result = await ProviderService.singleOrder(user,orderID as string);
+        } else if ( !orderID ) {
+            result = await ProviderService.AllOrders(user)
+        }
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Order deleted successfully",
+            data: result
+        })
+    }
+)
+
 
 export const ProviderController = {
     gOrder,
+    DOrder
 }
