@@ -57,8 +57,23 @@ const CDelivery = catchAsync(
     }
 ) 
 
+const GDRequest = catchAsync(
+    async( req, res ) => {
+        const user = (req as any)?.user;
+        const result = await ProviderService.getDeliveryReqests(user);
+        
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Delivery get successfully!",
+            data: result
+        })
+    }
+) 
+
 export const ProviderController = {
     gOrder,
     DOrder,
-    CDelivery
+    CDelivery,
+    GDRequest
 }

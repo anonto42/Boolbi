@@ -5,8 +5,6 @@ import ApiError from "../../errors/ApiError";
 import { ACCOUNT_STATUS } from "../../enums/user.enums";
 import Order from "../../model/order.model";
 import DeliveryRequest from "../../model/deliveryRequest.model";
-import { Types } from "mongoose";
-
 
 const singleOrder = async (
     payload: JwtPayload,
@@ -17,7 +15,6 @@ const singleOrder = async (
     if (!isExist) {
         throw new ApiError(StatusCodes.NOT_FOUND,"User not exist!")
     };
-    
     if ( isExist.accountStatus === ACCOUNT_STATUS.DELETE || isExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
         throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
     };
@@ -123,9 +120,39 @@ const deliveryRequest = async (
 
 }
 
+const getDeliveryReqests = async (
+    payload: JwtPayload
+) => {
+    const { userID } = payload;
+    const isExist = await User.findOne({_id: userID});
+    if (!isExist) {
+        throw new ApiError(StatusCodes.NOT_FOUND,"User not exist!")
+    };
+    if ( isExist.accountStatus === ACCOUNT_STATUS.DELETE || isExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
+    };
+
+    const deliveryRequest = await DeliveryRequest.aggregate([
+        {
+            $match: { customer: isExist._id }
+        },
+        {
+            $lookup: {
+              from: "orders",
+              localField: "orderID",
+              foreignField: "_id",
+              as: "orderDetails"
+            }
+        },
+    ])
+
+    return deliveryRequest;
+}
+
 export const ProviderService = {
     deliveryRequest,
     singleOrder,
     AllOrders,
-    dOrder
+    dOrder,
+    getDeliveryReqests
 }

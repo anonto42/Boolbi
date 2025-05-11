@@ -25,15 +25,15 @@ router
 
 router
     .route("/delivery")
+    .get(
+        auth( USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER ),
+        ProviderController.GDRequest
+    )
     .post(
         auth( USER_ROLES.SERVICE_PROVIDER ),
         fileUploadHandler(),
         validateRequest( DelivaryValidation.createRequest ),
         ProviderController.CDelivery
     )
-
-
-
-
 
 export const ProviderRoter = router;
