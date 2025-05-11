@@ -1,6 +1,7 @@
 import { model, models, Schema } from "mongoose";
 import { IUser } from "../Interfaces/User.interface";
 import { ACCOUNT_STATUS, ACCOUTN_ACTVITY_STATUS, SELECTED_LANGUAGE, USER_ROLES, Verification_For } from "../enums/user.enums";
+import { boolean } from "zod";
 
 const userSchema = new Schema<IUser>({
   role: { 
@@ -73,7 +74,6 @@ const userSchema = new Schema<IUser>({
   samplePictures: [ { type: String } ],
   profileImage: String,
   serviceDescription: String,
-  accountVerificationsPictures: [{ type: String }],
   accountActivityStatus: { 
     type: String, 
     enum: ACCOUTN_ACTVITY_STATUS, 
@@ -90,8 +90,12 @@ const userSchema = new Schema<IUser>({
     default: SELECTED_LANGUAGE.ENGLISH 
   },
   isVerified: { 
-    type: Boolean, 
-    default: false 
+    trdLicense: String,
+    sampleImages: [String],
+    status: {
+      type: Boolean,
+      default: false
+    }
   },
   accountBalance:{
     type: Number,

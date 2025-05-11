@@ -20,11 +20,14 @@ export interface IUser extends Document {
     address: string;
     profileImage: string;
     samplePictures: string[];
-    accountVerificationsPictures: string[];
     accountActivityStatus: string;
     accountStatus: string;
     language: string;
-    isVerified: boolean;
+    isVerified: {
+        trdLicense: "",
+        sampleImages: string[],
+        status: boolean
+    };
     accountBalance: number;
     privacyPolicy: string;
     termsConditions: string;
