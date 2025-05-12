@@ -26,6 +26,9 @@ const userSchema = new Schema<IUser>({
   subCatagory:{
     type: String
   },
+  deviceID:{
+    type: String
+  },
   job:[{
     type: Schema.Types.ObjectId,
     ref: "post"

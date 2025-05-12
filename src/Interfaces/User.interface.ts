@@ -7,6 +7,7 @@ export interface IUser extends Document {
     favouriteServices: Types.ObjectId[];
     iOffered: Types.ObjectId[];
     myOffer: Types.ObjectId[];
+    deviceID: string;
     fullName: string;
     email: string;
     role: string;
