@@ -1,23 +1,25 @@
 import { model, models, Schema } from "mongoose";
 import { IMessage } from "../Interfaces/message.interface";
+import { MESSAGE_TYPE } from "../enums/message.enum";
 
 const messageSchema = new Schema<IMessage>({
   sender:{
     type: Schema.Types.ObjectId,
     ref: "user"
   },
-  receiver:{
+  chatRef:{
     type: Schema.Types.ObjectId,
-    ref: "user"
+    ref:"chats"
+  },
+  messageType: {
+    type: String,
+    enum: MESSAGE_TYPE,
+    default: MESSAGE_TYPE.CHAT
   },
   content:{
     type: String,
-    trim: true,
-    max: 1400
-  },
-  image:[{
-    type: String
-  }]
+    required: true
+  }
 },{
   timestamps: true
 });
