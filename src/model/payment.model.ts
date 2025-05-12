@@ -4,11 +4,11 @@ import { PAYMENT_STATUS } from "../enums/payment.enum";
 const paymentSchema = new Schema({
     userId: {
       type: Schema.Types.ObjectId,
-      ref: "user"
+      ref: "users"
     },
     orderId: {
       type: Schema.Types.ObjectId,
-      ref: "user"
+      ref: "orders"
     },
     amount: Number,
     commission: Number,
