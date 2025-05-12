@@ -2,6 +2,11 @@ import { Document, Types } from "mongoose";
 import { Verification_For } from "../enums/user.enums";
 
 export interface IUser extends Document {
+    job: Types.ObjectId[];
+    orders: Types.ObjectId[];
+    favouriteServices: Types.ObjectId[];
+    iOffered: Types.ObjectId[];
+    myOffer: Types.ObjectId[];
     fullName: string;
     email: string;
     role: string;
@@ -9,12 +14,7 @@ export interface IUser extends Document {
     phone: string;
     category: string;
     subCatagory: string;
-    job: Types.ObjectId[];
-    orders: Types.ObjectId[];
-    favouriteServices: Types.ObjectId[];
     searchedCatagory: string;
-    iOffered: Types.ObjectId[];
-    myOffer: Types.ObjectId[];
     city: string;
     postalCode: string;
     address: string;
@@ -22,16 +22,16 @@ export interface IUser extends Document {
     samplePictures: string[];
     accountActivityStatus: string;
     accountStatus: string;
+    accountBalance: number;
+    privacyPolicy: string;
+    termsConditions: string;
+    serviceDescription: string;
     language: string;
     isVerified: {
         trdLicense: "",
         sampleImages: string[],
         status: boolean
     };
-    accountBalance: number;
-    privacyPolicy: string;
-    termsConditions: string;
-    serviceDescription: string;
     otpVerification: {
         isVerified: {
             status: boolean,
@@ -46,4 +46,8 @@ export interface IUser extends Document {
         provider: string;
         socialIdentity: string;
     };
+    paymentCartDetails:{
+        customerID: string;
+        cardID: string;
+    }
 }

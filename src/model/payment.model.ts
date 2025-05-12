@@ -12,6 +12,7 @@ const paymentSchema = new Schema({
     },
     amount: Number,
     commission: Number,
+    chargeID: String,
     status: { 
       type: String, 
       enum: PAYMENT_STATUS, 

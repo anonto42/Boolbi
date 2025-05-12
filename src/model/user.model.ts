@@ -1,7 +1,6 @@
 import { model, models, Schema } from "mongoose";
 import { IUser } from "../Interfaces/User.interface";
 import { ACCOUNT_STATUS, ACCOUTN_ACTVITY_STATUS, SELECTED_LANGUAGE, USER_ROLES, Verification_For } from "../enums/user.enums";
-import { boolean } from "zod";
 
 const userSchema = new Schema<IUser>({
   role: { 
@@ -137,7 +136,15 @@ const userSchema = new Schema<IUser>({
     socialIdentity:{
       type: String
     }
-  }
+  },
+  paymentCartDetails:{
+    customerID:{
+      type: String
+    },
+    cardID:{
+      type: String
+    }
+}
 },{
   timestamps: true
 });

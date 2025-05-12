@@ -3,6 +3,7 @@ import { UserRouter } from '../app/router/user.route';
 import { AuthRouter } from '../app/router/auth.route';
 import { ProviderRoter } from '../app/router/provider.route';
 import { AdminRoter } from '../app/router/admin.route';
+import { PaymentRoute } from '../app/router/payment.route';
 const router = express.Router();
 
 const apiRoutes = [
@@ -21,6 +22,10 @@ const apiRoutes = [
   {
     path: '/admin',
     route: AdminRoter
+  },
+  {
+    path: '/payment',
+    route: PaymentRoute
   }
 ];
 
