@@ -6,7 +6,10 @@ const jobPostSchema = new Schema<IPost>({
   title:{
     type: String,
     required: true,
-    trim: true
+  },
+  coverImage:{
+    type: String,
+    required: true
   },
   postType:{
     type: String,
@@ -16,7 +19,6 @@ const jobPostSchema = new Schema<IPost>({
   catagory:{
     type: String,
     required: true,
-    trim: true
   },
   subCatagory:{
     type: String,
@@ -35,16 +37,13 @@ const jobPostSchema = new Schema<IPost>({
   deadline:{
     type: String,
     required: true,
-    trim: true
   }, 
   jobDescription:{
     type: String,
     required: true,
-    trim: true
   },
   showcaseImages:[{
     type: String,
-    trim: true
   }],
   creatorID:{
     type: Schema.Types.ObjectId,

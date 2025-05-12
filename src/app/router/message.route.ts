@@ -16,6 +16,7 @@ router
     )
     .post(
         auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER ),
+        validateRequest( MessageValidation.sendMessageSchema ),
         MessageController.sendMessage
     )
 
