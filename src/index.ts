@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import cors from 'cors';
 import cookie from 'cookie-parser';
 import dotenv from "dotenv";
@@ -9,6 +9,7 @@ import globalErrorHandler from "./middlewares/globalErrorHandler";
 import { Morgan } from "./shared/morgen";
 import config from "./config";
 import { superUserCreate } from "./DB/SuperUserCreate";
+import { StatusCodes } from "http-status-codes";
 
 // Initializing
 const app = express();
@@ -33,31 +34,37 @@ app.use(cors({
   credentials: true
 }));
 
+//File retrieve
+app.use(express.static("uploads"));
+
 //Api endpoints
 app.use("/api/v1",router)
 
-//File retrieve
-app.use(express.static("uploads"));
+//live response
+app.get('/', (req: Request, res: Response) => {
+  const date = new Date(Date.now());
+  res.send(
+    `<h1 style="text-align:center; color:#173616; font-family:Verdana;">Beep-beep! The server is alive and kicking.</h1>
+    <p style="text-align:center; color:#173616; font-family:Verdana;">${date}</p>
+    `
+  );
+});
 
 // global error
 app.use(globalErrorHandler)
 
-// connect DB & run the surver
-;( 
-  async () => {
-    await DBConnection()
-      .then( response =>(
-          console.log(chalk.green("✅ Your Database was hosted on: ") + chalk.cyan(response.connection.host)),
-          console.log(chalk.green("✅ Your Database is running on port: ") + chalk.yellow(response.connection.port)),
-          console.log(chalk.green("✅ Your Database name is: ") + chalk.magenta(response.connection.name))
-      ));
+//handle not found route;
+app.use((req: Request, res: Response) => {
+  res.status(StatusCodes.NOT_FOUND).json({
+    success: false,
+    message: 'Not found',
+    errorMessages: [
+      {
+        path: req.originalUrl,
+        message: "API DOESN'T EXIST",
+      },
+    ],
+  });
+});
 
-      //Super admin creation function
-      await superUserCreate();
-
-      //Listen the server
-      app.listen( port, () => {
-        console.log("Your Server was listing on port : "+ port );
-      })
-    }
-)();
+export default app;
