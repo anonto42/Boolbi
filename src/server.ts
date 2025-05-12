@@ -5,6 +5,7 @@ import config from "./config";
 import app from "./index";
 import { socketHelper } from "./helpers/socketHelper";
 import { Server } from "socket.io";
+import { superUserCreate } from "./DB/SuperUserCreate";
 
 
 //uncaught exception
@@ -23,6 +24,8 @@ async function main() {
             console.log(chalk.green("✅ Your Database is running on port: ") + chalk.yellow(response.connection.port)),
             console.log(chalk.green("✅ Your Database name is: ") + chalk.magenta(response.connection.name))
         ));
+
+        await superUserCreate();
 
         const port = 
             typeof config.port === 'number'?
