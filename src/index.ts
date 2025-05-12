@@ -8,6 +8,7 @@ import chalk from 'chalk';
 import globalErrorHandler from "./middlewares/globalErrorHandler";
 import { Morgan } from "./shared/morgen";
 import config from "./config";
+import { superUserCreate } from "./DB/SuperUserCreate";
 
 // Initializing
 const app = express();
@@ -50,6 +51,9 @@ app.use(globalErrorHandler)
           console.log(chalk.green("✅ Your Database is running on port: ") + chalk.yellow(response.connection.port)),
           console.log(chalk.green("✅ Your Database name is: ") + chalk.magenta(response.connection.name))
       ));
+
+      //Super admin creation function
+      await superUserCreate();
 
       //Listen the server
       app.listen( port, () => {

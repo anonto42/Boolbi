@@ -16,4 +16,8 @@ export default {
   db_name: process.env.DB_NAME,
   port: process.env.PORT || 3000,
   origin: process.env.ORIGIN || "*",
+  super_user_email: process.env.SUPER_USER_EMAIL,
+  super_user_password: process.env.SUPER_USER_PASSWORD,
+  strip_public_key: process.env.STRIP_PUBLIC_KEY,
+  strip_secret_key: process.env.STRIP_SECRET_KEY
 };

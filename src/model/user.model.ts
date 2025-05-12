@@ -11,7 +11,6 @@ const userSchema = new Schema<IUser>({
   },
   fullName: {
     type: String,
-    required: true,
     min: 6,
     max: 100,
     trim: true
