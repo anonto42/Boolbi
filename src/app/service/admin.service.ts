@@ -329,9 +329,6 @@ const deleteAnnouncement = async (
     if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
         throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
     };
-    if ( announceID ) {
-        throw new ApiError(StatusCodes.BAD_REQUEST,"You should give the id for delete!")
-    };
     const catagoryModel = await Announcement.findOneAndDelete({_id: announceID});
     if (!catagoryModel) {
         throw new ApiError(StatusCodes.NOT_FOUND,"Your giver announcement is not exist!")
@@ -373,6 +370,26 @@ const updateAnnounsments = async (
   return catagoryModel;
 };
 
+const statusAnnounsments = async (
+  payload: JwtPayload,
+  id: string,
+  acction: "ACTIVE" | "DEACTIVE"
+) => {
+  const { userID } = payload;
+
+  const isAdmin = await User.findById(userID);
+  if (!isAdmin || (isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
+    throw new ApiError(StatusCodes.FORBIDDEN, "Access denied. Admin only.");
+  }
+
+  const ANNOUNSMENT = await Announcement.findByIdAndUpdate(id,{status: acction});
+  if (!ANNOUNSMENT) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Announcement does not exist!");
+  }
+
+  return ANNOUNSMENT;
+};
+
 export const AdminService = {
     overview,
     allCustomers,
@@ -389,5 +406,6 @@ export const AdminService = {
     singleAnnouncement,
     createAnnouncement,
     deleteAnnouncement,
-    updateAnnounsments
+    updateAnnounsments,
+    statusAnnounsments
 }

@@ -83,10 +83,15 @@ router
         validateRequest( AdminValidation.announceUpdate ),
         AdminController.updateAnnounsments
     )
-    .patch()
+    .patch(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        validateRequest( AdminValidation.changeStatusAndUpdate),
+        AdminController.activityControleOfAnnounsments
+    )
     .delete(
         auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
-        validateRequest( AdminValidation.announceUpdate )
+        validateRequest( AdminValidation.deleteAnnouncement ),
+        AdminController.deleteAnnounsments
     )
 
 

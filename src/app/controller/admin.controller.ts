@@ -208,6 +208,37 @@ const updateAnnounsments = catchAsync(
     }
 );
 
+const activityControleOfAnnounsments = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const status = req.query.status;
+        const id = req.query.id
+        const result = await AdminService.statusAnnounsments(Payload,status as string, id as "ACTIVE" | "DEACTIVE");
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully deleted the catagorys",
+            data: result
+        });
+    }
+);
+
+const deleteAnnounsments = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const id = req.query.id
+        const result = await AdminService.deleteAnnouncement(Payload,id as string);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully deleted the catagorys",
+            data: result
+        });
+    }
+);
+
 
 export const AdminController = {
     overView,
@@ -221,5 +252,7 @@ export const AdminController = {
     updateCatagroys,
     getAnnounsments,
     createAnnounsments,
-    updateAnnounsments
+    updateAnnounsments,
+    activityControleOfAnnounsments,
+    deleteAnnounsments
 }

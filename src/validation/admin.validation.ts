@@ -30,9 +30,25 @@ const announceUpdate = z.object({
     })
 })
 
+const changeStatusAndUpdate = z.object({
+    query: z.object({
+        id: z.string({required_error:"You must give the id to update the announcement"}),
+        status: z.enum(["ACTIVE" , "DEACTIVE"])
+    })
+})
+
+const deleteAnnouncement = z.object({
+    query: z.object({
+        id: z.string({required_error:"You must give the id to delete the announcement"})
+    })
+})
+
+
 export const AdminValidation = {
     userUpdateSchema,
     catagorySchema,
     announcementSchema,
-    announceUpdate
+    announceUpdate,
+    changeStatusAndUpdate,
+    deleteAnnouncement
 }
