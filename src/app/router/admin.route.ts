@@ -59,11 +59,12 @@ router
     )
     .patch(
         auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
-        AdminController.catagroys
+        fileUploadHandler(),
+        AdminController.updateCatagroys
     )
     .delete(
         auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
-        AdminController.catagroys
+        AdminController.deleteCatagroys
     )
 
 export const AdminRoter = router;

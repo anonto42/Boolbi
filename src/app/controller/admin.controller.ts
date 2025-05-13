@@ -128,6 +128,36 @@ const newCatagroys = catchAsync(
     }
 );
 
+const deleteCatagroys = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const catagoryID = req.query.id;
+        const result = await AdminService.deleteCatagory(Payload,catagoryID as string);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully deleted the catagorys",
+            data: result
+        });
+    }
+);
+
+const updateCatagroys = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const {...data} = req.body;
+        const image = getSingleFilePath(req.files,"image")
+        const result = await AdminService.updateCatagory(Payload,data,image as string);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully deleted the catagorys",
+            data: result
+        });
+    }
+);
 
 export const AdminController = {
     overView,
@@ -136,5 +166,7 @@ export const AdminController = {
     providers,
     payments,
     catagroys,
-    newCatagroys
+    newCatagroys,
+    deleteCatagroys,
+    updateCatagroys
 }

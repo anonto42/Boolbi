@@ -205,6 +205,64 @@ const addNewCatagory = async (
     return newCatagory;
 }
 
+const deleteCatagory = async (
+    payload: JwtPayload,
+    catagoryId: string,
+) => {
+    const { userID } = payload;
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+    };
+    if ( catagoryId ) {
+        throw new ApiError(StatusCodes.BAD_REQUEST,"You should give the catagory id for delete!")
+    };
+    const catagoryModel = await Catagroy.findOneAndDelete({_id: catagoryId});
+    if (!catagoryModel) {
+        throw new ApiError(StatusCodes.NOT_FOUND,"Your giver catagory not exist!")
+    };
+
+    return catagoryModel;
+}
+
+const updateCatagory = async (
+  payload: JwtPayload,
+  data: {
+    name?: string;
+    id: string;
+    subCatagorys?: string;
+  },
+  image?: string
+) => {
+  const { userID } = payload;
+
+  const isAdmin = await User.findById(userID);
+  if (!isAdmin || (isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
+    throw new ApiError(StatusCodes.FORBIDDEN, "Access denied. Admin only.");
+  }
+
+  const catagoryModel = await Catagroy.findById(data.id);
+  if (!catagoryModel) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Category does not exist!");
+  }
+
+  if (data.name && data.name !== catagoryModel.name) {
+    catagoryModel.name = data.name;
+  }
+
+  if (data.subCatagorys && data.subCatagorys !== catagoryModel.subCatagorys) {
+    catagoryModel.subCatagorys = data.subCatagorys;
+  }
+
+  if (image && image !== catagoryModel.image) {
+    catagoryModel.image = image;
+  }
+
+  await catagoryModel.save();
+
+  return catagoryModel;
+};
+
 
 
 export const AdminService = {
@@ -216,5 +274,7 @@ export const AdminService = {
     allPayments,
     APayments,
     allCatagorys,
-    addNewCatagory
+    addNewCatagory,
+    deleteCatagory,
+    updateCatagory
 }
