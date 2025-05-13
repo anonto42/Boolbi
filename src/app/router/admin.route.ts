@@ -103,5 +103,17 @@ router
         AdminController.editeyPolicy
     )
 
+router
+    .route("/condition")
+    .get(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        AdminController.termsAndConditions
+    )
+    .patch(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        validateRequest( AdminValidation.updatedtermsConditions ),
+        AdminController.editeConditions
+    )
+
 
 export const AdminRoter = router;

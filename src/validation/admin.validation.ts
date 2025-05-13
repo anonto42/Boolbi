@@ -49,6 +49,12 @@ const updatedPolicy = z.object({
     })
 })
 
+const updatedtermsConditions = z.object({
+    body: z.object({
+        data: z.string({required_error:"You must give the data to update the Terms & Conditions"})
+    })
+})
+
 
 export const AdminValidation = {
     userUpdateSchema,
@@ -57,5 +63,6 @@ export const AdminValidation = {
     announceUpdate,
     changeStatusAndUpdate,
     deleteAnnouncement,
-    updatedPolicy
+    updatedPolicy,
+    updatedtermsConditions
 }

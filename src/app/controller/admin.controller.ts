@@ -256,13 +256,42 @@ const getPrivacyPolicy = catchAsync(
 const editeyPolicy = catchAsync(
     async( req: Request, res: Response ) => {
         const Payload = (req as any).user;
-        const {...data} = req.body;
+        const data = req.body.policy;
         const result = await AdminService.editePrivacyPolicy(Payload,data as string)
 
         sendResponse(res, {
             success: true,
             statusCode: StatusCodes .OK,
             message: "Successfully update Policy's",
+            data: result
+        });
+    }
+);
+
+const termsAndConditions = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const result = await AdminService.conditions(Payload)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully get condition's",
+            data: result
+        });
+    }
+);
+
+const editeConditions = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const {...data} = req.body;
+        const result = await AdminService.editeConditions(Payload,data as string)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully Update terms & Conditions",
             data: result
         });
     }
@@ -284,5 +313,7 @@ export const AdminController = {
     activityControleOfAnnounsments,
     deleteAnnounsments,
     getPrivacyPolicy,
-    editeyPolicy
+    editeyPolicy,
+    termsAndConditions,
+    editeConditions
 }
