@@ -14,6 +14,9 @@ import { ACCOUNT_STATUS, ACCOUTN_ACTVITY_STATUS, USER_ROLES } from "../../enums/
 import { OFFER_STATUS } from "../../enums/offer.enum";
 import Offer from "../../model/offer.model";
 import Order from "../../model/order.model";
+import { io } from "../../helpers/socketHelper";
+import { messageSend } from "../../helpers/firebaseHelper";
+import Chat from "../../model/chat.model";
 
 //User signUp
 const signUp = async ( 
@@ -729,6 +732,14 @@ const COrder = async (
     ifCustomerExist.myOffer.push(offer._id);
     await ifCustomerExist.save();
     await isUserExist.save();
+
+    const room = await Chat.create({firstUser:customer,secondUser:userID})
+
+    io.emit("notification",{roomID:room._id, userName:companyName, message:"You get a new offer", iconImage:offerData.companyImages })
+    await messageSend({token:isUserExist.deviceID, notification:{
+        title:companyName + " send you a offer.",
+        body:"You have receved a offer from the "+companyName
+    }})
 
     return offer;
 }
