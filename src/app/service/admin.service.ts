@@ -165,10 +165,16 @@ const allCatagorys = async (
     payload: JwtPayload 
 ) => {
     const { userID } = payload;
-    const isAdmin = await User.findById(userID);
-    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
-    };
+    const isUserExist = await User.findById(userID);
+    if (
+      isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
+      isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
+    ) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
+      );
+    }
     
     const catagroys = await Catagroy.find({});
 
@@ -267,27 +273,47 @@ const updateCatagory = async (
 const announcements = async (
     payload: JwtPayload
 ) => {
-    const { userID } = payload
+    const { userID } = payload;
     const isAdmin = await User.findById(userID);
-    if (!isAdmin || (isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
-        throw new ApiError(StatusCodes.FORBIDDEN, "Access denied. Admin only.");
+    if (!isAdmin) {
+        throw new ApiError(StatusCodes.EXPECTATION_FAILED,"User not founded")
+    }
+    if (
+      isAdmin.accountStatus === ACCOUNT_STATUS.DELETE ||
+      isAdmin.accountStatus === ACCOUNT_STATUS.BLOCK
+    ) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        `Your account was ${isAdmin.accountStatus.toLowerCase()}!`
+      );
     }
 
-    const catagoryModel = await Catagroy.findById(isAdmin._id);
+    const catagoryModel = await Announcement.find({});
     if (!catagoryModel) {
         throw new ApiError(StatusCodes.NOT_FOUND, "Category does not exist!");
-    }
+    };
+
+    return catagoryModel;
 }
 
 const singleAnnouncement = async (
     payload: JwtPayload,
     announcementID: string
 ) => {
-    const { userID } = payload
+    const { userID } = payload;
     const isAdmin = await User.findById(userID);
-    if (!isAdmin || (isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
-        throw new ApiError(StatusCodes.FORBIDDEN, "Access denied. Admin only.");
-    };
+    if (!isAdmin) {
+        throw new ApiError(StatusCodes.EXPECTATION_FAILED,"User not founded")
+    }
+    if (
+      isAdmin.accountStatus === ACCOUNT_STATUS.DELETE ||
+      isAdmin.accountStatus === ACCOUNT_STATUS.BLOCK
+    ) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        `Your account was ${isAdmin.accountStatus.toLowerCase()}!`
+      );
+    }
 
     const announcement = await Announcement.findById(announcementID);
     if (!announcement) {
@@ -390,6 +416,62 @@ const statusAnnounsments = async (
   return ANNOUNSMENT;
 };
 
+const privacyPolicy = async (
+  payload: JwtPayload,
+) => {
+    const { userID } = payload;
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin) {
+        throw new ApiError(StatusCodes.EXPECTATION_FAILED,"User not founded")
+    }
+    if (
+      isAdmin.accountStatus === ACCOUNT_STATUS.DELETE ||
+      isAdmin.accountStatus === ACCOUNT_STATUS.BLOCK
+    ) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        `Your account was ${isAdmin.accountStatus.toLowerCase()}!`
+      );
+    }
+
+    const privacyPolicy = await User.findOne({role: USER_ROLES.SUPER_ADMIN});
+    if (!privacyPolicy) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "PrivacyPolicy does not exist!");
+    }
+
+    return privacyPolicy.privacyPolicy;
+};
+
+const editePrivacyPolicy = async (
+  payload: JwtPayload,
+  data: string
+) => {
+    const { userID } = payload;
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin) {
+        throw new ApiError(StatusCodes.EXPECTATION_FAILED,"User not founded")
+    }
+    if (
+      isAdmin.accountStatus === ACCOUNT_STATUS.DELETE ||
+      isAdmin.accountStatus === ACCOUNT_STATUS.BLOCK
+    ) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        `Your account was ${isAdmin.accountStatus.toLowerCase()}!`
+      );
+    }
+
+    const privacyPolicy = await User.findOne({role: USER_ROLES.SUPER_ADMIN});
+    if (!privacyPolicy) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "Privacy Policy does not exist!");
+    }
+
+    privacyPolicy.privacyPolicy = data;
+    await privacyPolicy.save();
+
+    return data;
+};
+
 export const AdminService = {
     overview,
     allCustomers,
@@ -407,5 +489,7 @@ export const AdminService = {
     createAnnouncement,
     deleteAnnouncement,
     updateAnnounsments,
-    statusAnnounsments
+    statusAnnounsments,
+    privacyPolicy,
+    editePrivacyPolicy
 }

@@ -239,6 +239,34 @@ const deleteAnnounsments = catchAsync(
     }
 );
 
+const getPrivacyPolicy = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const result = await AdminService.privacyPolicy(Payload)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully get Policy's",
+            data: result
+        });
+    }
+);
+
+const editeyPolicy = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const {...data} = req.body;
+        const result = await AdminService.editePrivacyPolicy(Payload,data as string)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully update Policy's",
+            data: result
+        });
+    }
+);
 
 export const AdminController = {
     overView,
@@ -254,5 +282,7 @@ export const AdminController = {
     createAnnounsments,
     updateAnnounsments,
     activityControleOfAnnounsments,
-    deleteAnnounsments
+    deleteAnnounsments,
+    getPrivacyPolicy,
+    editeyPolicy
 }

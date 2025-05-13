@@ -43,6 +43,12 @@ const deleteAnnouncement = z.object({
     })
 })
 
+const updatedPolicy = z.object({
+    body: z.object({
+        policy: z.string({required_error:"You must give the policy to update"})
+    })
+})
+
 
 export const AdminValidation = {
     userUpdateSchema,
@@ -50,5 +56,6 @@ export const AdminValidation = {
     announcementSchema,
     announceUpdate,
     changeStatusAndUpdate,
-    deleteAnnouncement
+    deleteAnnouncement,
+    updatedPolicy
 }

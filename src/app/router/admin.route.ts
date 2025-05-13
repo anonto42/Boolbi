@@ -2,9 +2,6 @@ import { Router } from "express";
 import auth from "../../middlewares/Auth.middleware";
 import { USER_ROLES } from "../../enums/user.enums";
 import validateRequest from "../../middlewares/validateRequest";
-import { ProviderController } from "../controller/provider.controller";
-import { OrderValidator } from "../../validation/order.validation";
-import { DelivaryValidation } from "../../validation/delivary.validation";
 import fileUploadHandler from "../../middlewares/fileUploadHandler";
 import { AdminController } from "../controller/admin.controller";
 import { AdminValidation } from "../../validation/admin.validation";
@@ -92,6 +89,18 @@ router
         auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
         validateRequest( AdminValidation.deleteAnnouncement ),
         AdminController.deleteAnnounsments
+    )
+
+router
+    .route("/policy")
+    .get(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        AdminController.getPrivacyPolicy
+    )
+    .patch(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        validateRequest( AdminValidation.updatedPolicy ),
+        AdminController.editeyPolicy
     )
 
 
