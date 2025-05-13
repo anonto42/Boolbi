@@ -73,7 +73,7 @@ const allCustomers = async (
       throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
     };
     
-    const allUser = await User.find({});
+    const allUser = await User.find({role: "USER"});
 
     return allUser;
 }
@@ -116,9 +116,24 @@ const updateUserAccountStatus = async (
 
 }
 
+const allProvider = async (
+    payload: JwtPayload 
+) => {
+    const { userID } = payload;
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+    };
+    
+    const allUser = await User.find({role: "SERVICE_PROVIDER"});
+
+    return allUser;
+}
+
 export const AdminService = {
     overview,
     allCustomers,
     aCustomer,
-    updateUserAccountStatus
+    updateUserAccountStatus,
+    allProvider
 }

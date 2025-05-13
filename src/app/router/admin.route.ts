@@ -22,13 +22,20 @@ router
 router 
     .route("/customer")
     .get(
-        auth( USER_ROLES.ADMIN, USER_ROLES.SERVICE_PROVIDER ),
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
         AdminController.customers
     )
     .patch(
-        auth( USER_ROLES.ADMIN, USER_ROLES.SERVICE_PROVIDER ),
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
         validateRequest( AdminValidation.userUpdateSchema ),
         AdminController.updateAccountStatus
+    )
+
+router
+    .route("/provider")
+    .get(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        AdminController.providers
     )
 
 export const AdminRoter = router;
