@@ -77,10 +77,31 @@ const providers = catchAsync(
     }
 );
 
+const payments = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const specificUser = req.query.id;
+        let result;
+        if (!specificUser) {
+            result = await AdminService.allPayments(Payload);
+        } else if ( specificUser ) {
+            result = await AdminService.APayments(Payload,specificUser as string)
+        }
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Admin overview data get successfully",
+            data: result
+        });
+    }
+);
+
 
 export const AdminController = {
     overView,
     customers,
     updateAccountStatus,
-    providers
+    providers,
+    payments
 }

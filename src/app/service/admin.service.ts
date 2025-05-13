@@ -130,10 +130,42 @@ const allProvider = async (
     return allUser;
 }
 
+const allPayments = async (
+    payload: JwtPayload 
+) => {
+    const { userID } = payload;
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+    };
+    
+    const allPayments = await Payment.find({});
+
+    return allPayments;
+}
+
+const APayments = async (
+    payload: JwtPayload,
+    paymentID: string
+) => {
+    const { userID } = payload;
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+    };
+    
+    const allPayments = await Payment.findById(paymentID);
+
+    return allPayments;
+}
+
+
 export const AdminService = {
     overview,
     allCustomers,
     aCustomer,
     updateUserAccountStatus,
-    allProvider
+    allProvider,
+    allPayments,
+    APayments
 }

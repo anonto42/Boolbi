@@ -38,4 +38,11 @@ router
         AdminController.providers
     )
 
+router 
+    .route("/payment")
+    .get( //Update some think later on aggrigation // todo
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        AdminController.providers
+    )
+
 export const AdminRoter = router;
