@@ -15,7 +15,16 @@ const sendMessageSchema = z.object({
     })
 })
 
+const careateChat = z.object({
+    body: z.object({
+        chatWith: z.string({required_error:"you must give the recever id"}), 
+        chatName: z.string({required_error:"You must give the name of the chat id"}), 
+        image: z.string({required_error:"you must give the chat room logo image url"})
+    })
+})
+
 export const MessageValidation = {
     getChatRroom,
-    sendMessageSchema
+    sendMessageSchema,
+    careateChat
 }

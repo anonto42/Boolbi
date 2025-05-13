@@ -8,7 +8,7 @@ import mongoose from "mongoose";
 import { NChat } from "../../types/message";
 import Post from "../../model/post.model";
 import Message from "../../model/message.model";
-
+import { io } from "../../helpers/socketHelper";
 
 const sendMessageSend = async (
     payload: JwtPayload,
@@ -29,7 +29,7 @@ const sendMessageSend = async (
         sender:isUser._id,
         chatRef: chatRoom,
         content: image? image : message
-    }
+    };
 
     try {
         let message = await Message.create(newMessage);
@@ -42,7 +42,9 @@ const sendMessageSend = async (
 
         await Chat.findByIdAndUpdate(chatRoom,{
             lastMessage: message
-        })
+        });
+
+        io.emit("send message",{roomID:chatRoom, user: isUser._id, message})
         
     } catch (error) {
         console.log(error)

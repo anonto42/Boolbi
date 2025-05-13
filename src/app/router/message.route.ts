@@ -28,6 +28,7 @@ router
     )
     .post(
         auth( USER_ROLES.ADMIN, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN),
+        validateRequest( MessageValidation.careateChat ),
         MessageController.createChatRooms
     )
 
