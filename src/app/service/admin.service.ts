@@ -7,6 +7,7 @@ import Post from "../../model/post.model";
 import Payment from "../../model/payment.model";
 import { ACCOUNT_STATUS, USER_ROLES } from "../../enums/user.enums";
 import Catagroy from "../../model/catagory.model";
+import Announcement from "../../model/announcement.model";
 
 // Need more oparation for the best responce
 const overview = async (
@@ -263,7 +264,114 @@ const updateCatagory = async (
   return catagoryModel;
 };
 
+const announcements = async (
+    payload: JwtPayload
+) => {
+    const { userID } = payload
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin || (isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
+        throw new ApiError(StatusCodes.FORBIDDEN, "Access denied. Admin only.");
+    }
 
+    const catagoryModel = await Catagroy.findById(isAdmin._id);
+    if (!catagoryModel) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "Category does not exist!");
+    }
+}
+
+const singleAnnouncement = async (
+    payload: JwtPayload,
+    announcementID: string
+) => {
+    const { userID } = payload
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin || (isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
+        throw new ApiError(StatusCodes.FORBIDDEN, "Access denied. Admin only.");
+    };
+
+    const announcement = await Announcement.findById(announcementID);
+    if (!announcement) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "Announcement does not exist!");
+    };
+
+    return announcement
+}
+
+const createAnnouncement = async (
+    payload: JwtPayload,
+    data: {
+        title: string,
+        descriptions: string
+    }
+) => {
+    const { userID } = payload
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin || (isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
+        throw new ApiError(StatusCodes.FORBIDDEN, "Access denied. Admin only.");
+    };
+
+    const announcement = await Announcement.findOne({title: data.title});
+    if (announcement) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "Already announcement exist!");
+    };
+
+    const newAnounce = await Announcement.create({title: data.title, descriptions: data.descriptions,})
+
+    return newAnounce
+}
+
+const deleteAnnouncement = async (
+    payload: JwtPayload,
+    announceID: string
+) => {
+    const { userID } = payload;
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+    };
+    if ( announceID ) {
+        throw new ApiError(StatusCodes.BAD_REQUEST,"You should give the id for delete!")
+    };
+    const catagoryModel = await Announcement.findOneAndDelete({_id: announceID});
+    if (!catagoryModel) {
+        throw new ApiError(StatusCodes.NOT_FOUND,"Your giver announcement is not exist!")
+    };
+
+    return catagoryModel;
+}
+
+const updateAnnounsments = async (
+  payload: JwtPayload,
+  data: {
+    title?: string;
+    id: string;
+    descriptions?: string;
+  }
+) => {
+  const { userID } = payload;
+
+  const isAdmin = await User.findById(userID);
+  if (!isAdmin || (isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
+    throw new ApiError(StatusCodes.FORBIDDEN, "Access denied. Admin only.");
+  }
+
+  const catagoryModel = await Announcement.findById(data.id);
+  if (!catagoryModel) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Announcement does not exist!");
+  }
+
+  if (data.title && data.title !== catagoryModel.title) {
+    catagoryModel.title = data.title;
+  }
+
+  if (data.descriptions && data.descriptions !== catagoryModel.descriptions) {
+    catagoryModel.descriptions = data.descriptions;
+  }
+
+  await catagoryModel.save();
+
+  return catagoryModel;
+};
 
 export const AdminService = {
     overview,
@@ -276,5 +384,10 @@ export const AdminService = {
     allCatagorys,
     addNewCatagory,
     deleteCatagory,
-    updateCatagory
+    updateCatagory,
+    announcements,
+    singleAnnouncement,
+    createAnnouncement,
+    deleteAnnouncement,
+    updateAnnounsments
 }

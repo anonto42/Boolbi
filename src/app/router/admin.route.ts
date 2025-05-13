@@ -67,4 +67,27 @@ router
         AdminController.deleteCatagroys
     )
 
+router
+    .route("/announcements") 
+    .get(
+        auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER),
+        AdminController.getAnnounsments
+    )
+    .post(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        validateRequest( AdminValidation.announcementSchema ),
+        AdminController.createAnnounsments
+    )
+    .put(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        validateRequest( AdminValidation.announceUpdate ),
+        AdminController.updateAnnounsments
+    )
+    .patch()
+    .delete(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        validateRequest( AdminValidation.announceUpdate )
+    )
+
+
 export const AdminRoter = router;

@@ -159,6 +159,56 @@ const updateCatagroys = catchAsync(
     }
 );
 
+const getAnnounsments = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const announcementID = req.query.id;
+        let result;
+        if (!announcementID) {
+            result = await AdminService.announcements(Payload);
+        } else if ( announcementID ) {
+            result = await AdminService.singleAnnouncement(Payload,announcementID as string)
+        }
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully get announcements",
+            data: result
+        });
+    }
+);
+
+const createAnnounsments = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const {...data} = req.body;
+        const result = await AdminService.createAnnouncement(Payload,data);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully deleted the catagorys",
+            data: result
+        });
+    }
+);
+
+const updateAnnounsments = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const {...data} = req.body;
+        const result = await AdminService.createAnnouncement(Payload,data);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully deleted the catagorys",
+            data: result
+        });
+    }
+);
+
+
 export const AdminController = {
     overView,
     customers,
@@ -168,5 +218,8 @@ export const AdminController = {
     catagroys,
     newCatagroys,
     deleteCatagroys,
-    updateCatagroys
+    updateCatagroys,
+    getAnnounsments,
+    createAnnounsments,
+    updateAnnounsments
 }
