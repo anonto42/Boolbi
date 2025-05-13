@@ -4,9 +4,7 @@ import { ICatagory } from "../Interfaces/catagory.interface";
 const categorySchema = new Schema<ICatagory>({
   name: {
     type: String,
-    required: true,
-    min: 8,
-    trim: true
+    required: true
   },
   image: {
     type: String,
@@ -14,8 +12,6 @@ const categorySchema = new Schema<ICatagory>({
   },
   subCatagorys:{
     type: String,
-    trim: true,
-    min: 8
   }
 },{
   timestamps: true

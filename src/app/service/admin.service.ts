@@ -6,6 +6,7 @@ import Offer from "../../model/offer.model";
 import Post from "../../model/post.model";
 import Payment from "../../model/payment.model";
 import { ACCOUNT_STATUS, USER_ROLES } from "../../enums/user.enums";
+import Catagroy from "../../model/catagory.model";
 
 // Need more oparation for the best responce
 const overview = async (
@@ -159,6 +160,52 @@ const APayments = async (
     return allPayments;
 }
 
+const allCatagorys = async (
+    payload: JwtPayload 
+) => {
+    const { userID } = payload;
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+    };
+    
+    const catagroys = await Catagroy.find({});
+
+    return catagroys;
+}
+
+const addNewCatagory = async (
+    payload: JwtPayload,
+    image: string,
+    data: {
+        catagory: string,
+        subCatagory: string
+    }
+) => {
+    const { userID } = payload;
+    const { catagory, subCatagory} = data;
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+    };
+    if (!image || !catagory || !subCatagory ) {
+        throw new ApiError(StatusCodes.BAD_REQUEST,"You should give all the required details to create a new catagory!")
+    };
+    const catagoryModel = await Catagroy.findOne({name: catagory});
+    if (catagoryModel) {
+        throw new ApiError(StatusCodes.BAD_REQUEST,`${catagory} is already exist your can't add this`)
+    };
+
+    const newCatagory = Catagroy.create({
+        catagory,
+        subCatagory,
+        image
+    })
+
+    return newCatagory;
+}
+
+
 
 export const AdminService = {
     overview,
@@ -167,5 +214,7 @@ export const AdminService = {
     updateUserAccountStatus,
     allProvider,
     allPayments,
-    APayments
+    APayments,
+    allCatagorys,
+    addNewCatagory
 }

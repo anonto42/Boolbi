@@ -42,7 +42,28 @@ router
     .route("/payment")
     .get( //Update some think later on aggrigation // todo
         auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
-        AdminController.providers
+        AdminController.payments
+    )
+
+router
+    .route("/category")
+    .get(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER ),
+        AdminController.catagroys
+    )
+    .post(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        fileUploadHandler(),
+        validateRequest( AdminValidation.catagorySchema),
+        AdminController.newCatagroys
+    )
+    .patch(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        AdminController.catagroys
+    )
+    .delete(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        AdminController.catagroys
     )
 
 export const AdminRoter = router;

@@ -4,6 +4,7 @@ import sendResponse from "../../shared/sendResponse";
 import { StatusCodes } from "http-status-codes";
 import { AdminService } from "../service/admin.service";
 import { ACCOUNT_STATUS } from "../../enums/user.enums";
+import { getSingleFilePath } from "../../shared/getFilePath";
 
 //overview of the dashoboard data
 const overView = catchAsync(
@@ -35,7 +36,7 @@ const customers = catchAsync(
         sendResponse(res, {
             success: true,
             statusCode: StatusCodes .OK,
-            message: "Admin overview data get successfully",
+            message: "Successfully get all the customers",
             data: result
         });
     }
@@ -71,7 +72,7 @@ const providers = catchAsync(
         sendResponse(res, {
             success: true,
             statusCode: StatusCodes .OK,
-            message: "Admin overview data get successfully",
+            message: "Successfully get all the providers",
             data: result
         });
     }
@@ -91,7 +92,37 @@ const payments = catchAsync(
         sendResponse(res, {
             success: true,
             statusCode: StatusCodes .OK,
-            message: "Admin overview data get successfully",
+            message: "Successfully get all the payments",
+            data: result
+        });
+    }
+);
+
+const catagroys = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const result = await AdminService.allCatagorys(Payload);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully get all the catagorys",
+            data: result
+        });
+    }
+);
+
+const newCatagroys = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const image = getSingleFilePath(req.files,"image");
+        const { subCatagory } = req.body;
+        const result = await AdminService.addNewCatagory(Payload,image as string,subCatagory);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully get all the catagorys",
             data: result
         });
     }
@@ -103,5 +134,7 @@ export const AdminController = {
     customers,
     updateAccountStatus,
     providers,
-    payments
+    payments,
+    catagroys,
+    newCatagroys
 }
