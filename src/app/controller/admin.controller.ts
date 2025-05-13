@@ -3,7 +3,9 @@ import catchAsync from "../../shared/catchAsync";
 import sendResponse from "../../shared/sendResponse";
 import { StatusCodes } from "http-status-codes";
 import { AdminService } from "../service/admin.service";
+import { ACCOUNT_STATUS } from "../../enums/user.enums";
 
+//overview of the dashoboard data
 const overView = catchAsync(
     async( req: Request, res: Response ) => {
         const Payload = (req as any).user;
@@ -19,7 +21,46 @@ const overView = catchAsync(
 )
 // Have to make a user_admin_creator_function
 
+const customers = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const specificUser = req.query.id;
+        let result;
+        if (!specificUser) {
+            result = await AdminService.allCustomers(Payload);
+        } else if ( specificUser ) {
+            result = await AdminService.aCustomer(Payload,specificUser as string)
+        }
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Admin overview data get successfully",
+            data: result
+        });
+    }
+);
+
+const updateAccountStatus = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const userAcction = req.query.acction;
+        const userID = req.query.user;
+        const result = await AdminService.updateUserAccountStatus(Payload,userID as string,userAcction as ACCOUNT_STATUS)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully updated the user account status",
+            data: result
+        });
+    }
+);
+
+
 
 export const AdminController = {
-    overView
+    overView,
+    customers,
+    updateAccountStatus
 }

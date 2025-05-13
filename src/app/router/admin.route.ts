@@ -7,6 +7,7 @@ import { OrderValidator } from "../../validation/order.validation";
 import { DelivaryValidation } from "../../validation/delivary.validation";
 import fileUploadHandler from "../../middlewares/fileUploadHandler";
 import { AdminController } from "../controller/admin.controller";
+import { AdminValidation } from "../../validation/admin.validation";
 
 
 const router = Router();
@@ -17,9 +18,17 @@ router
         auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
         AdminController.overView
     )
-    .post()
-    .put()
-    .patch()
-    .delete()
+
+router 
+    .route("/customer")
+    .get(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SERVICE_PROVIDER ),
+        AdminController.customers
+    )
+    .patch(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SERVICE_PROVIDER ),
+        validateRequest( AdminValidation.userUpdateSchema ),
+        AdminController.updateAccountStatus
+    )
 
 export const AdminRoter = router;

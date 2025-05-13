@@ -5,6 +5,7 @@ import { StatusCodes } from "http-status-codes";
 import Offer from "../../model/offer.model";
 import Post from "../../model/post.model";
 import Payment from "../../model/payment.model";
+import { ACCOUNT_STATUS, USER_ROLES } from "../../enums/user.enums";
 
 // Need more oparation for the best responce
 const overview = async (
@@ -63,6 +64,61 @@ const overview = async (
     };
 }
 
+const allCustomers = async (
+    payload: JwtPayload 
+) => {
+    const { userID } = payload;
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+    };
+    
+    const allUser = await User.find({});
+
+    return allUser;
+}
+
+const aCustomer = async (
+    payload: JwtPayload,
+    customerID: string
+) => {
+    const { userID } = payload;
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+    };
+    if (!customerID) {
+        throw new ApiError(StatusCodes.BAD_GATEWAY,"You must give the customer id to get the customer")
+    };
+
+    return await User.findById(customerID)
+}
+
+const updateUserAccountStatus = async (
+    payload: JwtPayload,
+    customerID: string,
+    acction: ACCOUNT_STATUS.ACTIVE | ACCOUNT_STATUS.BLOCK | ACCOUNT_STATUS.DELETE | ACCOUNT_STATUS.REPORT
+) => {
+    const { userID } = payload;
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+    };
+    const customer = await User.findById(customerID);
+    if (!customer) {
+        throw new ApiError(StatusCodes.BAD_REQUEST,"Customer not exist")
+    };
+
+    customer.accountStatus = acction;
+    await customer.save();
+
+    return true;
+
+}
+
 export const AdminService = {
-    overview
+    overview,
+    allCustomers,
+    aCustomer,
+    updateUserAccountStatus
 }
