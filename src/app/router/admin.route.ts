@@ -115,5 +115,21 @@ router
         AdminController.editeConditions
     )
 
+router
+    .route("/make")
+    .get(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        AdminController.allAdmins
+    )
+    .post(
+        auth( USER_ROLES.SUPER_ADMIN ),
+        validateRequest( AdminValidation.addNewAdminSchema ),
+        AdminController.newAdmins
+    )
+    .delete(
+        auth( USER_ROLES.SUPER_ADMIN ),
+        validateRequest( AdminValidation.deleteAdminSchema ),
+        AdminController.deleteAdmin
+    )
 
 export const AdminRoter = router;

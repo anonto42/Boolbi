@@ -297,6 +297,50 @@ const editeConditions = catchAsync(
     }
 );
 
+const allAdmins = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const result = await AdminService.allAdmins(Payload)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully get all admins",
+            data: result
+        });
+    }
+);
+
+const newAdmins = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const {...data} = req.body;
+        const result = await AdminService.addNewAdmin(Payload,data)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully create new admin",
+            data: result
+        });
+    }
+);
+
+const deleteAdmin = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const adminId = req.query.adminId;
+        const result = await AdminService.deleteAdmin(Payload,adminId as string)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully deleted the admin",
+            data: result
+        });
+    }
+);
+
 export const AdminController = {
     overView,
     customers,
@@ -315,5 +359,8 @@ export const AdminController = {
     getPrivacyPolicy,
     editeyPolicy,
     termsAndConditions,
-    editeConditions
+    allAdmins,
+    editeConditions,
+    newAdmins,
+    deleteAdmin
 }

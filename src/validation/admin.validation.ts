@@ -55,6 +55,20 @@ const updatedtermsConditions = z.object({
     })
 })
 
+const addNewAdminSchema = z.object({
+    body: z.object({
+        fullName: z.string({ required_error:"You must give the name for create the users" }),
+        email: z.string({required_error:"You must give the email for the admin account"}),
+        password: z.string({required_error:"You must give the passwor for the admin"})
+    })
+})
+
+const deleteAdminSchema = z.object({
+    query: z.object({
+        adminID: z.string({ required_error:"You must give the admin id" })
+    })
+})
+
 
 export const AdminValidation = {
     userUpdateSchema,
@@ -64,5 +78,7 @@ export const AdminValidation = {
     changeStatusAndUpdate,
     deleteAnnouncement,
     updatedPolicy,
-    updatedtermsConditions
+    updatedtermsConditions,
+    addNewAdminSchema,
+    deleteAdminSchema
 }

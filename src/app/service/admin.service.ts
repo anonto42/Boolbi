@@ -8,6 +8,7 @@ import Payment from "../../model/payment.model";
 import { ACCOUNT_STATUS, USER_ROLES } from "../../enums/user.enums";
 import Catagroy from "../../model/catagory.model";
 import Announcement from "../../model/announcement.model";
+import { bcryptjs } from "../../helpers/bcryptHelper";
 
 // Need more oparation for the best responce
 const overview = async (
@@ -534,6 +535,81 @@ const editeConditions = async (
     return data;
 };
 
+const allAdmins = async (
+  payload: JwtPayload,
+) => {
+    const { userID } = payload;
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin) {
+        throw new ApiError(StatusCodes.EXPECTATION_FAILED,"User not founded")
+    }
+    if (
+      isAdmin.accountStatus === ACCOUNT_STATUS.DELETE ||
+      isAdmin.accountStatus === ACCOUNT_STATUS.BLOCK
+    ) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        `Your account was ${isAdmin.accountStatus.toLowerCase()}!`
+      );
+    }
+
+    const admins = await User.findOne({role: USER_ROLES.ADMIN});
+
+    return admins
+};
+
+const addNewAdmin = async (
+  payload: JwtPayload,
+  {
+    fullName,
+    email,
+    password
+  }:{
+    fullName: string,
+    email: string,
+    password: string
+  }
+) => {
+    const { userID, role } = payload;
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin) {
+        throw new ApiError(StatusCodes.EXPECTATION_FAILED,"User not founded")
+    }
+    if ( role === USER_ROLES.ADMIN || isAdmin.role === USER_ROLES.ADMIN) {
+      throw new ApiError(StatusCodes.METHOD_NOT_ALLOWED,"You are not authorize to do that acction")
+    }
+    if (
+      isAdmin.accountStatus === ACCOUNT_STATUS.DELETE ||
+      isAdmin.accountStatus === ACCOUNT_STATUS.BLOCK
+    ) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        `Your account was ${isAdmin.accountStatus.toLowerCase()}!`
+      );
+    }
+
+    const hasedPassword = await bcryptjs.Hash(password);
+
+    return await User.create({fullName,email,password:hasedPassword,role: USER_ROLES.ADMIN});
+};
+
+const deleteAdmin = async (
+    payload: JwtPayload,
+    adminID: string
+) => {
+    const { userID } = payload;
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+    };
+    
+    const admin = await User.findOneAndDelete({_id: adminID})
+    if (!admin) {
+      throw new ApiError(StatusCodes.NOT_FOUND,"Admin not founded");
+    }
+    return admin;
+}
+
 export const AdminService = {
     overview,
     allCustomers,
@@ -555,5 +631,8 @@ export const AdminService = {
     privacyPolicy,
     editePrivacyPolicy,
     conditions,
-    editeConditions
+    editeConditions,
+    allAdmins,
+    addNewAdmin,
+    deleteAdmin
 }
