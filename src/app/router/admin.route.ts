@@ -132,4 +132,16 @@ router
         AdminController.deleteAdmin
     )
 
+router
+    .route("/support")
+    .get(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        AdminController.supportReques
+    )
+    .patch(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        validateRequest( AdminValidation.supportRequestAdminSchema ),
+        AdminController.giveSupport
+    )
+
 export const AdminRoter = router;

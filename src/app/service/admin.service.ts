@@ -9,6 +9,7 @@ import { ACCOUNT_STATUS, USER_ROLES } from "../../enums/user.enums";
 import Catagroy from "../../model/catagory.model";
 import Announcement from "../../model/announcement.model";
 import { bcryptjs } from "../../helpers/bcryptHelper";
+import Support from "../../model/support.model";
 
 // Need more oparation for the best responce
 const overview = async (
@@ -610,6 +611,47 @@ const deleteAdmin = async (
     return admin;
 }
 
+const allSupportRequests = async (
+    payload: JwtPayload
+) => {
+    const { userID } = payload;
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+    };
+    
+    const supports = await Support.find()
+        .populate({ path: 'from', select: 'fullName email' })
+        .sort({ createdAt: -1 })
+        .exec();
+
+    return supports
+}
+
+const giveSupport = async (
+    payload: JwtPayload,
+    {
+        supportID,
+        reply
+    }:{
+        supportID: string,
+        reply: string
+    }
+) => {
+    const { userID } = payload;
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+    };
+
+    const supportUpdated = await Support.findByIdAndUpdate(supportID,{adminReply: reply, status: "SOLVED"},{ new: true });
+    if (!supportUpdated) {
+        throw new ApiError(StatusCodes.NOT_FOUND,"Not founded the support, something was wrong")
+    };
+    
+    return supportUpdated
+}
+
 export const AdminService = {
     overview,
     allCustomers,
@@ -634,5 +676,7 @@ export const AdminService = {
     editeConditions,
     allAdmins,
     addNewAdmin,
-    deleteAdmin
+    deleteAdmin,
+    allSupportRequests,
+    giveSupport
 }

@@ -341,6 +341,35 @@ const deleteAdmin = catchAsync(
     }
 );
 
+const supportReques = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const result = await AdminService.allSupportRequests(Payload)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully get all the supprt requests",
+            data: result
+        });
+    }
+);
+
+const giveSupport = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const {...data} = req.body;
+        const result = await AdminService.giveSupport(Payload,data)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully send the support message",
+            data: result
+        });
+    }
+);
+
 export const AdminController = {
     overView,
     customers,
@@ -362,5 +391,7 @@ export const AdminController = {
     allAdmins,
     editeConditions,
     newAdmins,
-    deleteAdmin
+    deleteAdmin,
+    supportReques,
+    giveSupport
 }
