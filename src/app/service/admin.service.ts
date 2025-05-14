@@ -73,13 +73,27 @@ const allCustomers = async (
 ) => {
     const { userID } = payload;
     const isAdmin = await User.findById(userID);
-    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+    if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
       throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
     };
     
-    const allUser = await User.find({role: "USER"});
-
-    return allUser;
+    const allUsers = await User.aggregate([
+      {
+        $match: { role: "USER" }
+      },
+      {
+        $project: {
+          _id: 1,
+          fullName: 1,
+          email: 1,
+          accountStatus: 1,
+          deviceID: 1,
+          createdAt: 1,
+          updatedAt: 1
+        }
+      }
+    ]);
+    return allUsers;
 }
 
 const aCustomer = async (
@@ -88,7 +102,7 @@ const aCustomer = async (
 ) => {
     const { userID } = payload;
     const isAdmin = await User.findById(userID);
-    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+    if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
         throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
     };
     if (!customerID) {
@@ -105,7 +119,7 @@ const updateUserAccountStatus = async (
 ) => {
     const { userID } = payload;
     const isAdmin = await User.findById(userID);
-    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+    if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
         throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
     };
     const customer = await User.findById(customerID);
@@ -125,13 +139,28 @@ const allProvider = async (
 ) => {
     const { userID } = payload;
     const isAdmin = await User.findById(userID);
-    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+    if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
       throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
     };
     
-    const allUser = await User.find({role: "SERVICE_PROVIDER"});
-
-    return allUser;
+    const allServiceProviders = await User.aggregate([
+      {
+        $match: { role: "SERVICE_PROVIDER" }
+      },
+      {
+        $project: {
+          _id: 1,
+          fullName: 1,
+          email: 1,
+          accountStatus: 1,
+          deviceID: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          category: 1
+        }
+      }
+    ]);
+    return allServiceProviders;
 }
 
 const allPayments = async (
@@ -139,7 +168,7 @@ const allPayments = async (
 ) => {
     const { userID } = payload;
     const isAdmin = await User.findById(userID);
-    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+    if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
       throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
     };
     
@@ -154,7 +183,7 @@ const APayments = async (
 ) => {
     const { userID } = payload;
     const isAdmin = await User.findById(userID);
-    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+    if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
       throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
     };
     
@@ -194,7 +223,7 @@ const addNewCatagory = async (
     const { userID } = payload;
     const { catagory, subCatagory} = data;
     const isAdmin = await User.findById(userID);
-    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+    if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
         throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
     };
     if (!image || !catagory || !subCatagory ) {
@@ -220,7 +249,7 @@ const deleteCatagory = async (
 ) => {
     const { userID } = payload;
     const isAdmin = await User.findById(userID);
-    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+    if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
         throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
     };
     if ( catagoryId ) {
@@ -354,7 +383,7 @@ const deleteAnnouncement = async (
 ) => {
     const { userID } = payload;
     const isAdmin = await User.findById(userID);
-    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+    if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
         throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
     };
     const catagoryModel = await Announcement.findOneAndDelete({_id: announceID});
@@ -600,7 +629,7 @@ const deleteAdmin = async (
 ) => {
     const { userID } = payload;
     const isAdmin = await User.findById(userID);
-    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+    if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
         throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
     };
     
@@ -616,7 +645,7 @@ const allSupportRequests = async (
 ) => {
     const { userID } = payload;
     const isAdmin = await User.findById(userID);
-    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+    if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
         throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
     };
     
@@ -640,7 +669,7 @@ const giveSupport = async (
 ) => {
     const { userID } = payload;
     const isAdmin = await User.findById(userID);
-    if (!isAdmin || isAdmin.role !== USER_ROLES.ADMIN || isAdmin.role !== USER_ROLES.SUPER_ADMIN) {
+    if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
         throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
     };
 

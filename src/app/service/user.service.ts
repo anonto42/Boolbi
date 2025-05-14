@@ -65,13 +65,13 @@ const signUp = async (
     return { user: userObject, token: createToken }
 }
 
-//All Profile Information // aggrigation will use later in hear
+//All Profile Information
 const profle = async ( 
     payload : JwtPayload
 ) => {
     const { userID } = payload;
 
-    const isExist = await User.findOne({_id: userID})
+    const isExist = await User.findOne({_id: userID}).select("-password -otpVerification -isSocialAccount");
     if (!isExist) {
         throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
     };
@@ -83,41 +83,72 @@ const profle = async (
     return isExist
 }
 
-//Update the user profile
-const UP = async ( 
-    payload : JwtPayload,
-    data : IUser
+//Update user Profile
+const UP = async (
+  payload: JwtPayload,
+  data: IUser
 ) => {
-    const { userID } = payload;
-    const { fullName, email, phone, city, address, postalCode, language, category, subCatagory, samplePictures, serviceDescription } = data;
+  const { userID } = payload;
 
-    const isExist = await User.findOne({_id: userID})
-    if (!isExist) {
-        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
-    };
-    
-    if ( isExist.accountStatus === ACCOUNT_STATUS.DELETE || isExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
-    };
+  console.log(data)
 
-    const dataForUpdate = { 
-        fullName, 
-        email, 
-        phone, 
-        city, 
-        address, 
-        postalCode, 
-        language, 
-        category, 
-        subCatagory, 
-        samplePictures,
-        serviceDescription 
+  const isExist = await User.findOne({ _id: userID });
+  if (!isExist) {
+    throw new ApiError(StatusCodes.NOT_ACCEPTABLE, "User not exist!");
+  }
+
+  if (
+    isExist.accountStatus === ACCOUNT_STATUS.DELETE ||
+    isExist.accountStatus === ACCOUNT_STATUS.BLOCK
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `Your account was ${isExist.accountStatus.toLowerCase()}!`
+    );
+  }
+
+  // Dynamically compare and update only changed fields
+  const fieldsToUpdate = [
+    "fullName",
+    "email",
+    "phone",
+    "city",
+    "address",
+    "postalCode",
+    "language",
+    "category",
+    "subCatagory",
+    "samplePictures",
+    "serviceDescription"
+  ];
+
+  const dataForUpdate: Partial<IUser> = {};
+
+  for (const field of fieldsToUpdate) {
+    const newValue = data[field as keyof IUser];
+    const oldValue = isExist[field as keyof IUser];
+
+    // Only update if value has changed
+    if (
+      typeof newValue !== "undefined" &&
+      JSON.stringify(newValue) !== JSON.stringify(oldValue)
+    ) {
+      dataForUpdate[field as keyof IUser] = newValue;
     }
+  }
 
-    const updatedUser = await User.findOneAndUpdate({_id: isExist._id},dataForUpdate)
+  if (Object.keys(dataForUpdate).length === 0) {
+    return isExist; // Nothing to update
+  }
 
-    return updatedUser
-}
+  const updatedUser = await User.findByIdAndUpdate(
+    isExist._id,
+    { $set: dataForUpdate },
+    { new: true }
+  ).select("-password -otpVerification -isSocialAccount")
+
+  return updatedUser;
+};
 
 //Delete Profile
 const profileDelete = async (
@@ -201,9 +232,10 @@ const language = async (
         throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
     };
 
-    const user = await User.findOneAndUpdate(isUserExist._id,{ $set: { language }})
+    isUserExist.language = language
+    await isUserExist.save()
 
-    return user
+    return true
 }
 
 //Change the langouage of the user

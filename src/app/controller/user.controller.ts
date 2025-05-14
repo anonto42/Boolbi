@@ -67,7 +67,7 @@ const uploadImages = catchAsync(
 
 const profileDelete = catchAsync(
     async( req:Request, res:Response ) => {
-        const payload = (req as any)?.user;
+        const payload = (req as any).user;
         const result = await UserServices.profileDelete(payload)
 
         sendResponse(res, {

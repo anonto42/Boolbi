@@ -20,7 +20,6 @@ const overView = catchAsync(
         })
     }
 )
-// Have to make a user_admin_creator_function
 
 const customers = catchAsync(
     async( req: Request, res: Response ) => {
@@ -285,8 +284,8 @@ const termsAndConditions = catchAsync(
 const editeConditions = catchAsync(
     async( req: Request, res: Response ) => {
         const Payload = (req as any).user;
-        const {...data} = req.body;
-        const result = await AdminService.editeConditions(Payload,data as string)
+        const data = req.body.data;
+        const result = await AdminService.editeConditions(Payload,data)
 
         sendResponse(res, {
             success: true,

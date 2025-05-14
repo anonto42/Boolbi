@@ -13,12 +13,14 @@ import { ACCOUNT_STATUS } from "../../enums/user.enums";
 const signIn = async ( 
     payload : SignInData
 ) => {
-    const { email, password } = payload;
+    const { email, password, deviceID } = payload;
     const isUser = await User.findOne({email});
     if (!isUser) {
         throw new ApiError(StatusCodes.NOT_FOUND,"Your account is not exist!")
     };
-
+    if (isUser.isSocialAccount.isSocal) {
+        throw new ApiError(StatusCodes.BAD_REQUEST,"Your account is a socal account you must login with the "+isUser.isSocialAccount.provider)
+    }
     if ( isUser.accountStatus === ACCOUNT_STATUS.DELETE || isUser.accountStatus === ACCOUNT_STATUS.BLOCK ) {
         throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUser.accountStatus.toLowerCase()}!`)
     };
@@ -28,8 +30,12 @@ const signIn = async (
         throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"You passwort was wrong!")
     };
 
+    isUser.deviceID = deviceID;
+
     const token = jwtHelper.createToken({language: isUser.language, role: isUser.role, userID: isUser._id});
     const { password: _password, ...userWithoutPassword } = isUser.toObject();
+    
+    await isUser.save();
 
     return { token, user: userWithoutPassword }
 }
@@ -167,34 +173,35 @@ const changePassword = async (
 
 const socalLogin = async (
     {
-        appID,
-        provider
+        deviceID,
+        provider,
+        accountType
     } : ISocalLogin,
 ) => {
     const isUserExist = await User.findOne({
-        'isSocialAccount.socialIdentity': appID
+        'isSocialAccount.socialIdentity': deviceID
     });
 
-    if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
-    };
-
     // Create user if there is not any user
-    if ( !isUserExist ) {
+    if ( isUserExist === null ) {
         const user = await User.create({
             'isSocialAccount.isSocial': true,
-            'isSocialAccount.socialIdentity': appID,
+            'isSocialAccount.socialIdentity': deviceID,
             'isSocialAccount.provider': provider,
-            password: "__",
+            role: accountType,
+            password: "--",
             email: "--",
-            fullName: "--",
-            role: "USER"
+            fullName: "--"
         })
         
         const token = jwtHelper.createToken({language: "en", role: user.role, userID: user._id});
         return { token };
     };
-    
+
+    if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
+    };
+
     const token = jwtHelper.createToken({language: "en", role: isUserExist.role, userID: isUserExist});
     return { token };
 } 

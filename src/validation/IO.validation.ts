@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { USER_ROLES } from '../enums/user.enums';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -24,7 +25,8 @@ const signInZodSchema = z.object({
       .min(1, "Email is required.")
       .email("Please provide a valid email address.")
       .regex(emailRegex, "Email format is invalid."),
-    password: z.string({ required_error: "Please provide your password."})
+    password: z.string({ required_error: "Please provide your password."}),
+    deviceID: z.string({ required_error: "You must give the deviceID for login"})
   })
 });
 
@@ -67,8 +69,9 @@ const changePasswordZodSchema = z.object({
 
 const socalLoginZodSchema = z.object({
   body: z.object({
-    appID: z.string({ required_error: "You must give the appID of login." }),
-    provider: z.string({required_error: "You must your login provider"})
+    deviceID: z.string({ required_error: "You must give the appID of login." }),
+    provider: z.string({required_error: "You must your login provider"}),
+    accountType: z.enum([ USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER],{required_error:"You must give your account type"})
   })
 });
 

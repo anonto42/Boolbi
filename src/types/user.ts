@@ -10,7 +10,8 @@ export type ISignUpData = {
 
 export type SignInData = {
     email: string,
-    password: string
+    password: string,
+    deviceID: string
 }
 
 export type JobPost = {

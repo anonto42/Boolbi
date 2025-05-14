@@ -1,3 +1,5 @@
+import { USER_ROLES } from "../enums/user.enums";
+
 export type IVerifyEmail = {
   email: string;
   oneTimeCode: number;
@@ -17,6 +19,7 @@ export type IChangePassword = {
 };
 
 export type ISocalLogin = {
-  appID: string;
-  provider: string
+  deviceID: string;
+  provider: string;
+  accountType: USER_ROLES.USER | USER_ROLES.SERVICE_PROVIDER
 }
