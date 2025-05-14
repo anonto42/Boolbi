@@ -33,7 +33,7 @@ async function main() {
                     :
                 Number(config.port)
 
-        server = app.listen(port, ()=>{
+        server = app.listen(port, config.ip_address as string,()=>{
             logger.info(
                 chalk.yellow(`♻️  Application listening on port:${config.port}`)
             );
@@ -76,26 +76,3 @@ process.on('SIGTERM', () => {
     server.close();
   }
 });
-
-
-/*
-
-// connect DB & run the surver
-;( 
-  async () => {
-    await DBConnection()
-      .then( response =>(
-          console.log(chalk.green("✅ Your Database was hosted on: ") + chalk.cyan(response.connection.host)),
-          console.log(chalk.green("✅ Your Database is running on port: ") + chalk.yellow(response.connection.port)),
-          console.log(chalk.green("✅ Your Database name is: ") + chalk.magenta(response.connection.name))
-      ));
-
-      //Super admin creation function
-      await superUserCreate();
-
-      //Listen the server
-      app.listen( port, () => {
-        console.log("Your Server was listing on port : "+ port );
-      })
-    }
-)(); */

@@ -3,6 +3,7 @@ import path from 'path';
 dotenv.config({ path: path.join(process.cwd(), '.env') });
 
 export default {
+  ip_address: process.env.IP_ADDRESS!,
   jwt_secret: process.env.JWT_SECRET!,
   jwt_expire: process.env.JWT_EXPIRE_IN!,
   bcrypt_sart_rounds: process.env.BCRYPT_SALT_ROUNDS!,
