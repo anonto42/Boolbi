@@ -457,7 +457,14 @@ const createAnnouncement = async (
     };
 
     const message = {notificationType:"Announcement", title: data.title, descriptions: data.descriptions}
-    io.emit("announcement",message)
+    
+    //@ts-ignore
+    const iovar = global.io
+    console.log(iovar);
+    
+    if(iovar){
+      iovar.emit("announcement",message)
+    }
 
     const newAnounce = await Announcement.create({title: data.title, descriptions: data.descriptions,})
 
