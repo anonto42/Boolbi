@@ -33,11 +33,8 @@ const signIn = async (
     isUser.deviceID = deviceID;
 
     const token = jwtHelper.createToken({language: isUser.language, role: isUser.role, userID: isUser._id});
-    const { password: _password, ...userWithoutPassword } = isUser.toObject();
     
-    await isUser.save();
-
-    return { token, user: userWithoutPassword }
+    return { token, user: isUser }
 }
 
 const emailSend = async (

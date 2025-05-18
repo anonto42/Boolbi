@@ -27,6 +27,9 @@ const fileUploadHandler = () => {
         case 'image':
           uploadDir = path.join(baseUploadDir, 'image');
           break;
+        case 'coverImage':
+          uploadDir = path.join(baseUploadDir, 'image');
+          break;
         case 'media':
           uploadDir = path.join(baseUploadDir, 'media');
           break;
@@ -70,6 +73,21 @@ const fileUploadHandler = () => {
           )
         );
       }
+    } else if (file.fieldname === 'coverImage') {
+      if (
+        file.mimetype === 'image/jpeg' ||
+        file.mimetype === 'image/png' ||
+        file.mimetype === 'image/jpg'
+      ) {
+        cb(null, true);
+      } else {
+        cb(
+          new ApiError(
+            StatusCodes.BAD_REQUEST,
+            'Only .jpeg, .png, .jpg file supported'
+          )
+        );
+      }
     } else if (file.fieldname === 'media') {
       if (file.mimetype === 'video/mp4' || file.mimetype === 'audio/mpeg') {
         cb(null, true);
@@ -97,8 +115,9 @@ const fileUploadHandler = () => {
     fileFilter: filterFilter,
   }).fields([
     { name: 'image', maxCount: 20 },
+    { name: "coverImage", maxCount: 1},
     { name: 'media', maxCount: 3 },
-    { name: 'doc', maxCount: 20 },
+    { name: 'doc', maxCount: 1 },
   ]);
   return upload;
 };

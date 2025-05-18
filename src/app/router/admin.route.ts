@@ -65,6 +65,25 @@ router
     )
 
 router
+    .route("/sub_category")
+    .get(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER ),
+        AdminController.catagroys
+    )
+    .post(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        AdminController.newSubCatagroys
+    )
+    .patch(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        AdminController.updateSubCatagroys
+    )
+    .delete(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        AdminController.deleteSubCatagroys
+    )
+
+router
     .route("/announcements") 
     .get(
         auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER),

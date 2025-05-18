@@ -115,13 +115,43 @@ const newCatagroys = catchAsync(
     async( req: Request, res: Response ) => {
         const Payload = (req as any).user;
         const image = getSingleFilePath(req.files,"image");
-        const { subCatagory } = req.body;
-        const result = await AdminService.addNewCatagory(Payload,image as string,subCatagory);
+        const { catagory } = req.body;
+        const result = await AdminService.addNewCatagory(Payload,image as string,catagory);
 
         sendResponse(res, {
             success: true,
             statusCode: StatusCodes .OK,
             message: "Successfully get all the catagorys",
+            data: result
+        });
+    }
+);
+
+const newSubCatagroys = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const { catagoryID, subCatagoryName } = req.body;
+        const result = await AdminService.addSubCatagorys(Payload,subCatagoryName,catagoryID);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully get all the catagorys",
+            data: result
+        });
+    }
+);
+
+const deleteSubCatagroys = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const catagoryID = req.query.id;
+        const result = await AdminService.deleteSubCatagory(Payload,catagoryID as string);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully deleted the sub catagorys",
             data: result
         });
     }
@@ -152,7 +182,22 @@ const updateCatagroys = catchAsync(
         sendResponse(res, {
             success: true,
             statusCode: StatusCodes .OK,
-            message: "Successfully deleted the catagorys",
+            message: "Successfully updated the catagory",
+            data: result
+        });
+    }
+);
+
+const updateSubCatagroys = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const {...data} = req.body;
+        const result = await AdminService.updateSubCatagory(Payload,data);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully updated the sub catagory",
             data: result
         });
     }
@@ -392,5 +437,8 @@ export const AdminController = {
     newAdmins,
     deleteAdmin,
     supportReques,
-    giveSupport
+    giveSupport,
+    newSubCatagroys,
+    deleteSubCatagroys,
+    updateSubCatagroys
 }

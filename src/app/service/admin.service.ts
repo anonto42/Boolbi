@@ -10,6 +10,8 @@ import Catagroy from "../../model/catagory.model";
 import Announcement from "../../model/announcement.model";
 import { bcryptjs } from "../../helpers/bcryptHelper";
 import Support from "../../model/support.model";
+import { SubCatagroy } from "../../model/subCategory.model";
+import unlinkFile from "../../shared/unlinkFile";
 
 // Need more oparation for the best responce
 const overview = async (
@@ -207,40 +209,98 @@ const allCatagorys = async (
       );
     }
     
-    const catagroys = await Catagroy.find({});
-
-    return catagroys;
+    const categories = await Catagroy.aggregate([
+      {
+        $lookup: {
+          from: "subcatagories",
+          localField: "subCatagroys",
+          foreignField: "_id",
+          as: "subCategories"
+        }
+      },
+      {
+        $project:{
+          subCatagroys: 0
+        }
+      }
+    ]);
+    
+    return categories
 }
 
 const addNewCatagory = async (
-    payload: JwtPayload,
-    image: string,
-    data: {
-        catagory: string,
-        subCatagory: string
-    }
+  payload: JwtPayload,
+  image: string,
+  catagoryName: string
 ) => {
     const { userID } = payload;
-    const { catagory, subCatagory} = data;
     const isAdmin = await User.findById(userID);
     if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
         throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
     };
-    if (!image || !catagory || !subCatagory ) {
+    if (!image || !catagoryName) {
         throw new ApiError(StatusCodes.BAD_REQUEST,"You should give all the required details to create a new catagory!")
     };
-    const catagoryModel = await Catagroy.findOne({name: catagory});
+    const catagoryModel = await Catagroy.findOne({name: catagoryName});
     if (catagoryModel) {
-        throw new ApiError(StatusCodes.BAD_REQUEST,`${catagory} is already exist your can't add this`)
+        throw new ApiError(StatusCodes.BAD_REQUEST,`${catagoryName} is already exist your can't add this`)
     };
 
     const newCatagory = Catagroy.create({
-        catagory,
-        subCatagory,
-        image
+      name: catagoryName,
+      image
     })
 
     return newCatagory;
+}
+
+const addSubCatagorys = async (
+  payload: JwtPayload,
+  subCatagoryName: string,
+  catagoryID: string
+) => {
+    const { userID } = payload;
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+    };
+    if (!catagoryID || !subCatagoryName) {
+        throw new ApiError(StatusCodes.BAD_REQUEST,"You should give all the required details to create a new catagory!")
+    };
+    const catagoryModel = await Catagroy.findOne({_id: catagoryID});
+    if (!catagoryModel) {
+        throw new ApiError(StatusCodes.NOT_FOUND,`Catagory not founded!`)
+    };
+
+    const newCatagory = await SubCatagroy.create({
+      categoryId: catagoryID,
+      name: subCatagoryName
+    });
+
+    catagoryModel.subCatagroys.push((newCatagory as any)._id);
+    await catagoryModel.save()
+
+    return newCatagory;
+}
+
+const deleteSubCatagory = async (
+    payload: JwtPayload,
+    catagoryId: string,
+) => {
+    const { userID } = payload;
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+    };
+    if ( catagoryId ) {
+        throw new ApiError(StatusCodes.BAD_REQUEST,"You should give the catagory id for delete!")
+    };
+    const subCatagoryModel = await SubCatagroy.findOneAndDelete({_id: catagoryId});
+    if (!subCatagoryModel) {
+        throw new ApiError(StatusCodes.NOT_FOUND,"Your giver catagory not exist!")
+    };
+
+    return subCatagoryModel;
 }
 
 const deleteCatagory = async (
@@ -268,7 +328,6 @@ const updateCatagory = async (
   data: {
     name?: string;
     id: string;
-    subCatagorys?: string;
   },
   image?: string
 ) => {
@@ -288,14 +347,38 @@ const updateCatagory = async (
     catagoryModel.name = data.name;
   }
 
-  if (data.subCatagorys && data.subCatagorys !== catagoryModel.subCatagorys) {
-    catagoryModel.subCatagorys = data.subCatagorys;
-  }
-
   if (image && image !== catagoryModel.image) {
+    unlinkFile(catagoryModel.image)
     catagoryModel.image = image;
   }
 
+  await catagoryModel.save();
+
+  return catagoryModel;
+};
+
+const updateSubCatagory = async (
+  payload: JwtPayload,
+  data: {
+    name?: string;
+    id: string;
+  }
+) => {
+  const { userID } = payload;
+
+  const isAdmin = await User.findById(userID);
+  if (!isAdmin || (isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
+    throw new ApiError(StatusCodes.FORBIDDEN, "Access denied. Admin only.");
+  }
+
+  const catagoryModel = await SubCatagroy.findById(data.id);
+  if (!catagoryModel) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Category does not exist!");
+  }
+
+  if (data.name && data.name !== catagoryModel.name) {
+    catagoryModel.name = data.name;
+  }
   await catagoryModel.save();
 
   return catagoryModel;
@@ -707,5 +790,8 @@ export const AdminService = {
     addNewAdmin,
     deleteAdmin,
     allSupportRequests,
-    giveSupport
+    giveSupport,
+    addSubCatagorys,
+    deleteSubCatagory,
+    updateSubCatagory
 }

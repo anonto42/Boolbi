@@ -30,7 +30,7 @@ const SignIn = catchAsync(
             success: true,
             statusCode: StatusCodes.OK,
             message: "User login successfully",
-            data: result
+            data: result.token
         })
     }
 )

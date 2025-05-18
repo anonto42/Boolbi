@@ -1,5 +1,6 @@
 import { model, models, Schema } from "mongoose";
 import { ICatagory } from "../Interfaces/catagory.interface";
+import { string } from "zod";
 
 const categorySchema = new Schema<ICatagory>({
   name: {
@@ -10,12 +11,12 @@ const categorySchema = new Schema<ICatagory>({
     type: String,
     required: true,
   },
-  subCatagorys:{
-    type: String,
-  }
+  subCatagroys: [{
+    type: Schema.Types.ObjectId
+  }]
 },{
   timestamps: true
 });
   
-const Catagroy = models.User || model('catagory', categorySchema);
+const Catagroy = models.Catagory || model<ICatagory>('catagory', categorySchema);
 export default Catagroy;

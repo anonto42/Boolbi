@@ -1,7 +1,7 @@
-import { Document } from "mongoose";
+import { Document, Types } from "mongoose";
 
 export interface ICatagory extends Document {
     name: string;
     image: string;
-    subCatagorys: string;
+    subCatagroys: Types.ObjectId[]
 }

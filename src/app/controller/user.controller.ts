@@ -3,7 +3,7 @@ import catchAsync from "../../shared/catchAsync"
 import sendResponse from "../../shared/sendResponse";
 import { StatusCodes } from "http-status-codes";
 import { UserServices } from "../service/user.service";
-import { getMultipleFilesPath } from "../../shared/getFilePath";
+import { getMultipleFilesPath, getSingleFilePath } from "../../shared/getFilePath";
 
 const signupUser = catchAsync(
     async( req: Request, res: Response ) => {
@@ -141,7 +141,8 @@ const postJob = catchAsync(
         const payload = (req as any)?.user;
         const { ...data } = req.body;
         const images = getMultipleFilesPath((req as any).files,"image")
-        const result = await UserServices.jobPost(payload, data, images as string[])
+        const coverImage = getSingleFilePath( (req as any).files,"coverImage") as string
+        const result = await UserServices.jobPost(payload, data, images as string[],coverImage)
 
         sendResponse(res, {
             success: true,
@@ -156,8 +157,9 @@ const updateJob = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
         const { ...data } = req.body;
-        const images = getMultipleFilesPath((req as any).files,"image")
-        const result = await UserServices.UPost(payload, {...data,images})
+        const showcaseImages = getMultipleFilesPath((req as any).files,"image")
+        const coverImage = getSingleFilePath((req as any).files,"coverImage")
+        const result = await UserServices.UPost(payload, {...data,showcaseImages,coverImage})
 
         sendResponse(res, {
             success: true,

@@ -6,7 +6,7 @@ import { jwtHelper } from "../../helpers/jwtHelper";
 import { bcryptjs } from "../../helpers/bcryptHelper";
 import { IUser } from "../../Interfaces/User.interface";
 import { JwtPayload } from "jsonwebtoken";
-import { IPhotos, IPost } from "../../Interfaces/post.interface";
+import { IPhotos } from "../../Interfaces/post.interface";
 import unlinkFile from "../../shared/unlinkFile";
 import Post from "../../model/post.model";
 import mongoose, { Types } from "mongoose";
@@ -89,8 +89,6 @@ const UP = async (
   data: IUser
 ) => {
   const { userID } = payload;
-
-  console.log(data)
 
   const isExist = await User.findOne({ _id: userID });
   if (!isExist) {
@@ -314,7 +312,8 @@ const conditions = async (
 const jobPost =  async (
     payload: JwtPayload,
     data: JobPost,
-    images: string[]
+    images: string[],
+    coverImage: string
 ) => {
     const { userID } = payload;
     const {category, companyName, deadline, description, location, title, postType, subCatagory} = data;
@@ -344,6 +343,7 @@ const jobPost =  async (
         companyName,
         location,
         deadline,
+        coverImage,
         jobDescription: description,
         showcaseImages: images,
         creatorID: isUserExist._id
@@ -437,20 +437,44 @@ const UPost = async (
     if (post.creatorID.toString() !== userID.toString()) {
       throw new ApiError(StatusCodes.UNAUTHORIZED, "You are not the owner of this post");
     }
+
+    if (updateFields.coverImage) {
+      unlinkFile(post.coverImage)
+    }
   
     let isChanged = false;
   
     for (const key in updateFields) {
       if (
         Object.prototype.hasOwnProperty.call(updateFields, key) &&
-        updateFields[key] !== undefined &&
-        post[key] !== updateFields[key]
+        updateFields[key] !== undefined
       ) {
-        post[key] = updateFields[key];
-        isChanged = true;
+        // Special handling for showcaseImages array
+        if (key === 'showcaseImages') {
+          const oldImages = post.showcaseImages || [];
+          const newImages = updateFields.showcaseImages;
+
+          // Compare arrays: only update if they're different
+          const hasChanged =
+            oldImages.length !== newImages.length ||
+            oldImages.some((img: any, idx: any) => img !== newImages[idx]);
+
+          if (hasChanged) {
+            // Remove all old images from storage
+            for (const img of oldImages) {
+              unlinkFile(img); // 👈 your custom file deletion function
+            }
+
+            post.showcaseImages = newImages;
+            isChanged = true;
+          }
+        } else if (post[key] !== updateFields[key]) {
+          post[key] = updateFields[key];
+          isChanged = true;
+        }
       }
     }
-  
+
     if (isChanged) {
       await post.save();
     }
