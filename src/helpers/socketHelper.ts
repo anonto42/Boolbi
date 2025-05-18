@@ -8,6 +8,11 @@ const socket = (io: Server) => {
   io.on('connection', socket => {
     const joinedRooms = new Set<string>();
 
+    // Announcements
+    socket.on("announcement",data =>{
+      socket.emit("recive-announcement",data)
+    })
+    
     socket.on("send message",async ({roomID,user,message})=>{
       try {
         if (!roomID || !user || !message) {
