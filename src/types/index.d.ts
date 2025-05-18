@@ -1,3 +1,4 @@
+import { Server } from 'socket.io';
 import { JwtPayload } from 'jsonwebtoken';
  
 declare global {
@@ -6,4 +7,5 @@ declare global {
       user: JwtPayload
     }
   }
+  var io: Server
 }
