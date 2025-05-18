@@ -12,6 +12,7 @@ import { bcryptjs } from "../../helpers/bcryptHelper";
 import Support from "../../model/support.model";
 import { SubCatagroy } from "../../model/subCategory.model";
 import unlinkFile from "../../shared/unlinkFile";
+import {io} from "../../helpers/socketHelper";
 
 // Need more oparation for the best responce
 const overview = async (
@@ -440,8 +441,8 @@ const singleAnnouncement = async (
 const createAnnouncement = async (
     payload: JwtPayload,
     data: {
-        title: string,
-        descriptions: string
+      title: string,
+      descriptions: string
     }
 ) => {
     const { userID } = payload
@@ -454,6 +455,9 @@ const createAnnouncement = async (
     if (announcement) {
         throw new ApiError(StatusCodes.NOT_FOUND, "Already announcement exist!");
     };
+
+    const message = {notificationType:"Announcement", title: data.title, descriptions: data.descriptions}
+    io.emit("announcement",message)
 
     const newAnounce = await Announcement.create({title: data.title, descriptions: data.descriptions,})
 
