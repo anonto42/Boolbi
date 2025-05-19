@@ -12,7 +12,6 @@ import { bcryptjs } from "../../helpers/bcryptHelper";
 import Support from "../../model/support.model";
 import { SubCatagroy } from "../../model/subCategory.model";
 import unlinkFile from "../../shared/unlinkFile";
-import {io} from "../../helpers/socketHelper";
 
 // Need more oparation for the best responce
 const overview = async (
@@ -460,7 +459,6 @@ const createAnnouncement = async (
     
     //@ts-ignore
     const iovar = global.io
-    console.log(iovar);
     
     if(iovar){
       iovar.emit("announcement",message)
