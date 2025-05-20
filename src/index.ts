@@ -3,12 +3,9 @@ import cors from 'cors';
 import cookie from 'cookie-parser';
 import dotenv from "dotenv";
 import router from "./routes/index.route";
-import DBConnection from "./DB/ConnentDB";
-import chalk from 'chalk';
 import globalErrorHandler from "./middlewares/globalErrorHandler";
 import { Morgan } from "./shared/morgen";
 import config from "./config";
-import { superUserCreate } from "./DB/SuperUserCreate";
 import { StatusCodes } from "http-status-codes";
 
 // Initializing
