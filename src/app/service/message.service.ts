@@ -1,188 +1,108 @@
-import { JwtPayload } from "jsonwebtoken"
-import User from "../../model/user.model";
 import ApiError from "../../errors/ApiError";
 import { StatusCodes } from "http-status-codes";
-import { ACCOUNT_STATUS } from "../../enums/user.enums";
-import Chat from "../../model/chat.model";
-import mongoose from "mongoose";
-import { NChat } from "../../types/message";
-import Post from "../../model/post.model";
+import mongoose, { Types } from "mongoose";
 import Message from "../../model/message.model";
-import { io } from "../../helpers/socketHelper";
+import { MESSAGE_TYPE } from "../../enums/message.enum";
 
-const sendMessageSend = async (
-    payload: JwtPayload,
-    data:{ message: string, chatRoom: string },
-    image: string
-) => {
-    const { userID } = payload;
-    const { message, chatRoom } = data;
-    const isUser = await User.findById(userID);
-    if (!isUser) {
-        throw new ApiError(StatusCodes.NOT_FOUND,`No account exists!`)
-    };
-    if ( isUser.accountStatus === ACCOUNT_STATUS.DELETE || isUser.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUser.accountStatus.toLowerCase()}!`)
-    };
-    
-    const newMessage = {
-        sender:isUser._id,
-        chatRef: chatRoom,
-        content: image? image : message
-    };
-
-    try {
-        let message = await Message.create(newMessage);
-        message = await message.populate("sender","profileImage fullName").execPopulate();
-        message = await message.populate("chatRef").execPopulate();
-        message = await User.populate(message,{
-            path:"chatRef.users",
-            select: "fullName profileImage email"
-        })
-
-        await Chat.findByIdAndUpdate(chatRoom,{
-            lastMessage: message
-        });
-
-        io.emit("send message",{roomID:chatRoom, user: isUser._id, message})
-        
-    } catch (error) {
-        console.log(error)
-    }
-    
+const addMessage = async (messageBody: {
+    sender: any;
+    chatID: any
+    message: string;
+    messageType: MESSAGE_TYPE;
+    image?: string;
+}) => {
+    const newMessage = await Message.create(messageBody);
+    return await newMessage.populate("chatID sender")
 }
 
-const getSingleChatRoom = async (
-    payload: JwtPayload,
-    roomID: string,
-    postID: string
-) => {
-    const { userID } = payload;
-    const isUser = await User.findById(userID);
-    if (!isUser) {
-        throw new ApiError(StatusCodes.NOT_FOUND,`No account exists!`)
-    };
-    if ( isUser.accountStatus === ACCOUNT_STATUS.DELETE || isUser.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUser.accountStatus.toLowerCase()}!`)
-    };
-    const post = await Post.findById(postID);
-    if (!post) {
-        throw new ApiError(StatusCodes.FAILED_DEPENDENCY,"The service was not avable on this time")
-    }
-    
-    const chatRoom = await Chat.aggregate([
-        {
-            $match: { _id: roomID }
+const getMessages = async (chatId: any, options: {limit?: number; page?: number}) => {
+  const { limit = 10, page = 1 }: { limit?: number; page?: number } = options;
+ 
+  try {
+    const totalResults = await Message.countDocuments({ chat: chatId });
+    const totalPages = Math.ceil(totalResults / limit);
+    const pagination = { totalResults, totalPages, currentPage: page, limit };
+ 
+    // console.log([chatId]);
+ 
+    const skip = (page - 1) * limit;
+    const chat = new mongoose.Types.ObjectId(chatId);
+ 
+    const messages = await Message.aggregate([
+      { $match: { chat: chat } },
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: 'user',
+          localField: 'sender',
+          foreignField: '_id',
+          as: 'sender',
         },
-        {
-            $lookup: {
-            from: "users", // populating firstUser
-            localField: "firstUser",
-            foreignField: "_id",
-            as: "firstUser"
-            }
+      },
+      { $unwind: '$sender' },
+      {
+        $lookup: {
+          from: 'chat',
+          localField: 'chatID',
+          foreignField: '_id',
+          as: 'chatDetails',
         },
-        {
-            $unwind: "$firstUser"
+      },
+      { $unwind: '$chatDetails' },
+      {
+        $project: {
+          _id: 1,
+          chat: 1,
+          message: 1,
+          type: 1,
+          sender: {
+            _id: 1,
+            fullName: 1,
+            image: 1,
+          },
+          createdAt: 1,
+          updatedAt: 1,
         },
-        {
-            $lookup: {
-            from: "users", // populating secondUser
-            localField: "secondUser",
-            foreignField: "_id",
-            as: "secondUser"
-            }
-        },
-        {
-            $unwind: "$secondUser"
-        },
-        {
-            $lookup: {
-            from: "messages", // joining all messages with chat._id
-            localField: "_id",
-            foreignField: "chatRef",
-            as: "messages"
-            }
-        },
-        {
-            $lookup: {
-            from: "messages", // populating lastMessage
-            localField: "lastMessage",
-            foreignField: "_id",
-            as: "lastMessage"
-            }
-        },
-        {
-            $unwind: {
-            path: "$lastMessage",
-            preserveNullAndEmptyArrays: true
-            }
-        }
-    ])
+      },
+    ]);
+ 
+    // console.log('messages', messages);
+ 
+    return { messages, pagination };
+  } catch (error) {
+    throw new ApiError(
+      StatusCodes.EXPECTATION_FAILED,
+      'Failed to retrieve messages'
+    );
+  }
+};
 
-    if ( chatRoom.length > 0 ) {
-        return chatRoom[0];
-    }else{
-        return createChatRoom(payload, { chatWith: post.creatorID, chatName: post.title, image: post.coverImage })
-    }
+const getMessageById = async (messageId: Types.ObjectId) => {
+  return Message.findById(messageId).populate('chatID');
+};
 
-}
+const deleteMessage = async (id: string) => {
+  const result = await Message.findByIdAndDelete(id);
+  if (!result) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Message not found');
+  }
+  return result;
+};
 
-const chatRooms = async (
-    payload: JwtPayload
-) => {
-    const { userID } = payload;
-    const isUser = await User.findById(userID);
-        if (!isUser) {
-            throw new ApiError(StatusCodes.NOT_FOUND,`No account exists!`)
-        };
-        if ( isUser.accountStatus === ACCOUNT_STATUS.DELETE || isUser.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-            throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUser.accountStatus.toLowerCase()}!`)
-        };
-
-    
-    const userId = new mongoose.Types.ObjectId(isUser._id);
-    const userRooms = {
-            $or: [
-                { firstUser: userId },
-                { secondUser: userId }
-            ]
-        };
-    const chats = await Chat.find(userRooms);
-
-    return chats;
-}
-
-const createChatRoom = async (
-    payload: JwtPayload,
-    data: NChat
-) => {
-    const { userID } = payload;
-    const { chatWith, chatName, image } = data;
-    const isUser = await User.findById(userID);
-    const isSecondPerson = await User.findById(chatWith);
-    if (!isUser || !isSecondPerson) {
-        throw new ApiError(StatusCodes.NOT_FOUND,`No account exists to create the chat room!`)
-    };
-    if ( isUser.accountStatus === ACCOUNT_STATUS.DELETE || isUser.accountStatus === ACCOUNT_STATUS.BLOCK || isSecondPerson.accountStatus === ACCOUNT_STATUS.DELETE || isSecondPerson.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUser.accountStatus.toLowerCase()}!`)
-    };
-    
-    const newChat = {
-        secondUser: isSecondPerson._id,
-        firstUser: isSecondPerson._id,
-        chatName,
-        image
-    };
-
-    const chat = await Chat.create(newChat);
-    
-    return chat
-}
-
-export const MessageService = {
-    sendMessageSend,
-    chatRooms,
-    getSingleChatRoom,
-    createChatRoom
-}
+const deleteMessagesByChatId = async (chatId: string) => {
+  const result = await Message.deleteMany({ chat: chatId });
+  if (!result) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to delete messages');
+  }
+  return result;
+};
+ 
+export const messageService = {
+  addMessage,
+  getMessageById,
+  getMessages,
+  deleteMessage,
+  deleteMessagesByChatId,
+};
