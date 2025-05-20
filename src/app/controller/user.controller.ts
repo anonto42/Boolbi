@@ -311,6 +311,21 @@ const DOffer = catchAsync(
     }
 )
 
+const supportRequest = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const { ...data } = req.body;
+        const result = await UserServices.supportRequest(payload,data);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully delete the offer",
+            data: result
+        })
+    }
+)
+
 export const UserController = {
     signupUser,
     profile,
@@ -331,5 +346,6 @@ export const UserController = {
     offers,
     cOffer,
     IOffer,
-    DOffer
+    DOffer,
+    supportRequest
  }

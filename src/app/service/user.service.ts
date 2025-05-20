@@ -14,9 +14,9 @@ import { ACCOUNT_STATUS, ACCOUTN_ACTVITY_STATUS, USER_ROLES } from "../../enums/
 import { OFFER_STATUS } from "../../enums/offer.enum";
 import Offer from "../../model/offer.model";
 import Order from "../../model/order.model";
-import { io } from "../../helpers/socketHelper";
 import { messageSend } from "../../helpers/firebaseHelper";
 import Chat from "../../model/chat.model";
+import Support from "../../model/support.model";
 
 //User signUp
 const signUp = async ( 
@@ -791,6 +791,8 @@ const COrder = async (
 
     const room = await Chat.create({firstUser:customer,secondUser:userID})
 
+    //@ts-ignore
+    const io = global.io
     io.emit("notification",{roomID:room._id, userName:companyName, message:"You get a new offer", iconImage:offerData.companyImages })
     await messageSend({token:isUserExist.deviceID, notification:{
         title:companyName + " send you a offer.",
@@ -868,7 +870,58 @@ const deleteOffer = async(
     };
 
     return offer;
+}
 
+// suport request
+const supportRequest = async(
+    payload: JwtPayload,
+    {
+      message,
+      category
+    }:{
+      from: string,
+      message: string,
+      category: string,
+    }
+)=>{
+    const { userID } = payload;
+    if ( !message || !category ) {
+      throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"You must give the required fields")
+    };
+    const isUserExist = await User.findById(userID);
+    if (!isUserExist) {
+        throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
+    };
+    if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
+    };
+
+    // Create the support request in DB
+  const support = await Support.create({
+    from: isUserExist._id,
+    catagory: category,
+    message,
+  });
+
+  if (!support) {
+    throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Support not created");
+  }
+
+  // Emit socket notification
+  //@ts-ignore
+  const io = global.io;
+  
+  const roomID = `support_${support._id}`;
+
+  io.to(roomID).emit("receive notification", {
+    roomID,
+    userName: isUserExist.name,
+    message,
+    iconImage: isUserExist.profileImage || null,
+    createdAt: new Date(),
+  });
+
+    return support;
 }
 
 
@@ -893,5 +946,6 @@ export const UserServices = {
     singlePost,
     COrder,
     intracatOffer,
-    deleteOffer
+    deleteOffer,
+    supportRequest
 }
