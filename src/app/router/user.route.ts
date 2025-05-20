@@ -11,7 +11,7 @@ const router = Router();
 router
     .route("/")
     .get(
-        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
         UserController.profile
     )
     .post(
@@ -121,6 +121,13 @@ router
         auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
         validateRequest( Validation.offerDeletaionValidationZod ),
         UserController.DOffer
+    )
+
+router
+    .route("/suport-request")
+    .post(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+        UserController.supportRequest
     )
 
 
