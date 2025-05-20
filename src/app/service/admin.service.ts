@@ -673,9 +673,11 @@ const allAdmins = async (
         StatusCodes.FORBIDDEN,
         `Your account was ${isAdmin.accountStatus.toLowerCase()}!`
       );
-    }
+    };
 
-    const admins = await User.findOne({role: USER_ROLES.ADMIN});
+    const admins = await User.find({role: {
+      $in: [USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN]
+    }}).select("-password -isSocailAccount -isVerified -otpVerification -termsConditions -privacyPolicy -__v -isSocialAccount -accountBalance -samplePictures -orders -myOffer -iOffered -favouriteServices -job -isSocialAccount")
 
     return admins
 };
@@ -709,10 +711,20 @@ const addNewAdmin = async (
         `Your account was ${isAdmin.accountStatus.toLowerCase()}!`
       );
     }
+    const isAdminExist = await User.findOne({email: email});
+    if (isAdminExist) {
+      throw new ApiError(StatusCodes.UNAUTHORIZED,"Already a user exist using this email: "+email)
+    };
 
     const hasedPassword = await bcryptjs.Hash(password);
+    const admin = await User.create({fullName,email,password:hasedPassword,role: USER_ROLES.ADMIN});
 
-    return await User.create({fullName,email,password:hasedPassword,role: USER_ROLES.ADMIN});
+    return {
+      role: admin.role,
+      name: admin.fullName,
+      email: admin.email,
+      language: admin.language
+    }
 };
 
 const deleteAdmin = async (
@@ -735,18 +747,18 @@ const deleteAdmin = async (
 const allSupportRequests = async (
     payload: JwtPayload
 ) => {
-    const { userID } = payload;
-    const isAdmin = await User.findById(userID);
-    if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
-        throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
-    };
-    
-    const supports = await Support.find()
-        .populate({ path: 'from', select: 'fullName email' })
-        .sort({ createdAt: -1 })
-        .exec();
+  const { userID } = payload;
+  const isAdmin = await User.findById(userID);
+  if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+  };
+  
+  const supports = await Support.find()
+    .populate({ path: 'from', select: 'fullName email' })
+    .sort({ createdAt: -1 })
+    .exec();
 
-    return supports
+  return supports
 }
 
 const giveSupport = async (
