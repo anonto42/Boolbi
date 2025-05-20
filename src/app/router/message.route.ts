@@ -14,22 +14,12 @@ router
         validateRequest( MessageValidation.getChatRroom ),
         MessageController.singleChatRoom
     )
-    .post(
-        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER ),
-        validateRequest( MessageValidation.sendMessageSchema ),
-        MessageController.sendMessage
-    )
 
 router
     .route("/chat")
     .get(
         auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER ),
         MessageController.chatRooms
-    )
-    .post(
-        auth( USER_ROLES.ADMIN, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN),
-        validateRequest( MessageValidation.careateChat ),
-        MessageController.createChatRooms
     )
 
 export const MessageRoute = router;
