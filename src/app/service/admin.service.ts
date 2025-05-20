@@ -10,7 +10,7 @@ import Catagroy from "../../model/catagory.model";
 import Announcement from "../../model/announcement.model";
 import { bcryptjs } from "../../helpers/bcryptHelper";
 import Support from "../../model/support.model";
-import { SubCatagroy } from "../../model/subCategory.model";
+import SubCatagroy from "../../model/subCategory.model";
 import unlinkFile from "../../shared/unlinkFile";
 
 // Need more oparation for the best responce
