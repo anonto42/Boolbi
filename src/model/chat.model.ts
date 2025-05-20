@@ -1,7 +1,6 @@
 import { model, models, Schema } from "mongoose";
 import { IChat } from "../Interfaces/chat.interface";
 
-
 const chatSchema = new Schema<IChat>({
     chatName:{
         type: String,
@@ -10,21 +9,20 @@ const chatSchema = new Schema<IChat>({
     image:{
         type: String
     },
-    firstUser:{
-        type: Schema.Types.ObjectId,
-        ref:"users"
+    status: {
+        type: String
     },
-    secondUser:{
+    participants: [{
         type: Schema.Types.ObjectId,
-        ref:"users"
-    },
+        ref:"user"
+    }],
     lastMessage:{
         type: Schema.Types.ObjectId,
-        ref:"messages"
+        ref:"message"
     }
 },{
     timestamps: true
 })
 
-const Chat = models.Chat || model('chat', chatSchema);
+const Chat = models.Chat || model<IChat>('chat', chatSchema);
 export default Chat;

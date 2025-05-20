@@ -7,22 +7,24 @@ const messageSchema = new Schema<IMessage>({
     type: Schema.Types.ObjectId,
     ref: "user"
   },
-  chatRef:{
+  chatID:{
     type: Schema.Types.ObjectId,
-    ref:"chats"
+    ref:"chat"
   },
   messageType: {
     type: String,
     enum: MESSAGE_TYPE,
-    default: MESSAGE_TYPE.CHAT
+    default: MESSAGE_TYPE.MESSAGE
   },
-  content:{
-    type: String,
-    required: true
+  message:{
+    type: String
+  },
+  image:{
+    type: String
   }
 },{
   timestamps: true
 });
 
-const Message = models.Order || model('message', messageSchema);
+const Message = models.Message || model<IMessage>('message', messageSchema);
 export default Message;

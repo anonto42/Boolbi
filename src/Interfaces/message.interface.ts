@@ -2,7 +2,8 @@ import { Document, Types } from 'mongoose';
 
 export interface IMessage extends Document {
   sender: Types.ObjectId;
-  chatRef: Types.ObjectId;
-  content: string;
+  chatID: Types.ObjectId;
+  message: string;
   messageType: string;
+  image?: string;
 }

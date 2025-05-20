@@ -1,7 +1,7 @@
 
 
 export enum MESSAGE_TYPE {
-    CHAT = 'CHAT',
+    MESSAGE = 'MESSAGE',
     REQUEST = 'REQUEST',
     NOTIFICATION = 'NOTIFICATION'
 }
