@@ -262,7 +262,7 @@ const activityControleOfAnnounsments = catchAsync(
         sendResponse(res, {
             success: true,
             statusCode: StatusCodes .OK,
-            message: "Successfully deleted the catagorys",
+            message: "Successfully edite the status of the announsement",
             data: result
         });
     }
@@ -277,7 +277,7 @@ const deleteAnnounsments = catchAsync(
         sendResponse(res, {
             success: true,
             statusCode: StatusCodes .OK,
-            message: "Successfully deleted the catagorys",
+            message: "Successfully deleted the announsment",
             data: result
         });
     }
