@@ -34,5 +34,5 @@ const deliveryRequestSchema = new Schema<IDR>({
     timestamps: true
 });
   
-const DeliveryRequest = models.User || model('deliveryRequest', deliveryRequestSchema);
+const DeliveryRequest = models.DeliveryRequest || model('deliveryRequest', deliveryRequestSchema);
 export default DeliveryRequest;

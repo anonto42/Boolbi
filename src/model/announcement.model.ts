@@ -19,5 +19,5 @@ const announcementSchema = new Schema<IAnnuncement>({
   timestamps: true
 });
   
-const Announcement = models.User || model('announcement', announcementSchema);
+const Announcement = models.Announcement || model('announcement', announcementSchema);
 export default Announcement;

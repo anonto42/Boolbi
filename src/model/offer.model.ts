@@ -73,5 +73,5 @@ const offerSchema = new Schema<IOffer>({
   timestamps: true
 });
 
-const Offer = models.User || model('offer', offerSchema);
+const Offer = models.Offer || model('offer', offerSchema);
 export default Offer;

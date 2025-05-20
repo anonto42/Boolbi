@@ -26,5 +26,5 @@ const supportSchema = new Schema<ISupport>({
   timestamps: true
 });
 
-const Support = models.Order || model('support', supportSchema);
+const Support = models.Support || model('support', supportSchema);
 export default Support;

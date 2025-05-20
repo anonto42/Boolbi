@@ -13,4 +13,5 @@ const subCatagory = new Schema({
   timestamps: true
 });
 
-export const SubCatagroy = models.SubCatagroy || model('subcatagory', subCatagory);
+const SubCatagroy = models.SubCatagroy || model('subcatagory', subCatagory);
+export default SubCatagroy 

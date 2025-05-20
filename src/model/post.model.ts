@@ -51,5 +51,5 @@ const jobPostSchema = new Schema<IPost>({
   },
 },{timestamps: true});
   
-const Post = models.User || model('post', jobPostSchema);
+const Post = models.Post || model('post', jobPostSchema);
 export default Post;
