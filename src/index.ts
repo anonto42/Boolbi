@@ -13,7 +13,6 @@ import { StatusCodes } from "http-status-codes";
 
 // Initializing
 const app = express();
-const port = config.port;
 const origin = config.origin;
 
 //Env config
