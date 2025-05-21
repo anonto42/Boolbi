@@ -1,11 +1,7 @@
 import { Document, Types } from "mongoose";
 
 export interface IOrder extends Document{
-    customer: Types.ObjectId,
     deliveryDate: Date,
-    totalPrice: number,
-    serviceID: Types.ObjectId,
-    serviceProvider: Types.ObjectId,
     offerID: Types.ObjectId
     deliveryRequest: {
         isRequested: boolean,

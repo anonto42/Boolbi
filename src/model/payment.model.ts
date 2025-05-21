@@ -4,11 +4,11 @@ import { PAYMENT_STATUS } from "../enums/payment.enum";
 const paymentSchema = new Schema({
     userId: {
       type: Schema.Types.ObjectId,
-      ref: "users"
+      ref: "user"
     },
     orderId: {
       type: Schema.Types.ObjectId,
-      ref: "orders"
+      ref: "order"
     },
     amount: Number,
     commission: Number,
@@ -22,5 +22,5 @@ const paymentSchema = new Schema({
     timestamps: true
   });
   
-const Payment = models.Order || model('payment', paymentSchema);
+const Payment = models.Payment || model('payment', paymentSchema);
 export default Payment;

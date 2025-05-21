@@ -8,50 +8,65 @@ import { PaymentService } from "../service/payment.service";
 const createPayment = catchAsync(
     async( req: Request, res: Response ) => {
         const payload = (req as any).user;
-        const result = await PaymentService.createCustomer(payload);
+        const offerId = req.body.offerId as string;
+        const protocol = req.protocol as string;
+        const host = req.headers.host as string;
+        const result = await PaymentService.createCheckOut(
+            payload,
+            host,
+            protocol,
+            offerId
+        );
 
         sendResponse(res, {
             success: true,
             statusCode: StatusCodes.OK,
-            message: "User create successfully on the stripe for payment",
+            message: "Now you can pay with the payment url!",
             data: result
         })
     }
 )
 
-const addCard = catchAsync(
+
+
+const paymentSuccess = catchAsync(
     async( req: Request, res: Response ) => {
-        const payload = (req as any).user;
-        const {...data} = req.body;
-        const result = await PaymentService.addCard(payload,data);
+    //     const payload = (req as any).user;
+    //     const protocol = req.protocol as string;
+    //     const host = req.headers.host as string;
+    //     const { offerId, amount} = req.body;
+    //     const result = await PaymentService.createCheckOut({payload,host,protocol,offerId});
 
-        sendResponse(res, {
-            success: true,
-            statusCode: StatusCodes.OK,
-            message: "Card Added successfully",
-            data: result
-        })
+    //     sendResponse(res, {
+    //         success: true,
+    //         statusCode: StatusCodes.OK,
+    //         message: "Successfully payed!",
+    //         data: result
+    //     })
     }
 )
 
-const createCharges = catchAsync(
+const paymentCancelled = catchAsync(
     async( req: Request, res: Response ) => {
-        const payload = (req as any).user;
-        const { amount, orderID} = req.query;
-        const result = await PaymentService.makePayment(payload,Number(amount),orderID as string);
+    //     const payload = (req as any).user;
+    //     const protocol = req.protocol as string;
+    //     const host = req.headers.host as string;
+    //     const { offerId, amount} = req.body;
+    //     const result = await PaymentService.createCheckOut({payload,host,protocol,offerId});
 
-        sendResponse(res, {
-            success: true,
-            statusCode: StatusCodes.OK,
-            message: "Payment successfully done!",
-            data: result
-        })
+    //     sendResponse(res, {
+    //         success: true,
+    //         statusCode: StatusCodes.OK,
+    //         message: "Successfully payed!",
+    //         data: result
+    //     })
     }
 )
+
 
 
 export const PaymentController = {
     createPayment,
-    addCard,
-    createCharges
+    paymentSuccess,
+    paymentCancelled
 }

@@ -9,28 +9,29 @@ import { PaymentValidation } from "../../validation/payment.validation";
 
 const router = Router();
 // Stripe config for make payment
-export const { customers, tokens, charges } = new Stripe(config.strip_secret_key!);
+export const { checkout, customers } = new Stripe(config.strip_secret_key!);
 
 router
     .route("/create")
-    .post(
+    .get(
         auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+        validateRequest( PaymentValidation.makePayment ),
         PaymentController.createPayment
     )
-    
+
+
+
+
 router
-    .route("/add")
-    .post(
-        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
-        validateRequest( PaymentValidation.addCard ),
-        PaymentController.addCard
+    .route("/success")
+    .get(
+        PaymentController.paymentSuccess
     )
     
 router
-    .route("/make")
-    .post(
-        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
-        PaymentController.createCharges
+    .route("/failed")
+    .get(
+        PaymentController.paymentCancelled
     )
 
     
