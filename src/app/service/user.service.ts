@@ -579,20 +579,22 @@ const singlePost = async (
         },
         {
             $project:{
-                "creator.fullName": 1,
-                "creator.email": 1,
-                "creator.language": 1,
-                "creator.phone": 1,
-                title: 1,
-                catagory: 1,
-                subCatagory: 1,
-                companyName: 1,
-                location: 1,
-                deadline:1 ,
-                jobDescription: 1,
-                showcaseImages: 1,
-                createdAt: 1,
-                updatedAt: 1
+                "creator.password": 0,
+                "creator.isSocialAccount": 0,                
+                "creator.otpVerification": 0,
+                // "creator.email": 1,
+                // "creator.language": 1,
+                // "creator.phone": 1,
+                // title: 1,
+                // catagory: 1,
+                // subCatagory: 1,
+                // companyName: 1,
+                // location: 1,
+                // deadline:1 ,
+                // jobDescription: 1,
+                // showcaseImages: 1,
+                // createdAt: 1,
+                // updatedAt: 1
             }
         }
     ])
