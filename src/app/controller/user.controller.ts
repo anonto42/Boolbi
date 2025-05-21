@@ -355,9 +355,24 @@ const recommendedPosts = catchAsync(
     }
 )
 
+const filterPosts = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const {...data} = req.body;
+        const result = await UserServices.dataForTheFilter(payload,data);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully get filterd data",
+            data: result
+        })
+    }
+)
 
 export const UserController = {
     searchPosts,
+    filterPosts,
     signupUser,
     profile,
     update,

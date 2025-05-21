@@ -1,7 +1,7 @@
 import { StatusCodes } from "http-status-codes";
 import ApiError from "../../errors/ApiError";
 import User from "../../model/user.model";
-import { ISignUpData, JobPost, TOffer } from "../../types/user"
+import { FilterPost, ISignUpData, JobPost, TOffer } from "../../types/user"
 import { jwtHelper } from "../../helpers/jwtHelper";
 import { bcryptjs } from "../../helpers/bcryptHelper";
 import { IUser } from "../../Interfaces/User.interface";
@@ -309,7 +309,17 @@ const conditions = async (
     return condition.termsConditions;
 }
 
-//Create job post
+/**
+  latLng: {
+    lat: {
+      type: Number
+    },
+    lng:{
+      type: Number
+    }
+  }, */
+
+//Create post
 const jobPost =  async (
     payload: JwtPayload,
     data: JobPost,
@@ -317,7 +327,7 @@ const jobPost =  async (
     coverImage: string
 ) => {
     const { userID } = payload;
-    const {category, companyName, deadline, description, location, title, postType, subCatagory} = data;
+    const {category, companyName, deadline, description, location, title, postType, subCatagory, lng, lat } = data;
     const isUserExist = await User.findOne({_id: userID });
     if (!isUserExist) {
         throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
@@ -347,7 +357,11 @@ const jobPost =  async (
         coverImage,
         jobDescription: description,
         showcaseImages: images,
-        creatorID: isUserExist._id
+        creatorID: isUserExist._id,
+        latLng: {
+          lat,
+          lng
+        },
     };
  
     const post = await Post.create(jobData);
@@ -969,7 +983,9 @@ const searchPosts = async (
 };
 
 // Recommended post types
-const getRecommendedPosts = async (payload: JwtPayload) => {
+const getRecommendedPosts = async (
+  payload: JwtPayload
+) => {
   const { userID } = payload;
 
   const user = await User.findById(userID);
@@ -1001,8 +1017,51 @@ const getRecommendedPosts = async (payload: JwtPayload) => {
   return await Post.find({ postType }).sort({ createdAt: -1 }).limit(10);
 };
 
+const dataForTheFilter = async (payload: JwtPayload, data: FilterPost) => {
+  const { userID } = payload;
+  const { category, lat, lng, serviceRating, subCategory } = data;
+
+  const user = await User.findById(userID);
+  if (!user) throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+
+  if (
+    user.accountStatus === ACCOUNT_STATUS.DELETE ||
+    user.accountStatus === ACCOUNT_STATUS.BLOCK
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `Your account was ${user.accountStatus.toLowerCase()}!`
+    );
+  }
+
+  const matchStage: any = {};
+
+  if (category) matchStage.category = category;
+  if (subCategory) matchStage.subCategory = subCategory;
+
+  // Default rating is 0 if not provided
+  const minRating = serviceRating ?? 0;
+
+  const posts = await Post.aggregate([
+    {
+      $addFields: {
+        averageRating: { $avg: "$ratings.stars" }
+      }
+    },
+    {
+      $match: {
+        ...matchStage,
+        averageRating: { $gte: minRating }
+      }
+    }
+  ]);
+
+  return posts;
+};
+
 
 export const UserServices = {
+    dataForTheFilter,
     signUp,
     searchPosts,
     profle,

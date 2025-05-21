@@ -108,7 +108,9 @@ const jobPostZodSchem =  z.object({
     description: z.string({required_error: "You must give the job description"}), 
     location: z.string({required_error: "You must give the job location"}), 
     title: z.string({required_error: "You must give the job title"}),
-    postType: z.enum(["JOB","SERVICE"])
+    postType: z.enum(["JOB","SERVICE"]),
+    lng: z.number({required_error:"You must give the lng number for the location Matrix"}), 
+    lat: z.number({required_error:"You must give the lat number for the location Matrix"})
   })
 });
 
@@ -158,8 +160,19 @@ const searchValidationZod = z.object({
   })
 })
 
+const filterData = z.object({
+  body: z.object({
+    category: z.string({ required_error: "you must give the category to filer"}),
+    subCategory: z.string({ required_error: "you must give the category to filer"}),
+    serviceRating: z.number().optional(),
+    lat: z.number({ required_error: "you must give the lat to filer"}),
+    lng: z.number({ required_error: "you must give the lng to filer"}),
+  })
+})
+
 export const Validation = {
   singnUpZodSchema,
+  filterData,
   signInZodSchema,
   authEmailOTPZodSchema,
   OTPZodSchema,

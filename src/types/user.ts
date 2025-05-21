@@ -23,6 +23,16 @@ export type JobPost = {
     description: string;
     postType: "JOB" | "SERVICE";
     subCatagory: string;
+    lng: number, 
+    lat: number
+}
+
+export type FilterPost = {
+    category: string,
+    subCategory: string,
+    serviceRating: number,
+    lat: number,
+    lng: number
 }
 
 export type TOffer = {

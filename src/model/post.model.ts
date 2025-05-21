@@ -1,5 +1,5 @@
 import { model, models, Schema } from "mongoose";
-import { IPost } from "../Interfaces/post.interface";
+import { IPost, Reating } from "../Interfaces/post.interface";
 import { POST_TYPE } from "../enums/post.enum";
 
 const jobPostSchema = new Schema<IPost>({
@@ -34,6 +34,14 @@ const jobPostSchema = new Schema<IPost>({
     required: true,
     trim: true
   },
+  latLng: {
+    lat: {
+      type: Number
+    },
+    lng:{
+      type: Number
+    }
+  },
   deadline:{
     type: String,
     required: true,
@@ -49,7 +57,19 @@ const jobPostSchema = new Schema<IPost>({
     type: Schema.Types.ObjectId,
     ref: "user"
   },
+  ratings:[{
+    stars: {
+      type: Number
+    },
+    feedback: {
+      type: String
+    },
+    from: {
+      type: Schema.Types.ObjectId,
+      ref: "user"
+    }
+  }]
 },{timestamps: true});
   
-const Post = models.Post || model('post', jobPostSchema);
+const Post = models.Post || model<IPost>('post', jobPostSchema);
 export default Post;
