@@ -7,6 +7,7 @@ export default {
   jwt_secret: process.env.JWT_SECRET!,
   jwt_expire: process.env.JWT_EXPIRE_IN!,
   bcrypt_sart_rounds: process.env.BCRYPT_SALT_ROUNDS!,
+  firebase_service_account_key: process.env.FIREBASE_BASS_64,
   node_env: process.env.NODE_ENV,
   email_user: process.env.EMAIL_USER,
   email_pass: process.env.EMAIL_PASS,
