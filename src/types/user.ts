@@ -36,13 +36,13 @@ export type FilterPost = {
 }
 
 export type TOffer = {
+    to: string;
     companyName: string;
     projectName: string;
     category: string;
-    subCatagory: string;
     myBudget: number;
-    jobLocation: string;
+    location: string;
     deadline: Date;
-    orderDescription: string;
-    customer: string;
+    description: string;
+    postID: string;
 }

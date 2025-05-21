@@ -3,21 +3,17 @@ import { IOffer } from "../Interfaces/offer.interface";
 import { OFFER_STATUS } from "../enums/offer.enum";
 
 const offerSchema = new Schema<IOffer>({
-  customer: {
+  to: {
     type: Schema.Types.ObjectId,
     ref: "user"
   },
-  serviceID:{
+  form: {
+    type: Schema.Types.ObjectId,
+    ref: "user"
+  },
+  postID:{
     type: Schema.Types.ObjectId,
     ref:"posts"
-  },
-  serviceProvider: {
-    type: Schema.Types.ObjectId,
-    ref: "user"
-  },
-  jobID:{
-    type: Schema.Types.ObjectId,
-    ref: "post"
   },
   companyName: {
     type: String,
@@ -30,12 +26,7 @@ const offerSchema = new Schema<IOffer>({
     required: true,
     trim: true
   },
-  catagory:{
-    type: String,
-    required: true,
-    trim: true
-  },
-  subCatagory:{
+  category:{
     type: String,
     required: true,
     trim: true
@@ -62,7 +53,8 @@ const offerSchema = new Schema<IOffer>({
   },
   status:{
     type: String,
-    enum: OFFER_STATUS
+    enum: OFFER_STATUS,
+    default: OFFER_STATUS.WATING
   },
   companyImages:[{
     type: String,
@@ -73,5 +65,5 @@ const offerSchema = new Schema<IOffer>({
   timestamps: true
 });
 
-const Offer = models.Offer || model('offer', offerSchema);
+const Offer = models.Offer || model<IOffer>('offer', offerSchema);
 export default Offer;

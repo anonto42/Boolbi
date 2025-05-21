@@ -109,7 +109,7 @@ router
     .post(
         auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
         fileUploadHandler(),
-        validateRequest(Validation.orderValidation),
+        validateRequest(Validation.offerCreateValidation),
         UserController.cOffer
     )
     .patch(

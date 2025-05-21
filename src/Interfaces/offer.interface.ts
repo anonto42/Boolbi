@@ -1,15 +1,13 @@
 import { Document, Types } from "mongoose";
 
 export interface IOffer extends Document {
-    customer: Types.ObjectId;
-    serviceProvider: Types.ObjectId;
-    serviceID: Types.ObjectId;
-    jobID: Types.ObjectId;
+    to: Types.ObjectId;
+    form: Types.ObjectId;
+    postID: Types.ObjectId;
     status: "DECLINE" | "APPROVE" | "WATING";
     companyName: string;
     projectName: string;
-    catagory: string;
-    subCatagory: string;
+    category: string;
     budget: number;
     jobLocation: string;
     deadline: string;

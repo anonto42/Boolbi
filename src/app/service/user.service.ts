@@ -11,13 +11,12 @@ import unlinkFile from "../../shared/unlinkFile";
 import Post from "../../model/post.model";
 import mongoose, { Types } from "mongoose";
 import { ACCOUNT_STATUS, ACCOUTN_ACTVITY_STATUS, USER_ROLES } from "../../enums/user.enums";
-import { OFFER_STATUS } from "../../enums/offer.enum";
 import Offer from "../../model/offer.model";
 import Order from "../../model/order.model";
-import { messageSend } from "../../helpers/firebaseHelper";
-import Chat from "../../model/chat.model";
 import Support from "../../model/support.model";
 import { POST_TYPE } from "../../enums/post.enum";
+import { messageSend } from "../../helpers/firebaseHelper";
+import { socketHelper } from "../../helpers/socketHelper";
 
 //User signUp
 const signUp = async ( 
@@ -729,29 +728,29 @@ const offers = async (
   
 }
 
-//Create a offer 
+// Create order
 const COrder = async (
     payload: JwtPayload,
     data: TOffer,
     images: string[]
 ) => {
     const { userID } = payload;
-    const { 
-        category, 
-        companyName,
-        deadline, 
-        jobLocation, 
-        myBudget,
-        orderDescription, 
-        projectName, 
-        subCatagory,
-        customer
+    const {
+      category,
+      companyName,
+      deadline,
+      description,
+      location,
+      myBudget,
+      postID,
+      projectName,
+      to
     } = data;
     const isUserExist = await User.findById(userID);
     if (!isUserExist) {
       throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
     };
-    const ifCustomerExist = await User.findById(customer);
+    const ifCustomerExist = await User.findById(to);
     if (!ifCustomerExist) {
       throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
     };
@@ -775,18 +774,17 @@ const COrder = async (
     };
 
     const offerData = {
-        customer,
-        serviceProvider: userID,
+        to: ifCustomerExist._id,
+        form: isUserExist._id,
+        postID,
         companyName,
         projectName,
-        catagory: category,
-        subCatagory,
-        budget: myBudget,
-        jobLocation,
-        description: orderDescription,
-        status: OFFER_STATUS.WATING,
-        companyImages: images,
-        deadline
+        category,
+        budget: Number(myBudget),
+        location,
+        deadline,
+        description,
+        companyImages: images
     }
 
     const offer = await Offer.create(offerData);
@@ -796,16 +794,18 @@ const COrder = async (
     await ifCustomerExist.save();
     await isUserExist.save();
 
-    const room = await Chat.create({firstUser:customer,secondUser:userID})
+    await messageSend({
+      notification: {
+        title: `${companyName} send you a offer!`,
+        body: `${description}`
+      },
+      token: ifCustomerExist.deviceID
+    })
 
     //@ts-ignore
-    const io = global.io
-    io.emit("notification",{roomID:room._id, userName:companyName, message:"You get a new offer", iconImage:offerData.companyImages })
-    await messageSend({token:isUserExist.deviceID, notification:{
-        title:companyName + " send you a offer.",
-        body:"You have receved a offer from the "+companyName
-    }})
-
+    const io = global.io;
+    
+   
     return offer;
 }
 

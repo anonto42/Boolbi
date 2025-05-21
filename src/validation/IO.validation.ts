@@ -127,17 +127,17 @@ const UpdatejobPostZodSchem =  z.object({
   })
 });
 
-const orderValidation = z.object({
+const offerCreateValidation = z.object({
   body: z.object({
-    category: z.string({ required_error: "You must give the category"}), 
+    to: z.string({required_error: "You must give the id that you want to offer"}),
     companyName: z.string({ required_error: "You must give the company name"}),
-    deadline: z.string({ required_error: "You must give the deadline"}),
-    jobLocation: z.string({ required_error: "You must give the job location"}),
-    myBudget: z.string({ required_error: "You must give you project budget"}),
-    orderDescription: z.string({ required_error: "You must give the description"}), 
     projectName: z.string({ required_error: "You must give the project name"}),
-    subCatagory: z.string({ required_error: "You must give the sub category"}),
-    customer: z.string({ required_error: "You must give the serviceProvider id"}),
+    category: z.string({ required_error: "You must give the category"}), 
+    myBudget: z.string({ required_error: "You must give you project budget"}),
+    jobLocation: z.string({ required_error: "You must give the job location"}),
+    deadline: z.string({ required_error: "You must give the deadline"}),
+    description: z.string({ required_error: "You must give the description"}),
+    postID: z.string({ required_error: "You must give the post id"}),
   })
 })
 
@@ -182,7 +182,7 @@ export const Validation = {
   updateUserLangouageZodSchem,
   jobPostZodSchem,
   UpdatejobPostZodSchem,
-  orderValidation,
+  offerCreateValidation,
   offerValidation,
   offerDeletaionValidationZod,
   searchValidationZod
