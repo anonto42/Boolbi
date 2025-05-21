@@ -109,8 +109,8 @@ const jobPostZodSchem =  z.object({
     location: z.string({required_error: "You must give the job location"}), 
     title: z.string({required_error: "You must give the job title"}),
     postType: z.enum(["JOB","SERVICE"]),
-    lng: z.number({required_error:"You must give the lng number for the location Matrix"}), 
-    lat: z.number({required_error:"You must give the lat number for the location Matrix"})
+    lng: z.string({required_error:"You must give the lng number for the location Matrix"}), 
+    lat: z.string({required_error:"You must give the lat number for the location Matrix"})
   })
 });
 

@@ -309,16 +309,6 @@ const conditions = async (
     return condition.termsConditions;
 }
 
-/**
-  latLng: {
-    lat: {
-      type: Number
-    },
-    lng:{
-      type: Number
-    }
-  }, */
-
 //Create post
 const jobPost =  async (
     payload: JwtPayload,
@@ -359,8 +349,8 @@ const jobPost =  async (
         showcaseImages: images,
         creatorID: isUserExist._id,
         latLng: {
-          lat,
-          lng
+          lat: Number(lat),
+          lng: Number(lng)
         },
     };
  
@@ -370,7 +360,6 @@ const jobPost =  async (
     };
     
     isUserExist.job.push(post._id as Types.ObjectId)
-
     await isUserExist.save() 
 
     return post;
@@ -427,6 +416,7 @@ const UPost = async (
     }
   ) => {
     const { userID } = payload;
+    body.latLng = { lat: body.lat, lng: body.lng };
     const { postID, ...updateFields } = body;
   
     const isUserExist = await User.findById(userID);
