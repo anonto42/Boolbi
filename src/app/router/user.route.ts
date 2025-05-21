@@ -130,5 +130,20 @@ router
         UserController.supportRequest
     )
 
+router
+    .route("/search")
+    .get(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        validateRequest( Validation.searchValidationZod ),
+        UserController.searchPosts
+    )
+
+router
+    .route("/home")
+    .get(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        UserController.recommendedPosts
+    )
+
 
 export const UserRouter = router;

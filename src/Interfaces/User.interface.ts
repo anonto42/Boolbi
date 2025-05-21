@@ -15,7 +15,7 @@ export interface IUser extends Document {
     phone: string;
     category: string;
     subCatagory: string;
-    searchedCatagory: string;
+    searchedCatagory: string[];
     city: string;
     postalCode: string;
     address: string;

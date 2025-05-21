@@ -326,7 +326,38 @@ const supportRequest = catchAsync(
     }
 )
 
+const searchPosts = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const data = req.query.string as string;
+        const result = await UserServices.searchPosts(payload,data);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully get data",
+            data: result
+        })
+    }
+)
+
+const recommendedPosts = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const result = await UserServices.getRecommendedPosts(payload);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully get recommended",
+            data: result
+        })
+    }
+)
+
+
 export const UserController = {
+    searchPosts,
     signupUser,
     profile,
     update,
@@ -347,5 +378,6 @@ export const UserController = {
     cOffer,
     IOffer,
     DOffer,
-    supportRequest
+    supportRequest,
+    recommendedPosts
  }

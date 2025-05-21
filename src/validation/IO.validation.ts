@@ -152,6 +152,12 @@ const offerDeletaionValidationZod = z.object({
   })
 })
 
+const searchValidationZod = z.object({
+  query: z.object({
+    string: z.string({ required_error: "you must give a name or other thing to search"})
+  })
+})
+
 export const Validation = {
   singnUpZodSchema,
   signInZodSchema,
@@ -165,5 +171,6 @@ export const Validation = {
   UpdatejobPostZodSchem,
   orderValidation,
   offerValidation,
-  offerDeletaionValidationZod
+  offerDeletaionValidationZod,
+  searchValidationZod
 };

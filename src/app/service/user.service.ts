@@ -17,6 +17,7 @@ import Order from "../../model/order.model";
 import { messageSend } from "../../helpers/firebaseHelper";
 import Chat from "../../model/chat.model";
 import Support from "../../model/support.model";
+import { POST_TYPE } from "../../enums/post.enum";
 
 //User signUp
 const signUp = async ( 
@@ -924,9 +925,86 @@ const supportRequest = async(
     return support;
 }
 
+// This funciton is for search some data
+const searchPosts = async (
+  payload: JwtPayload, 
+  searchQuery: string
+) => {
+  const { userID } = payload;
+
+  if (!searchQuery) {
+    throw new ApiError(StatusCodes.NOT_ACCEPTABLE, "Search query is required.");
+  }
+
+  const user = await User.findById(userID);
+  if (!user) throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+
+  if (
+    user.accountStatus === ACCOUNT_STATUS.DELETE ||
+    user.accountStatus === ACCOUNT_STATUS.BLOCK
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `Your account was ${user.accountStatus.toLowerCase()}!`
+    );
+  }
+
+  const postType = user.role === USER_ROLES.SERVICE_PROVIDER ? POST_TYPE.JOB : POST_TYPE.SERVICE;
+
+  const updatedKeywords = user.searchedCatagory.filter(
+    (term : any) => term.toLowerCase() !== searchQuery.toLowerCase()
+  );
+
+  updatedKeywords.unshift(searchQuery);
+
+  user.searchedCatagory = updatedKeywords.slice(0, 5);
+  await user.save();
+
+  const posts = await Post.find({
+    postType,
+    title: { $regex: searchQuery, $options: "i" }
+  }).sort({ createdAt: -1 });
+
+  return posts;
+};
+
+// Recommended post types
+const getRecommendedPosts = async (payload: JwtPayload) => {
+  const { userID } = payload;
+
+  const user = await User.findById(userID);
+  if (!user) throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+
+  if (
+    user.accountStatus === ACCOUNT_STATUS.DELETE ||
+    user.accountStatus === ACCOUNT_STATUS.BLOCK
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `Your account was ${user.accountStatus.toLowerCase()}!`
+    );
+  }
+
+  const postType = user.role === USER_ROLES.SERVICE_PROVIDER ? POST_TYPE.JOB : POST_TYPE.SERVICE;
+
+  if (user.searchedCatagory.length > 0) {
+    const regexQueries = user.searchedCatagory.map((keyword: any) => ({
+      title: { $regex: keyword, $options: "i" }
+    }));
+
+    return await Post.find({
+      postType,
+      $or: regexQueries
+    }).sort({ createdAt: -1 });
+  }
+
+  return await Post.find({ postType }).sort({ createdAt: -1 }).limit(10);
+};
+
 
 export const UserServices = {
     signUp,
+    searchPosts,
     profle,
     UP,
     profileDelete,
@@ -947,5 +1025,6 @@ export const UserServices = {
     COrder,
     intracatOffer,
     deleteOffer,
-    supportRequest
+    supportRequest,
+    getRecommendedPosts
 }

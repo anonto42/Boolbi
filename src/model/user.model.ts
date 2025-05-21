@@ -49,7 +49,10 @@ const userSchema = new Schema<IUser>({
     type: Schema.Types.ObjectId,
     ref: "order"
   }],
-  searchedCatagory: String,
+  searchedCatagory: {
+    type: [ String ],
+    default: []
+  },
   city:{
     type: String,
     trim: true,
