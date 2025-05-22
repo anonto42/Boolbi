@@ -270,7 +270,7 @@ const cOffer = catchAsync(
         const payload = (req as any)?.user;
         const {...Data} = await req.body;
         const images = getMultipleFilesPath((req as any).files,"image")
-        const result = await UserServices.COrder(payload,Data,images as string[])
+        const result = await UserServices.cOffer(payload,Data,images as string[])
 
         sendResponse(res, {
             success: true,

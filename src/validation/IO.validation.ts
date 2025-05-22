@@ -134,7 +134,7 @@ const offerCreateValidation = z.object({
     projectName: z.string({ required_error: "You must give the project name"}),
     category: z.string({ required_error: "You must give the category"}), 
     myBudget: z.string({ required_error: "You must give you project budget"}),
-    jobLocation: z.string({ required_error: "You must give the job location"}),
+    location: z.string({ required_error: "You must give the job location"}),
     deadline: z.string({ required_error: "You must give the deadline"}),
     description: z.string({ required_error: "You must give the description"}),
     postID: z.string({ required_error: "You must give the post id"}),

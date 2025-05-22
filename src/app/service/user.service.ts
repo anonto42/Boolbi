@@ -17,6 +17,8 @@ import Support from "../../model/support.model";
 import { POST_TYPE } from "../../enums/post.enum";
 import { messageSend } from "../../helpers/firebaseHelper";
 import { socketHelper } from "../../helpers/socketHelper";
+import { socketMessage } from "../../types/message";
+import { MESSAGE_TYPE } from "../../enums/message.enum";
 
 //User signUp
 const signUp = async ( 
@@ -711,25 +713,25 @@ const offers = async (
     };
 
     const aggregate = await User.aggregate([
-        {
-            $match: { _id: isUserExist._id }
-        },
-        {
-            $lookup: {
-              from: "offers",
-              localField: "offers",
-              foreignField: "_id",
-              as: "offers"
-            }
-        },
+      {
+          $match: { _id: isUserExist._id }
+      },
+      {
+        $lookup: {
+          from: "offer",
+          localField: "myOffer",
+          foreignField: "_id",
+          as: "offersData"
+        }
+      },
     ])
 
-    return aggregate[0].offers
+    return aggregate[0].offersData
   
 }
 
 // Create order
-const COrder = async (
+const cOffer = async (
     payload: JwtPayload,
     data: TOffer,
     images: string[]
@@ -781,7 +783,7 @@ const COrder = async (
         projectName,
         category,
         budget: Number(myBudget),
-        location,
+        jobLocation: location,
         deadline,
         description,
         companyImages: images
@@ -794,17 +796,25 @@ const COrder = async (
     await ifCustomerExist.save();
     await isUserExist.save();
 
-    await messageSend({
-      notification: {
-        title: `${companyName} send you a offer!`,
-        body: `${description}`
-      },
-      token: ifCustomerExist.deviceID
-    })
+    if (ifCustomerExist.deviceID) {
+      await messageSend({
+        notification: {
+          title: `${companyName} send you a offer!`,
+          body: `${description}`
+        },
+        token: ifCustomerExist.deviceID
+      });
+    }
+
+    const message: socketMessage = {
+      message: `${isUserExist.fullName} send you a message for ${offer.projectName} project.`,
+      messageType: MESSAGE_TYPE.NOTIFICATION,
+      sender: isUserExist.fullName
+    }
 
     //@ts-ignore
     const io = global.io;
-    
+    io.emit(`socket:${ifCustomerExist._id}`,message)
    
     return offer;
 }
@@ -1073,7 +1083,7 @@ export const UserServices = {
     offers,
     UPost,
     singlePost,
-    COrder,
+    cOffer,
     intracatOffer,
     deleteOffer,
     supportRequest,

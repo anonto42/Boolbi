@@ -8,6 +8,7 @@ import User from "../../model/user.model";
 import Chat from "../../model/chat.model";
 import { ACCOUNT_STATUS } from "../../enums/user.enums";
 import { socketHelper } from "../../helpers/socketHelper";
+import { socketMessage } from "../../types/message";
 
 const addMessage = async (
   payload: JwtPayload,
@@ -52,15 +53,19 @@ const addMessage = async (
   //@ts-ignore
   const io = global.io;
 
+  const socketMessage: socketMessage = {
+    message: message.message,
+    messageType: MESSAGE_TYPE.MESSAGE,
+    chatId: message.chatID,
+    sender: message.sender
+  }
+
   // Emit the message to all users in the chat except the sender
   for (const userId of chat.users) {
     if (userId.toString() !== userID) {
       const targetSocketId = socketHelper.connectedUsers.get(userId.toString());
       if (targetSocketId) {
-        io.to(targetSocketId).emit(`socket:${userId}`, {
-          chatID: chat._id,
-          message: populatedMessage
-        });
+        io.to(targetSocketId).emit(`socket:${userId}`, socketMessage);
       }
     }
   }
