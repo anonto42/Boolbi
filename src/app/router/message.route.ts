@@ -4,23 +4,71 @@ import auth from "../../middlewares/Auth.middleware";
 import { MessageController } from "../controller/message.controller";
 import validateRequest from "../../middlewares/validateRequest";
 import { MessageValidation } from "../../validation/message.validation";
+import fileUploadHandler from "../../middlewares/fileUploadHandler";
 
 const router = Router();
 
 router
+    .route("/")
+    .get(
+        auth( 
+            USER_ROLES.ADMIN, 
+            USER_ROLES.SUPER_ADMIN, 
+            USER_ROLES.SERVICE_PROVIDER, 
+            USER_ROLES.USER 
+        ),
+        MessageController.allMessages
+    )
+    .post(
+        auth( 
+            USER_ROLES.ADMIN, 
+            USER_ROLES.SUPER_ADMIN, 
+            USER_ROLES.SERVICE_PROVIDER, 
+            USER_ROLES.USER 
+        ),
+        fileUploadHandler(),
+        validateRequest( MessageValidation.sendMessge ),
+        MessageController.sendMessage
+    )
+    .delete(
+        auth( 
+            USER_ROLES.ADMIN, 
+            USER_ROLES.SUPER_ADMIN, 
+            USER_ROLES.SERVICE_PROVIDER, 
+            USER_ROLES.USER 
+        ),
+        MessageController.deleteMessage
+    )
+
+router
     .route("/chat")
     .get(
-        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER ),
+        auth( 
+            USER_ROLES.ADMIN, 
+            USER_ROLES.SUPER_ADMIN, 
+            USER_ROLES.SERVICE_PROVIDER, 
+            USER_ROLES.USER 
+        ),
         validateRequest( MessageValidation.getChatRroom ),
         MessageController.singleChatRoom
     )
     .post(
-        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER ),
+        auth( 
+            USER_ROLES.ADMIN, 
+            USER_ROLES.SUPER_ADMIN, 
+            USER_ROLES.SERVICE_PROVIDER, 
+            USER_ROLES.USER 
+        ),
         validateRequest( MessageValidation.createChatRoom ),
         MessageController.createChat
     )
     .delete(
-        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER ),
+        auth( 
+            USER_ROLES.ADMIN, 
+            USER_ROLES.SUPER_ADMIN, 
+            USER_ROLES.SERVICE_PROVIDER, 
+            USER_ROLES.USER 
+        ),
         validateRequest( MessageValidation.deleteRoom ),
         MessageController.deleteChat
     )
@@ -28,8 +76,22 @@ router
 router
     .route("/all-chat")
     .get(
-        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER ),
+        auth( 
+            USER_ROLES.ADMIN, 
+            USER_ROLES.SUPER_ADMIN, 
+            USER_ROLES.SERVICE_PROVIDER, 
+            USER_ROLES.USER 
+        ),
         MessageController.chatRooms
+    )
+    .delete(
+        auth( 
+            USER_ROLES.ADMIN, 
+            USER_ROLES.SUPER_ADMIN, 
+            USER_ROLES.SERVICE_PROVIDER, 
+            USER_ROLES.USER 
+        ),
+        MessageController.deleteAllMessageOfARoom
     )
 
 export const MessageRoute = router;

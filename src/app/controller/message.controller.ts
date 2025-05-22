@@ -4,6 +4,7 @@ import { messageService } from "../service/message.service";
 import sendResponse from "../../shared/sendResponse";
 import { StatusCodes } from "http-status-codes";
 import { chatService } from "../service/chat.service";
+import { getSingleFilePath } from "../../shared/getFilePath";
 
 const createChat = catchAsync(
     async( req: Request, res: Response ) => {
@@ -63,9 +64,74 @@ const singleChatRoom = catchAsync(
     }
 )
 
+const sendMessage = catchAsync(
+    async( req: Request, res: Response ) => {
+        const user = ( req as any ).user;
+        const { ...data } = req.body;
+        const image = getSingleFilePath(req.files,"image")
+        const result = await messageService.addMessage(user, data, image);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: `Successfull send the messge`,
+            data: result
+        })
+    }
+)
+
+const allMessages = catchAsync(
+    async( req: Request, res: Response ) => {
+        const {userID} = ( req as any ).user;
+        const chatID = req.query.chatID as string;
+        const result = await messageService.getMessages(chatID, userID,{});
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: `Successfull get all the messges`,
+            data: result
+        })
+    }
+)
+
+const deleteMessage = catchAsync(
+    async( req: Request, res: Response ) => {
+        const {userID} = ( req as any ).user;
+        const messageID = req.query.id as string;
+        const result = await messageService.deleteMessage( messageID );
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: `Successfull delete the messge`,
+            data: result
+        })
+    }
+)
+
+const deleteAllMessageOfARoom = catchAsync(
+    async( req: Request, res: Response ) => {
+        const {userID} = ( req as any ).user;
+        const chatID = req.query.chatId as string;
+        const result = await messageService.deleteMessagesByChatId( chatID );
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: `Successfull delete the messge`,
+            data: result
+        })
+    }
+)
+
 export const MessageController = {
     chatRooms,
     singleChatRoom,
     createChat,
-    deleteChat
+    deleteChat,
+    sendMessage,
+    allMessages,
+    deleteMessage,
+    deleteAllMessageOfARoom
 }

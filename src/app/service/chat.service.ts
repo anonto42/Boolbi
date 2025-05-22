@@ -4,7 +4,6 @@ import { StatusCodes } from "http-status-codes";
 import { ACCOUNT_STATUS } from "../../enums/user.enums";
 import ApiError from "../../errors/ApiError";
 
-
 const createChat = async (
   sender: any, 
   chatInfo: {
@@ -60,7 +59,7 @@ const createChat = async (
       ]
     });
 
-    return await Chat.findById(chatRoom._id).populate("users","email fullName");
+    return await chatRoom.populate("users","email fullName");
   }
 
   return isChatExist
