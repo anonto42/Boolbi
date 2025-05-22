@@ -123,6 +123,13 @@ router
         UserController.DOffer
     )
 
+router 
+    .route("/i-offer")
+    .get(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        UserController.iOfferd
+    )
+
 router
     .route("/suport-request")
     .post(

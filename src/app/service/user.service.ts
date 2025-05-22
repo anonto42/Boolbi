@@ -722,6 +722,36 @@ const offers = async (payload: JwtPayload) => {
   return isUserExist.myOffer; // now fully populated
 };
 
+//I Offered
+const iOfferd = async (payload: JwtPayload) => {
+  const { userID } = payload;
+
+  const isUserExist = await User.findById(userID).populate({
+    path: "iOffered",
+    populate: [
+      { path: "to", select: "fullName email" },
+      { path: "form", select: "fullName email" },
+      { path: "postID", select: "title" }
+    ]
+  });
+
+  if (!isUserExist) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  if (
+    isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
+    isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
+    );
+  }
+
+  return isUserExist.iOffered; // now fully populated
+};
+
 // Create order
 const cOffer = async (
     payload: JwtPayload,
@@ -1079,5 +1109,6 @@ export const UserServices = {
     intracatOffer,
     deleteOffer,
     supportRequest,
-    getRecommendedPosts
+    getRecommendedPosts,
+    iOfferd
 }

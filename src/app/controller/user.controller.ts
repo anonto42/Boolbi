@@ -259,6 +259,20 @@ const offers = catchAsync(
         sendResponse(res, {
             success: true,
             statusCode: StatusCodes.OK,
+            message: "successfully get all offers",
+            data: result
+        })
+    }
+)
+
+const iOfferd = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const result = await UserServices.iOfferd(payload)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
             message: "successfully get all orders",
             data: result
         })
@@ -372,6 +386,7 @@ const filterPosts = catchAsync(
 
 export const UserController = {
     searchPosts,
+    iOfferd,
     filterPosts,
     signupUser,
     profile,
