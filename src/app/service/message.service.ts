@@ -7,6 +7,7 @@ import { JwtPayload } from "jsonwebtoken";
 import User from "../../model/user.model";
 import Chat from "../../model/chat.model";
 import { ACCOUNT_STATUS } from "../../enums/user.enums";
+import { socketHelper } from "../../helpers/socketHelper";
 
 const addMessage = async (
   payload: JwtPayload,
@@ -17,17 +18,17 @@ const addMessage = async (
   },
   image?: string
 ) => {
-  const {userID} = payload;
+  const { userID } = payload;
   const user = await User.findById(userID);
-  const chat = await Chat.findById( messageBody.chatID );
-  
+  const chat = await Chat.findById(messageBody.chatID);
+
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, "user not found");
-  };
-  
+  }
+
   if (!chat) {
     throw new ApiError(StatusCodes.NOT_FOUND, "chat not found");
-  };
+  }
 
   if (
     user.accountStatus === ACCOUNT_STATUS.DELETE ||
@@ -37,18 +38,35 @@ const addMessage = async (
       StatusCodes.FORBIDDEN,
       `Your account was ${user.accountStatus.toLowerCase()}!`
     );
-  };
+  }
 
   const message = await Message.create({
     sender: user._id,
     chatID: chat._id,
-    message: image? image : messageBody.content,
+    message: image ? image : messageBody.content,
     messageType: messageBody.messageType
-  })
+  });
 
-  return await message
-    .populate("sender", "fullName email")
-}
+  const populatedMessage = await message.populate("sender", "fullName email");
+
+  //@ts-ignore
+  const io = global.io;
+
+  // Emit the message to all users in the chat except the sender
+  for (const userId of chat.users) {
+    if (userId.toString() !== userID) {
+      const targetSocketId = socketHelper.connectedUsers.get(userId.toString());
+      if (targetSocketId) {
+        io.to(targetSocketId).emit(`socket:${userId}`, {
+          chatID: chat._id,
+          message: populatedMessage
+        });
+      }
+    }
+  }
+
+  return populatedMessage;
+};
 
 const getMessages = async (
   chatId: any, 
