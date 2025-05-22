@@ -13,7 +13,7 @@ const offerSchema = new Schema<IOffer>({
   },
   postID:{
     type: Schema.Types.ObjectId,
-    ref:"posts"
+    ref:"post"
   },
   companyName: {
     type: String,

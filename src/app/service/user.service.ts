@@ -692,43 +692,35 @@ const removeFavorite = async (
     return true;
 }
 
-//all offers
-const offers = async (
-    payload: JwtPayload
-) => {
-    const { userID } = payload;
-    const isUserExist = await User.findById(userID);
-    if (!isUserExist) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
-    };
-  
-    if (
-      isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
-      isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
-    ) {
-      throw new ApiError(
-        StatusCodes.FORBIDDEN,
-        `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
-      );
-    };
+//My offers
+const offers = async (payload: JwtPayload) => {
+  const { userID } = payload;
 
-    const aggregate = await User.aggregate([
-      {
-          $match: { _id: isUserExist._id }
-      },
-      {
-        $lookup: {
-          from: "offer",
-          localField: "myOffer",
-          foreignField: "_id",
-          as: "offersData"
-        }
-      },
-    ])
+  const isUserExist = await User.findById(userID).populate({
+    path: "myOffer",
+    populate: [
+      { path: "to", select: "fullName email" },
+      { path: "form", select: "fullName email" },
+      { path: "postID", select: "title" }
+    ]
+  });
 
-    return aggregate[0].offersData
-  
-}
+  if (!isUserExist) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  if (
+    isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
+    isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
+    );
+  }
+
+  return isUserExist.myOffer; // now fully populated
+};
 
 // Create order
 const cOffer = async (
