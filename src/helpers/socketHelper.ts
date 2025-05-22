@@ -1,34 +1,22 @@
 import colors from 'colors';
 import { Server, Socket } from 'socket.io';
 import { logger } from '../shared/logger';
-import { handleChatEvents } from '../socket/chat.event';
-import { handleMessageEvents } from '../socket/message.event';
+
+const connectedUsers = new Map<string, string>();
 
 const socket = (io: Server) => {
   io.on('connection', (socket: Socket) => {
 
     try {
 
-      socket.on("add-new-chat", (data, callback) => {
-        console.log(data)
-        console.log(callback)
-        if (typeof callback !== "function") {
-          console.error("Callback is not a function");
-          return;
-        }
-        handleChatEvents(socket, data, callback)
+      socket.on('register', (userId: string) => {
+        connectedUsers.set(userId, socket.id);
+        logger.info(colors.cyan(`User ${userId} connected with socket ${socket.id}`));
       });
-
-      socket.on("add-new-message",(data, callback) => (
-        handleMessageEvents(socket, data, callback, io)
-      ));
       
-      socket.on("announcement",data =>{});
-
     } catch (error) {
-      console.log(error)
+      console.log( "This error is form the socket :=> " + error )
     }
-    
   
     socket.on('disconnect', () => {
       logger.info(colors.red('A user disconnected'));
@@ -37,4 +25,4 @@ const socket = (io: Server) => {
   });
 };
 
-export const socketHelper = { socket };
+export const socketHelper = { socket, connectedUsers };
