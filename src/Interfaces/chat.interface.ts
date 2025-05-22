@@ -4,6 +4,6 @@ export interface IChat extends Document {
     chatName: string;
     image?: string;
     status: string;
-    participants: Types.ObjectId[];
+    users: Types.ObjectId[];
     lastMessage: Types.ObjectId;
 }

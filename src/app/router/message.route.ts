@@ -8,15 +8,25 @@ import { MessageValidation } from "../../validation/message.validation";
 const router = Router();
 
 router
-    .route("/")
+    .route("/chat")
     .get(
         auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER ),
         validateRequest( MessageValidation.getChatRroom ),
         MessageController.singleChatRoom
     )
+    .post(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER ),
+        validateRequest( MessageValidation.createChatRoom ),
+        MessageController.createChat
+    )
+    .delete(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER ),
+        validateRequest( MessageValidation.deleteRoom ),
+        MessageController.deleteChat
+    )
 
 router
-    .route("/chat")
+    .route("/all-chat")
     .get(
         auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER ),
         MessageController.chatRooms

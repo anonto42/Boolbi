@@ -12,7 +12,7 @@ const chatSchema = new Schema<IChat>({
     status: {
         type: String
     },
-    participants: [{
+    users: [{
         type: Schema.Types.ObjectId,
         ref:"user"
     }],

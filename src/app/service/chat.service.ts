@@ -1,184 +1,141 @@
-import mongoose from "mongoose";
 import Chat from "../../model/chat.model"
+import User from "../../model/user.model";
+import { StatusCodes } from "http-status-codes";
+import { ACCOUNT_STATUS } from "../../enums/user.enums";
+import ApiError from "../../errors/ApiError";
 
 
-export const createChat = async (userID: any, chatInfo: {chatName: string, image: string}, participant: any) => {
-    const newChat = new Chat({
-        chatName: chatInfo.chatName,
-        image: chatInfo.image,
-        participants: [userID, participant]
-    });
-    const savedChat = await newChat.save();
-    return await savedChat.populate({
-        path: "participants",
-        match: { _id: { $ne: userID }}
-    });
-};
-
-export const getChatById = async ( id: string ) => {
-    return await Chat.findById(id);
-};
-
-export const getChatByParticipants = async ( userID: any, participant: any) => {
-    const chat = await Chat.findOne({
-        participants: { $all: [userID, participant] }
-    }).populate({
-        path: "participants",
-        match: { _id: { $ne: userID } }
-    });
-    return chat;
-};
-
-export const getChatDetailsByParticipantId = async (
-  userID: any,
-  participant?: any,
+const createChat = async (
+  sender: any, 
+  chatInfo: {
+    receiver: any,
+    chatName: string, 
+    image: string
+  }, 
 ) => {
-  const chat = await Chat.findOne({
-    participants: { $all: [userID, participant] },
-  });
-  return chat;
-};
 
-export const deleteChatList = async (chatId: any) => {
-  return await Chat.findByIdAndDelete(chatId);
-};
+  const isUser = await User.findById(sender);
+  const isRecever = await User.findById( chatInfo.receiver );
+  
+  if (!isRecever) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Receiver not found");
+  };
 
-export const getChatByParticipantId = async (filters: { participantId: string, name?: string}, options: { page: any, limit: any }) => {
-  // // console.log(filters, options);
-  // console.log('filters ----', filters);
-  try {
-    const page = Number(options.page) || 1;
-    const limit = Number(options.limit) || 10;
-    const skip = (page - 1) * limit;
- 
-    const participantId = new mongoose.Types.ObjectId(filters.participantId);
-    // console.log('participantId===', participantId);
- 
-    const name = filters.name || '';
- 
-    // console.log({ name });
- 
-    const allChatLists = await Chat.aggregate([
-      { $match: { participants: participantId } },
-      {
-        $lookup: {
-          from: 'messages',
-          let: { chatId: '$_id' },
-          pipeline: [
-            { $match: { $expr: { $eq: ['$chat', '$$chatId'] } } },
-            { $sort: { createdAt: -1 } },
-            { $limit: 1 },
-            { $project: { message: 1, createdAt: 1 } },
-          ],
-          as: 'latestMessage',
-        },
-      },
-      { $unwind: { path: '$latestMessage', preserveNullAndEmptyArrays: true } },
-      { $sort: { 'latestMessage.createdAt': -1 } },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'participants',
-          foreignField: '_id',
-          as: 'participants',
-        },
-      },
- 
-      {
-        $addFields: {
-          participants: {
-            $map: {
-              input: {
-                $filter: {
-                  input: '$participants',
-                  as: 'participant',
-                  cond: { $ne: ['$$participant._id', participantId] },
-                },
-              },
-              as: 'participant',
-              in: {
-                _id: '$$participant._id',
-                fullName: '$$participant.fullName',
-                image: '$$participant.image',
-              },
-            },
-          },
-        },
-      },
-      {
-        $match: {
-          participants: {
-            $elemMatch: {
-              fullName: { $regex: name },
-            },
-          },
-        },
-      },
-      {
-        $addFields: {
-          participant: { $arrayElemAt: ['$participants', 0] },
-        },
-      },
-      {
-        $project: {
-          latestMessage: 1,
-          groupName: 1,
-          type: 1,
-          groupAdmin: 1,
-          image: 1,
-          participant: 1,
-        },
-      },
-      {
-        $facet: {
-          totalCount: [{ $count: 'count' }],
-          data: [{ $skip: skip }, { $limit: limit }],
-        },
-      },
-    ]);
- 
-    // console.log('allChatLists');
-    // console.log(allChatLists);
- 
-    const totalResults =
-      allChatLists[0]?.totalCount?.length > 0
-        ? allChatLists[0]?.totalCount[0]?.count
-        : 0;
- 
-    const totalPages = Math.ceil(totalResults / limit);
-    const pagination = { totalResults, totalPages, currentPage: page, limit };
- 
-    // return { chatList: allChatLists, pagination };
-    return { chatList: allChatLists[0]?.data, pagination };
-    // return allChatLists;
-  } catch (error) {
-    console.error(error);
-    throw error;
+  if (!isUser) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  };
+  
+  if (
+    isRecever.accountStatus === ACCOUNT_STATUS.DELETE ||
+    isRecever.accountStatus === ACCOUNT_STATUS.BLOCK
+  ) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        `Your account was ${isRecever.accountStatus.toLowerCase()}!`
+      );
+  };
+
+  if (
+    isUser.accountStatus === ACCOUNT_STATUS.DELETE ||
+    isUser.accountStatus === ACCOUNT_STATUS.BLOCK
+  ) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        `Your account was ${isUser.accountStatus.toLowerCase()}!`
+      );
+  };
+
+  const isChatExist = await Chat.findOne({
+    users: { $all:[ sender, chatInfo.receiver ] }
+  }).populate("users","email fullName")
+
+
+  if (!isChatExist) {
+    const chatRoom = await Chat.create({
+      chatName: chatInfo.chatName,
+      image: chatInfo.chatName,
+      users: [
+        sender,
+        chatInfo.receiver
+      ]
+    });
+
+    return await Chat.findById(chatRoom._id).populate("users","email fullName");
   }
+
+  return isChatExist
+  
 };
- 
-export const getMyChatList = async (userId: any) => {
-  const myId = new mongoose.Types.ObjectId(userId);
-  const result = await Chat.aggregate([
-    { $match: { participants: { $in: [myId] } } },
-    // { $unwind: '$participants' },
-    // { $match: { participants: { $ne: myId } } },
-    // {
-    //   $group: {
-    //     _id: null,
-    //     participantIds: { $addToSet: '$participants' },
-    //   },
-    // },
-  ]);
-  return result;
+
+const getChatById = async ( id: string ) => {
+  return await Chat.findById(id).populate("users","fullName email");
 };
+
+const allChats = async ( id: string ) => {
+  const user = await User.findById(id);
+
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  };
+  
+  if (
+    user.accountStatus === ACCOUNT_STATUS.DELETE ||
+    user.accountStatus === ACCOUNT_STATUS.BLOCK
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `Your account was ${user.accountStatus.toLowerCase()}!`
+    );
+  };
+
+  return await Chat.find({
+    users: { $in: [ id ] }
+  }).populate("users", "email fullName");
+
+};
+
+const deleteChat = async ( userID: string, id: string ) => {
+  const user = await User.findById(userID);
+
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  };
+  
+  if (
+    user.accountStatus === ACCOUNT_STATUS.DELETE ||
+    user.accountStatus === ACCOUNT_STATUS.BLOCK
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `Your account was ${user.accountStatus.toLowerCase()}!`
+    );
+  };
+
+  const chatRoom = await Chat.findById(id);
+  if (!chatRoom) {
+    throw new ApiError(
+      StatusCodes.NOT_FOUND,
+      `Chat not founded!`
+    ); 
+  };
+
+  const isInChat = chatRoom.users.filter( ( e: any ) => e === user._id );
+  if (!isInChat) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      `You are not a member of this chat so you can delete this chat`
+    );
+  };
+
+  await Chat.deleteOne({ _id: chatRoom._id });
+
+  return true
+
+}
 
 export const chatService = {
   createChat,
   getChatById,
-  getChatByParticipants,
-  getChatDetailsByParticipantId,
-  deleteChatList,
-  getChatByParticipantId,
-  getMyChatList,
+  allChats,
+  deleteChat
 };
