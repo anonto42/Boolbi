@@ -28,7 +28,7 @@ const fileUploadHandler = () => {
           uploadDir = path.join(baseUploadDir, 'image');
           break;
         case 'coverImage':
-          uploadDir = path.join(baseUploadDir, 'image');
+          uploadDir = path.join(baseUploadDir, 'coverImage');
           break;
         case 'media':
           uploadDir = path.join(baseUploadDir, 'media');
