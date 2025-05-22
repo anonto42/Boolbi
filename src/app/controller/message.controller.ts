@@ -74,7 +74,7 @@ const sendMessage = catchAsync(
         sendResponse(res, {
             success: true,
             statusCode: StatusCodes.OK,
-            message: `Successfull send the messge`,
+            message: `Successfull send the message`,
             data: result
         })
     }
