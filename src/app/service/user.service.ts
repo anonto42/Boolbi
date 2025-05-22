@@ -845,38 +845,45 @@ const cOffer = async (
 const intracatOffer = async(
     payload: JwtPayload,
     data: { 
-        acction: "DECLINE" | "APPROVE" |  "WATING",
-        offerId: string
+      acction: "DECLINE" | "APPROVE",
+      offerId: string
     }
 )=>{
     const { userID } = payload;
     const { acction,offerId } = data;
     const isUserExist = await User.findById(userID);
-    const isOfferExist = await Offer.findById(offerId)
+    const isOfferExist = await Offer.findById(offerId);
+    const to = await User.findById(isOfferExist.to);
+
     if (!isOfferExist) {
-        throw new ApiError(StatusCodes.NOT_FOUND,"Offer not founded");
+      throw new ApiError(StatusCodes.NOT_FOUND,"Offer not founded");
     };
     if (!isUserExist) {
-        throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
+      throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
     };
     if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
+      throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
     };
 
     if ( acction === "DECLINE") {
-        isOfferExist.status = "DECLINE";
-        await isOfferExist.save();
-        return "Offer Decline"
+      isOfferExist.status = "DECLINE";
+      const newArr = to.myOffer.filter( (e: any) => e !== data.offerId );
+      to.myOffer = newArr;
+       
+      await to.save();
+      await isOfferExist.save();
+      return "Offer Decline"
     };
 
     const orderCreationData = {
-        customer: isOfferExist.customer,
-        serviceProvider: userID,
-        deliveryDate: isOfferExist.deadline,
-        totalPrice: isOfferExist.budget,
-        offerID: isOfferExist._id,
-        serviceID: isOfferExist.serviceID
-    }
+      customer: isOfferExist.customer,
+      serviceProvider: userID,
+      deliveryDate: isOfferExist.deadline,
+      totalPrice: isOfferExist.budget,
+      offerID: isOfferExist._id,
+      serviceID: isOfferExist.serviceID
+    };
+    
     const order = await Order.create(orderCreationData);
 
     isUserExist.orders.push(order._id)
@@ -888,7 +895,7 @@ const intracatOffer = async(
 
 }
 
-// offer intraction
+// delete offer
 const deleteOffer = async(
     payload: JwtPayload,
     offerID: string
@@ -896,16 +903,20 @@ const deleteOffer = async(
     const { userID } = payload;
     const isUserExist = await User.findById(userID);
     if (!isUserExist) {
-        throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
+      throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
     };
     if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
+      throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
     };
 
-    const offer = await Offer.findByIdAndDelete(offerID)
+    const offer = await Offer.findById(offerID);
     
     if (!offer) {
-        throw new ApiError(StatusCodes.NOT_FOUND,"Offer not founded");
+      throw new ApiError(StatusCodes.NOT_FOUND,"Offer not founded");
+    };
+    
+    if (offer.form !== isUserExist._id) {
+      throw new ApiError(StatusCodes.NOT_FOUND,"You are not authorize to do that acction!")
     };
 
     return offer;
@@ -935,7 +946,7 @@ const supportRequest = async(
         throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
     };
 
-    // Create the support request in DB
+  // Create the support request in DB
   const support = await Support.create({
     from: isUserExist._id,
     catagory: category,
