@@ -4,18 +4,15 @@ import sendResponse from "../../shared/sendResponse";
 import { StatusCodes } from "http-status-codes";
 import { PaymentService } from "../service/payment.service";
 
-
-const createPayment = catchAsync(
+const createSession = catchAsync(
     async( req: Request, res: Response ) => {
         const payload = (req as any).user;
-        const offerId = req.body.offerId as string;
         const protocol = req.protocol as string;
         const host = req.headers.host as string;
-        const result = await PaymentService.createCheckOut(
+        const result = await PaymentService.createSession(
             payload,
             host,
-            protocol,
-            offerId
+            protocol
         );
 
         sendResponse(res, {
@@ -27,46 +24,38 @@ const createPayment = catchAsync(
     }
 )
 
-
-
-const paymentSuccess = catchAsync(
+const chargeUser = catchAsync(
     async( req: Request, res: Response ) => {
-    //     const payload = (req as any).user;
-    //     const protocol = req.protocol as string;
-    //     const host = req.headers.host as string;
-    //     const { offerId, amount} = req.body;
-    //     const result = await PaymentService.createCheckOut({payload,host,protocol,offerId});
+        const payload = (req as any).user;
+        const offerID = req.query.offerID as string;
+        const result = await PaymentService.chargeCustomer( payload, offerID );
 
-    //     sendResponse(res, {
-    //         success: true,
-    //         statusCode: StatusCodes.OK,
-    //         message: "Successfully payed!",
-    //         data: result
-    //     })
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Payment successfull!",
+            data: result
+        })
     }
 )
 
-const paymentCancelled = catchAsync(
+const givesalary = catchAsync(
     async( req: Request, res: Response ) => {
-    //     const payload = (req as any).user;
-    //     const protocol = req.protocol as string;
-    //     const host = req.headers.host as string;
-    //     const { offerId, amount} = req.body;
-    //     const result = await PaymentService.createCheckOut({payload,host,protocol,offerId});
+        const payload = (req as any).user;
+        const order = req.query.orderId as string;
+        const result = await PaymentService.chargeCustomer( payload, order );
 
-    //     sendResponse(res, {
-    //         success: true,
-    //         statusCode: StatusCodes.OK,
-    //         message: "Successfully payed!",
-    //         data: result
-    //     })
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Salary goted successfull!",
+            data: result
+        })
     }
 )
-
-
 
 export const PaymentController = {
-    createPayment,
-    paymentSuccess,
-    paymentCancelled
+    createSession,
+    chargeUser,
+    givesalary
 }
