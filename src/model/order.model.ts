@@ -4,7 +4,7 @@ import { IOrder } from "../Interfaces/order.interface";
 const orderSchema = new Schema<IOrder>({
   offerID : {
     type: Schema.Types.ObjectId,
-    ref: "offers"
+    ref: "offer"
   },
   deliveryRequest:{
     isRequested: {
