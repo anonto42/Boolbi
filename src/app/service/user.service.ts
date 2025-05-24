@@ -1038,18 +1038,27 @@ const getRecommendedPosts = async (
 
   const postType = user.role === USER_ROLES.SERVICE_PROVIDER ? POST_TYPE.JOB : POST_TYPE.SERVICE;
 
+  if (user.searchedCatagory.length <= 0 || !user.searchedCatagory ) {
+    return await Post.find({ postType: postType.toString() }).sort({createdAt: -1});
+  }
+
   if (user.searchedCatagory.length > 0) {
     const regexQueries = user.searchedCatagory.map((keyword: any) => ({
       title: { $regex: keyword, $options: "i" }
     }));
 
-    return await Post.find({
+    const postResuld = await Post.find({
       postType,
       $or: regexQueries
     }).sort({ createdAt: -1 });
-  }
 
-  return await Post.find({ postType }).sort({ createdAt: -1 }).limit(10);
+    if (postResuld.length <= 0 ) {
+      return await Post.find({ postType: postType.toString() }).sort({createdAt: -1});
+    }
+
+    return postResuld
+  };
+
 };
 
 const dataForTheFilter = async (payload: JwtPayload, data: FilterPost) => {
