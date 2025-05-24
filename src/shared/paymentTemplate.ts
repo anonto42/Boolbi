@@ -114,7 +114,7 @@ export const errorOnPayment = `<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Payment Cancelled</title>
+  <title>Cancelled</title>
   <style>
     body {
       display: flex;
@@ -152,8 +152,8 @@ export const errorOnPayment = `<html lang="en">
 </head>
 <body>
   <div class="message-box">
-    <h1>Payment Cancelled</h1>
-    <p>Your payment was not completed. Please try again later.</p>
+    <h1>Card adding Cancelled</h1>
+    <p>Your process was not completed. Please try again later.</p>
     <a class="btn" href="/">Try Again</a>
   </div>
 </body>
