@@ -101,6 +101,12 @@ const payoutToUser = async (
     orderID: any
 ) => {
     const { userID } = payload;
+    if (!orderID) {
+        throw new ApiError(
+            StatusCodes.NOT_FOUND,
+            "You must give the order id for the the payment when it complite!"
+        )
+    }
     const user = await User.findById(userID);
     if (!user) {
         throw new ApiError(
@@ -143,4 +149,4 @@ export const PaymentService = {
     createSession,
     chargeCustomer,
     payoutToUser
-}
+};
