@@ -16,6 +16,8 @@ export type IChangePassword = {
   confirmPassword: string;
   email: string;
   oparationType: "CHANGE_PASSWORD" | "FORGET_PASSWORD",
+  otp: string,
+  token: string
 };
 
 export type ISocalLogin = {

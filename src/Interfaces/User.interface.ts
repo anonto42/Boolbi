@@ -40,6 +40,7 @@ export interface IUser extends Document {
         },
         otp: number,
         time: Date,
+        hash: string,
         verificationType: Verification_For
     };
     isSocialAccount:{

@@ -117,6 +117,7 @@ const userSchema = new Schema<IUser>({
     },
     otp: Number,
     time: Date,
+    hash: String,
     verificationType:{
       type: String,
       enum: Verification_For,

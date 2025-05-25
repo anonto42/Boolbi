@@ -60,6 +60,8 @@ const changePasswordZodSchema = z.object({
       .email("Please provide a valid email address.")
       .regex(emailRegex, "Email format is invalid."),
     password: z.string({ required_error: "You must give the password"}),
+    token: z.string({ required_error: "You must give the token"}),
+    otp: z.string({ required_error: "You must give the otp"}),
     confirmPassword: z.string({ required_error: "You must give the confirm password"}),
     oparationType: z.enum(["CHANGE_PASSWORD" , "FORGET_PASSWORD"], {
       required_error: "You must give your operation type to perform the operation"
