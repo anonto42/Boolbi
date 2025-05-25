@@ -43,7 +43,7 @@ const getOpt = catchAsync(
         sendResponse(res, {
             success: true,
             statusCode: StatusCodes.OK,
-            message: `An OTP has been sent to ${result.user.email}. Please check your inbox and continue!`,
+            message: `An OTP has been sent to ${result.email}. Please check your inbox and continue!`,
             data: result
         })
     }

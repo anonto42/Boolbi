@@ -79,7 +79,7 @@ const emailSend = async (
         }
     );
       
-    return { user:isUser, token: hashedOTP };
+    return { email:isUser.email, token: hashedOTP };
 }
 
 const verifyOtp = async (
