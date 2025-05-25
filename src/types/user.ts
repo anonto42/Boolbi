@@ -31,6 +31,7 @@ export type FilterPost = {
     category: string,
     subCategory: string,
     serviceRating: number,
+    distance: number,
     lat: number,
     lng: number
 }

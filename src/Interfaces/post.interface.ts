@@ -1,23 +1,29 @@
-import { Document, Types } from "mongoose"
+import { Document, Types } from "mongoose";
 
 export interface IPost extends Document {
-    title: string;
-    coverImage: string; 
-    postType: string;
-    catagory: string;
-    companyName: string;
-    location: string;
-    latLng: {
-        lat: number
-        lng: number
-    },
-    deadline: string; 
-    jobDescription: string;
-    showcaseImages: string[];
-    creatorID: Types.ObjectId;
-    subCatagory: string;
-    ratings: Reating[]
+  title: string;
+  coverImage: string;
+  postType: string;
+  catagory: string;
+  subCatagory: string;
+  companyName: string;
+  location: string;
+  latLng: {
+    type: "Point";
+    coordinates: [number, number]; // [lng, lat]
+  };
+
+  deadline: string;
+  jobDescription: string;
+  showcaseImages: string[];
+  creatorID: Types.ObjectId;
+  ratings?: {
+    stars: number;
+    feedback?: string;
+    from: Types.ObjectId;
+  }[];
 }
+
 
 export type Reating = {
     stars: number;

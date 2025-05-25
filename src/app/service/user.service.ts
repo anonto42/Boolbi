@@ -16,7 +16,6 @@ import Order from "../../model/order.model";
 import Support from "../../model/support.model";
 import { POST_TYPE } from "../../enums/post.enum";
 import { messageSend } from "../../helpers/firebaseHelper";
-import { socketHelper } from "../../helpers/socketHelper";
 import { socketMessage } from "../../types/message";
 import { MESSAGE_TYPE } from "../../enums/message.enum";
 
@@ -73,7 +72,8 @@ const profle = async (
 ) => {
     const { userID } = payload;
 
-    const isExist = await User.findOne({_id: userID}).select("-password -otpVerification -isSocialAccount");
+    const isExist = await User.findById({_id: userID}).select("-password -otpVerification -isSocialAccount");
+    // .lean().exec();
     if (!isExist) {
         throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
     };
@@ -82,7 +82,13 @@ const profle = async (
         throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
     };
 
-    return isExist
+    return {
+      name: isExist.fullName,
+      email: isExist.email,
+      role: isExist.role,
+      phone: isExist.phone,
+      
+    }
 }
 
 //Update user Profile
@@ -107,7 +113,6 @@ const UP = async (
     );
   }
 
-  // Dynamically compare and update only changed fields
   const fieldsToUpdate = [
     "fullName",
     "email",
@@ -128,48 +133,70 @@ const UP = async (
     const newValue = data[field as keyof IUser];
     const oldValue = isExist[field as keyof IUser];
 
-    // Only update if value has changed
     if (
       typeof newValue !== "undefined" &&
       JSON.stringify(newValue) !== JSON.stringify(oldValue)
     ) {
+      if (field === "samplePictures" && Array.isArray(oldValue) && Array.isArray(newValue)) {
+        const removedImages = oldValue.filter(img => !newValue.includes(img));
+        for (const img of removedImages) {
+          unlinkFile(img);
+        }
+      }
+
       dataForUpdate[field as keyof IUser] = newValue;
     }
   }
 
   if (Object.keys(dataForUpdate).length === 0) {
-    return isExist; // Nothing to update
+    return isExist;
   }
 
   const updatedUser = await User.findByIdAndUpdate(
     isExist._id,
     { $set: dataForUpdate },
     { new: true }
-  ).select("-password -otpVerification -isSocialAccount")
+  ).select("-password -otpVerification -isSocialAccount");
 
   return updatedUser;
 };
 
 //Delete Profile
 const profileDelete = async (
-    payload: JwtPayload
+  payload: JwtPayload
 ) => {
-    const { userID } = payload;
-    const isUser = await User.findById(userID);
-    if ( !isUser ) {
-        throw new ApiError(StatusCodes.BAD_GATEWAY,"Your account not exist!");        
-    };
+  const { userID } = payload;
+  const isUser = await User.findById(userID);
 
-    if ( isUser.accountStatus === ACCOUNT_STATUS.DELETE || isUser.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUser.accountStatus.toLowerCase()}!`)
-    };
+  if (!isUser) {
+    throw new ApiError(StatusCodes.BAD_GATEWAY, "Your account does not exist!");
+  }
 
-    isUser.accountStatus = ACCOUNT_STATUS.DELETE;
+  if (
+    isUser.accountStatus === ACCOUNT_STATUS.DELETE ||
+    isUser.accountStatus === ACCOUNT_STATUS.BLOCK
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `Your account was ${isUser.accountStatus.toLowerCase()}!`
+    );
+  }
 
-    await isUser.save();
+  if (Array.isArray(isUser.samplePictures)) {
+    for (const img of isUser.samplePictures) {
+      unlinkFile(img);
+    }
+  }
 
-    return true;
-}
+  if (isUser.profileImage) {
+    unlinkFile(isUser.profileImage);
+  }
+
+  isUser.accountStatus = ACCOUNT_STATUS.DELETE;
+  await isUser.save();
+
+  return true;
+};
 
 //Profile images update
 const Images = async ( 
@@ -311,62 +338,89 @@ const conditions = async (
 }
 
 //Create post
-const jobPost =  async (
-    payload: JwtPayload,
-    data: JobPost,
-    images: string[],
-    coverImage: string
+const createPost = async (
+  payload: JwtPayload,
+  data: JobPost,
+  images: string[],
+  coverImage: string
 ) => {
-    const { userID } = payload;
-    const {category, companyName, deadline, description, location, title, postType, subCatagory, lng, lat } = data;
-    const isUserExist = await User.findOne({_id: userID });
-    if (!isUserExist) {
-        throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
-    };
-    
-    if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
-    };
+  const { userID } = payload;
+  const {
+    category,
+    companyName,
+    deadline,
+    description,
+    location,
+    title,
+    postType,
+    subCatagory,
+    lng,
+    lat,
+  } = data;
 
-    const isJobExistWithTitle = await Post.findOne({title});
-    if (isJobExistWithTitle) {
-        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,`A job already exist on named ${title}`);
-    };
+  const isUserExist = await User.findOne({ _id: userID });
+  if (!isUserExist) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
 
-    if ( images?.length < 1 ) {
-        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"You must give at least one image to public the job post")
-    };
+  if (
+    isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
+    isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
+    );
+  }
 
-    const jobData = {
-        title,
-        catagory: category,
-        subCatagory,
-        postType,
-        companyName,
-        location,
-        deadline,
-        coverImage,
-        jobDescription: description,
-        showcaseImages: images,
-        creatorID: isUserExist._id,
-        latLng: {
-          lat: Number(lat),
-          lng: Number(lng)
-        },
-    };
- 
-    const post = await Post.create(jobData);
-    if (!post) {
-        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"Somting was problem on create the job pleas try again")
-    };
-    
-    isUserExist.job.push(post._id as Types.ObjectId)
-    await isUserExist.save() 
+  const isJobExistWithTitle = await Post.findOne({ title });
+  if (isJobExistWithTitle) {
+    throw new ApiError(
+      StatusCodes.NOT_ACCEPTABLE,
+      `A job already exists with the title ${title}`
+    );
+  }
 
-    return post;
-}
+  if (images?.length < 1) {
+    throw new ApiError(
+      StatusCodes.NOT_ACCEPTABLE,
+      "You must provide at least one image to publish the job post"
+    );
+  }
 
-//Wone Created jobs 
+  const jobData = {
+    title,
+    catagory: category,
+    subCatagory,
+    postType,
+    companyName,
+    location,
+    deadline,
+    coverImage,
+    jobDescription: description,
+    showcaseImages: images,
+    creatorID: isUserExist._id,
+    latLng: {
+      type: "Point",
+      coordinates: [Number(lng), Number(lat)],
+    },
+  };
+
+  const post = await Post.create(jobData);
+  if (!post) {
+    throw new ApiError(
+      StatusCodes.NOT_ACCEPTABLE,
+      "Something went wrong while creating the job post. Please try again."
+    );
+  }
+
+  isUserExist.job.push(post._id as Types.ObjectId);
+  await isUserExist.save();
+
+  return post;
+};
+
+//Wone Created posts 
 const post = async (
     payload: JwtPayload
 ) => {
@@ -408,130 +462,144 @@ const post = async (
     return (jobs as any)[0].userPosts
 }
 
-//Update a job 
+// Update a post
 const UPost = async (
-    payload: JwtPayload,
-    body: {
-      postID: string;
-      [key: string]: any;
-    }
-  ) => {
-    const { userID } = payload;
-    body.latLng = { lat: body.lat, lng: body.lng };
-    const { postID, ...updateFields } = body;
-  
-    const isUserExist = await User.findById(userID);
-    if (!isUserExist) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
-    }
-  
+  payload: JwtPayload,
+  body: {
+    postID: string;
+    [key: string]: any;
+  }
+) => {
+  const { userID } = payload;
+  body.latLng = { lat: body.lat, lng: body.lng };
+  const { postID, ...updateFields } = body;
+
+  const isUserExist = await User.findById(userID);
+  if (!isUserExist) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  if (
+    isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
+    isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
+    );
+  }
+
+  const post = await Post.findById(postID);
+  if (!post) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Post not found");
+  }
+
+  if (post.creatorID.toString() !== userID.toString()) {
+    throw new ApiError(StatusCodes.UNAUTHORIZED, "You are not the owner of this post");
+  }
+
+  let isChanged = false;
+
+  if (updateFields.coverImage && updateFields.coverImage !== post.coverImage) {
+    if (post.coverImage) unlinkFile(post.coverImage);
+    post.coverImage = updateFields.coverImage;
+    isChanged = true;
+  }
+
+  for (const key in updateFields) {
     if (
-      isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
-      isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
+      Object.prototype.hasOwnProperty.call(updateFields, key) &&
+      updateFields[key] !== undefined &&
+      key !== "coverImage"
     ) {
-      throw new ApiError(
-        StatusCodes.FORBIDDEN,
-        `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
-      );
-    }
-  
-    const post = await Post.findById(postID);
-    if (!post) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "Post not found");
-    }
-  
-    if (post.creatorID.toString() !== userID.toString()) {
-      throw new ApiError(StatusCodes.UNAUTHORIZED, "You are not the owner of this post");
-    }
+      if (key === 'showcaseImages') {
+        const oldImages = post.showcaseImages || [];
+        const newImages = updateFields.showcaseImages;
 
-    if (updateFields.coverImage) {
-      unlinkFile(post.coverImage)
-    }
-  
-    let isChanged = false;
-  
-    for (const key in updateFields) {
-      if (
-        Object.prototype.hasOwnProperty.call(updateFields, key) &&
-        updateFields[key] !== undefined
-      ) {
-        // Special handling for showcaseImages array
-        if (key === 'showcaseImages') {
-          const oldImages = post.showcaseImages || [];
-          const newImages = updateFields.showcaseImages;
+        if (Array.isArray(newImages)) {
+          const removedImages = oldImages.filter((img: any) => !newImages.includes(img));
 
-          // Compare arrays: only update if they're different
+          for (const img of removedImages) {
+            unlinkFile(img);
+          }
+
           const hasChanged =
             oldImages.length !== newImages.length ||
-            oldImages.some((img: any, idx: any) => img !== newImages[idx]);
+            oldImages.some((img: any, i: number) => img !== newImages[i]);
 
           if (hasChanged) {
-            // Remove all old images from storage
-            for (const img of oldImages) {
-              unlinkFile(img); // 👈 your custom file deletion function
-            }
-
             post.showcaseImages = newImages;
             isChanged = true;
           }
-        } else if (post[key] !== updateFields[key]) {
-          post[key] = updateFields[key];
-          isChanged = true;
         }
+      } else if (post[key] !== updateFields[key]) {
+        post[key] = updateFields[key];
+        isChanged = true;
       }
     }
+  }
 
-    if (isChanged) {
-      await post.save();
-    }
-  
-    return {
-      updated: isChanged,
-      post,
-    };
+  if (isChanged) {
+    await post.save();
+  }
+
+  return {
+    updated: isChanged,
+    post,
+  };
 };
 
 //Delete Wone Created job
 const deleteJob = async (
-    payload: JwtPayload,
-    Data: { postID: string }
-  ) => {
-    const { userID } = payload;
-    const { postID } = Data;
-  
-    if (!postID) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, "You must provide the post ID to remove");
-    }
-  
-    const isUserExist = await User.findById(userID);
-    if (!isUserExist) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
-    }
-  
-    if (
-      isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
-      isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
-    ) {
-      throw new ApiError(
-        StatusCodes.FORBIDDEN,
-        `Your account is ${isUserExist.accountStatus.toLowerCase()}!`
-      );
-    }
-  
-    const hasJob = isUserExist.job.includes(postID);
-    if (!hasJob) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "This post is not linked to your account");
-    }
+  payload: JwtPayload,
+  Data: { postID: string }
+) => {
+  const { userID } = payload;
+  const { postID } = Data;
 
-    isUserExist.job = isUserExist.job.filter((e: any) => e.toString() !== postID);
-    await isUserExist.save();
-  
-    const deletedPost = await Post.findByIdAndDelete(postID);
-    if (!deletedPost) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "Post not found");
-    }
-  
-    return true;
+  if (!postID) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "You must provide the post ID to remove");
+  }
+
+  const isUserExist = await User.findById(userID);
+  if (!isUserExist) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  if (
+    isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
+    isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `Your account is ${isUserExist.accountStatus.toLowerCase()}!`
+    );
+  }
+
+  const hasJob = isUserExist.job.includes(postID);
+  if (!hasJob) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "This post is not linked to your account");
+  }
+
+  const post = await Post.findById(postID);
+  if (!post) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Post not found");
+  }
+
+  if (post.coverImage) {
+    unlinkFile(post.coverImage);
+  }
+
+  if (post.showcaseImages && Array.isArray(post.showcaseImages)) {
+    post.showcaseImages.forEach((img: string) => unlinkFile(img));
+  }
+
+  isUserExist.job = isUserExist.job.filter((e: any) => e.toString() !== postID);
+  await isUserExist.save();
+
+  await Post.findByIdAndDelete(postID);
+
+  return true;
 };
 
 //A job
@@ -853,14 +921,15 @@ const intracatOffer = async(
     const { acction,offerId } = data;
     const isUserExist = await User.findById(userID);
     const isOfferExist = await Offer.findById(offerId);
-    const to = await User.findById(isOfferExist.to);
-
+    console.log(isOfferExist)
     if (!isOfferExist) {
       throw new ApiError(StatusCodes.NOT_FOUND,"Offer not founded");
     };
+    const to = await User.findById(isOfferExist.to);
     if (!isUserExist) {
       throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
     };
+    
     if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
       throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
     };
@@ -1061,12 +1130,18 @@ const getRecommendedPosts = async (
 
 };
 
-const dataForTheFilter = async (payload: JwtPayload, data: FilterPost) => {
+// Filter data for the 
+const filteredData = async (
+  payload: JwtPayload, 
+  data: FilterPost
+) => {
   const { userID } = payload;
-  const { category, lat, lng, serviceRating, subCategory } = data;
+  const { category, lat, lng, distance, serviceRating, subCategory } = data;
 
   const user = await User.findById(userID);
-  if (!user) throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
 
   if (
     user.accountStatus === ACCOUNT_STATUS.DELETE ||
@@ -1078,34 +1153,63 @@ const dataForTheFilter = async (payload: JwtPayload, data: FilterPost) => {
     );
   }
 
-  const matchStage: any = {};
+  const postType = user.role === USER_ROLES.SERVICE_PROVIDER 
+    ? POST_TYPE.JOB 
+    : POST_TYPE.SERVICE;
 
-  if (category) matchStage.category = category;
-  if (subCategory) matchStage.subCategory = subCategory;
+  const matchStage: any = {
+    postType
+  };
 
-  // Default rating is 0 if not provided
+  if (category) matchStage.catagory = category;
+  if (subCategory) matchStage.subCatagory = subCategory;
+
+  const maxDistance = distance ? distance * 1000 : 50000;
   const minRating = serviceRating ?? 0;
 
-  const posts = await Post.aggregate([
+  const pipeline: any[] = [
     {
-      $addFields: {
-        averageRating: { $avg: "$ratings.stars" }
+      $geoNear: {
+        near: {
+          type: "Point",
+          coordinates: [lng, lat]
+        },
+        distanceField: "distance",
+        spherical: true,
+        maxDistance: maxDistance
       }
     },
     {
-      $match: {
-        ...matchStage,
-        averageRating: { $gte: minRating }
-      }
+      $match: matchStage
     }
-  ]);
+  ];
 
+  // ⛔ Only filter by rating if the user is NOT a service provider
+  if (user.role !== USER_ROLES.SERVICE_PROVIDER) {
+    pipeline.push(
+      {
+        $addFields: {
+          averageRating: { $avg: "$ratings.stars" }
+        }
+      },
+      {
+        $match: {
+          averageRating: { $gte: minRating }
+        }
+      }
+    );
+  }
+
+  pipeline.push({
+    $sort: { distance: 1 }
+  });
+
+  const posts = await Post.aggregate(pipeline);
   return posts;
 };
 
-
 export const UserServices = {
-    dataForTheFilter,
+    filteredData,
     signUp,
     searchPosts,
     profle,
@@ -1113,7 +1217,7 @@ export const UserServices = {
     profileDelete,
     language,
     Images,
-    jobPost,
+    createPost,
     accountStatus,
     privacy,
     conditions,

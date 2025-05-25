@@ -72,7 +72,7 @@ router
         auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER),
         fileUploadHandler(),
         validateRequest( Validation.jobPostZodSchem ),
-        UserController.postJob
+        UserController.createPost
     )
     .put(
         auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),

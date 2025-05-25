@@ -165,6 +165,7 @@ const filterData = z.object({
     category: z.string({ required_error: "you must give the category to filer"}),
     subCategory: z.string({ required_error: "you must give the category to filer"}),
     serviceRating: z.number().optional(),
+    distance: z.number({ required_error: "You must give the distance like 5km or 6km"}),
     lat: z.number({ required_error: "you must give the lat to filer"}),
     lng: z.number({ required_error: "you must give the lng to filer"}),
   })

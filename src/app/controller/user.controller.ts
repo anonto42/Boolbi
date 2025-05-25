@@ -136,13 +136,13 @@ const condition = catchAsync(
     }
 )
 
-const postJob = catchAsync(
+const createPost = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
         const { ...data } = req.body;
         const images = getMultipleFilesPath((req as any).files,"image")
         const coverImage = getSingleFilePath( (req as any).files,"coverImage") as string
-        const result = await UserServices.jobPost(payload, data, images as string[],coverImage)
+        const result = await UserServices.createPost(payload, data, images as string[],coverImage)
 
         sendResponse(res, {
             success: true,
@@ -373,7 +373,7 @@ const filterPosts = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
         const {...data} = req.body;
-        const result = await UserServices.dataForTheFilter(payload,data);
+        const result = await UserServices.filteredData(payload,data);
 
         sendResponse(res, {
             success: true,
@@ -393,7 +393,7 @@ export const UserController = {
     update,
     language,
     uploadImages,
-    postJob,
+    createPost,
     profileDelete,
     status,
     privacy,
