@@ -9,6 +9,7 @@ import { emailTemplate } from "../../shared/emailTemplate";
 import { emailHelper } from "../../helpers/emailHelper";
 import { IChangePassword, ISocalLogin } from "../../types/auth";
 import { ACCOUNT_STATUS } from "../../enums/user.enums";
+import { compare, hash } from "bcryptjs";
 
 const signIn = async ( 
     payload : SignInData
@@ -38,7 +39,10 @@ const signIn = async (
 }
 
 const emailSend = async (
-    payload : { email: string, verificationType: "FORMAT_PASSWORD" | "CHANGE_PASSWORD" | "ACCOUNT_VERIFICATION" }
+    payload : { 
+        email: string, 
+        verificationType: "FORMAT_PASSWORD" | "CHANGE_PASSWORD" | "ACCOUNT_VERIFICATION" 
+    }
 ) => {
     const { email } = payload;
     const isUser = await User.findOne({email});
@@ -52,10 +56,12 @@ const emailSend = async (
 
     if (isUser.isSocialAccount.isSocial) {
         throw new ApiError(StatusCodes.NOT_ACCEPTABLE,`Your can't set your password on your account because you have create your user with socal credentials!`)
-    }
+    };
     
     // generate otp
     const otp = generateOTP();
+
+    const hashedOTP = await hash(otp.toString(),1);
 
     //Send Mail
     const forgetPassword = emailTemplate.sendMail({otp, email,name: isUser.fullName, subjet: payload.verificationType});
@@ -67,34 +73,55 @@ const emailSend = async (
           $set: {
             'otpVerification.otp': otp,
             'otpVerification.time': new Date(Date.now() + 3 * 60000),
+            'otpVerification.hash': hashedOTP,
             'otpVerification.verificationType': payload.verificationType,
           },
         }
     );
       
-    return { user:isUser }
+    return { user:isUser, token: hashedOTP };
 }
 
 const verifyOtp = async (
-    payload : { email: string, otp: string }
+    payload : { 
+        email: string, 
+        otp: string
+    }
 ) => {
     const { email, otp } = payload;
     const isUser = await User.findOne({email});
+    const hash = isUser.otpVerification.hash;
     if (!isUser) {
         throw new ApiError(StatusCodes.NOT_FOUND,`No account exists with this ( ${email} ) email`)
     };
-
+    
     if ( isUser.accountStatus === ACCOUNT_STATUS.DELETE || isUser.accountStatus === ACCOUNT_STATUS.BLOCK ) {
         throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUser.accountStatus.toLowerCase()}!`)
     };
 
-    if (otp !== isUser.otpVerification.otp && !isUser.otpVerification.isVerified && isUser.otpVerification.time < new Date( Date.now() )) {
-        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"Your otp verification in not acceptable for this moment!")
+    if (
+        !otp && 
+        !isUser.otpVerification.otp &&
+        !isUser.otpVerification.hash && 
+        isUser.otpVerification.time < new Date( Date.now() )
+    ) {
+        throw new ApiError(
+            StatusCodes.NOT_ACCEPTABLE,
+            "Your otp verification in not acceptable for this moment!")
+    };
+
+    const com = await compare(otp.toString(),hash);
+
+    if (!com) {
+        throw new ApiError(
+            StatusCodes.NOT_ACCEPTABLE,
+            "Your otp was wrong!"
+        )
     };
 
     await User.findByIdAndUpdate({_id: isUser._id},{$set: {
         "otpVerification.isVerified.status": true,
-        "otpVerification.isVerified.time": new Date(Date.now() + 10 * 60 * 1000)
+        "otpVerification.isVerified.time": new Date(Date.now() + 10 * 60 * 1000),
     }});
 
     await User.updateOne(
@@ -108,7 +135,7 @@ const verifyOtp = async (
         }
     );
       
-    return true;
+    return { token: hash, otp };
 }
 
 const changePassword = async (
@@ -117,21 +144,39 @@ const changePassword = async (
     const { email, currentPassword, password, confirmPassword, oparationType } = payload;
     const isUser = await User.findOne({email});
     if (!isUser) {
-        throw new ApiError(StatusCodes.NOT_FOUND,`No account exists with this ( ${email} ) email`)
+        throw new ApiError(
+            StatusCodes.NOT_FOUND,
+            `No account exists with this ( ${email} ) email`
+        )
     };
-    if ( isUser.accountStatus === ACCOUNT_STATUS.DELETE || isUser.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUser.accountStatus.toLowerCase()}!`)
+    if ( 
+        isUser.accountStatus === ACCOUNT_STATUS.DELETE || 
+        isUser.accountStatus === ACCOUNT_STATUS.BLOCK 
+    ) {
+        throw new ApiError(
+            StatusCodes.FORBIDDEN,
+            `Your account was ${isUser.accountStatus.toLowerCase()}!`
+        )
     };
     if ( !isUser.otpVerification.isVerified.status ) {
-        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"Your verification date is over now you can't change the password!")
+        throw new ApiError(
+            StatusCodes.NOT_ACCEPTABLE,
+            "Your verification date is over now you can't change the password!"
+        )
     };
     
     if ( isUser.otpVerification.isVerified.time < new Date( Date.now())  ) {
-        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"Your verification date is over now you can't change the password!")
+        throw new ApiError(
+            StatusCodes.NOT_ACCEPTABLE,
+            "Your verification date is over now you can't change the password!"
+        )
     };
     
     if (password !== confirmPassword) {
-        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"Please check your new password and the confirm password!")
+        throw new ApiError(
+            StatusCodes.NOT_ACCEPTABLE,
+            "Please check your new password and the confirm password!"
+        )
     };
 
     if ( oparationType === "CHANGE_PASSWORD" ) {
