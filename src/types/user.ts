@@ -5,7 +5,9 @@ export type ISignUpData = {
     password: string, 
     confirmPassword: string, 
     phone?: string, 
-    role: "USER" | "SERVICE_PROVIDER"
+    role: "USER" | "SERVICE_PROVIDER",
+    lat: string,
+    lng: string
 }
 
 export type SignInData = {

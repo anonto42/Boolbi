@@ -3,16 +3,14 @@ import { Document, Types } from "mongoose";
 export interface IPost extends Document {
   title: string;
   coverImage: string;
-  postType: string;
   catagory: string;
   subCatagory: string;
   companyName: string;
   location: string;
   latLng: {
     type: "Point";
-    coordinates: [number, number]; // [lng, lat]
+    coordinates: [number, number];
   };
-
   deadline: string;
   jobDescription: string;
   showcaseImages: string[];

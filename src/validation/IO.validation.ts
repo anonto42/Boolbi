@@ -10,6 +10,9 @@ const singnUpZodSchema = z.object({
     phone: z.string().optional(),
     password: z.string({ required_error: 'Password is required' }),
     confirmPassword: z.string({ required_error: 'Confirm password is required' }),
+    lat: z.string({required_error:"you must give the lat"}),
+    lng: z.string({required_error: "you must give the lng"}),
+    address: z.string({required_error: "you must give your address"}),
     email: z
       .string({ required_error: 'Email is required' })
       .min(1, "Email is required.")
@@ -90,7 +93,7 @@ const userUpdateProfileZodSchem = z.object({
     subCatagory: z.string().optional(), 
     samplePictures: z.string().optional(),
     profileImage: z.string().optional(), 
-    serviceDescription: z.string().optional() 
+    description: z.string().optional() 
   })
 }); 
 
@@ -110,7 +113,6 @@ const jobPostZodSchem =  z.object({
     description: z.string({required_error: "You must give the job description"}), 
     location: z.string({required_error: "You must give the job location"}), 
     title: z.string({required_error: "You must give the job title"}),
-    postType: z.enum(["JOB","SERVICE"]),
     lng: z.string({required_error:"You must give the lng number for the location Matrix"}), 
     lat: z.string({required_error:"You must give the lat number for the location Matrix"})
   })

@@ -8,6 +8,7 @@ export interface IUser extends Document {
     iOffered: Types.ObjectId[];
     myOffer: Types.ObjectId[];
     deviceID: string;
+    description: string;
     fullName: string;
     email: string;
     role: string;
@@ -26,7 +27,6 @@ export interface IUser extends Document {
     accountBalance: number;
     privacyPolicy: string;
     termsConditions: string;
-    serviceDescription: string;
     language: string;
     isVerified: {
         trdLicense: "",
@@ -51,5 +51,14 @@ export interface IUser extends Document {
     paymentCartDetails:{
         customerID: string;
         cardID: string;
-    }
+    };
+    ratings?: {
+        stars: number;
+        feedback?: string;
+        from: Types.ObjectId;
+    }[];
+    latLng: {
+        type: "Point";
+        coordinates: [number, number]; // [lng, lat]
+    };
 }

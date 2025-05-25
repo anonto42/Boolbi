@@ -14,6 +14,9 @@ const userSchema = new Schema<IUser>({
     max: 100,
     trim: true
   },
+  description: {
+    type: String
+  },
   email: { 
     type: String, 
     unique: true, 
@@ -35,7 +38,7 @@ const userSchema = new Schema<IUser>({
   }],
   favouriteServices:[{
     type: Schema.Types.ObjectId,
-    ref: "service"
+    ref: "post"
   }],
   iOffered:[{
     type: Schema.Types.ObjectId,
@@ -77,7 +80,6 @@ const userSchema = new Schema<IUser>({
   },
   samplePictures: [ { type: String } ],
   profileImage: String,
-  serviceDescription: String,
   accountActivityStatus: { 
     type: String, 
     enum: ACCOUTN_ACTVITY_STATUS, 
@@ -151,10 +153,38 @@ const userSchema = new Schema<IUser>({
     cardID:{
       type: String
     }
-}
+  },
+  ratings: [
+    {
+      stars: {
+        type: Number,
+      },
+      feedback: {
+        type: String,
+      },
+      from: {
+        type: Schema.Types.ObjectId,
+        ref: "user",
+      },
+    },
+  ],
+  latLng: {
+    type: {
+      type: String,
+      enum: ["Point"],
+      required: true,
+      default: "Point",
+    },
+    coordinates: {
+      type: [Number], // [lng, lat]
+      required: true,
+    },
+  },
 },{
   timestamps: true
 });
+
+userSchema.index({ latLng: "2dsphere" });
 
 const User = models.User || model('user', userSchema);
 export default User;

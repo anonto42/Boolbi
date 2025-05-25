@@ -1,6 +1,5 @@
 import { model, models, Schema } from "mongoose";
 import { IPost, Reating } from "../Interfaces/post.interface";
-import { POST_TYPE } from "../enums/post.enum";
 
 const jobPostSchema = new Schema<IPost>({
   title: {
@@ -10,11 +9,6 @@ const jobPostSchema = new Schema<IPost>({
   coverImage: {
     type: String,
     required: true,
-  },
-  postType: {
-    type: String,
-    required: true,
-    enum: POST_TYPE,
   },
   catagory: {
     type: String,
@@ -65,20 +59,6 @@ const jobPostSchema = new Schema<IPost>({
     type: Schema.Types.ObjectId,
     ref: "user",
   },
-  ratings: [
-    {
-      stars: {
-        type: Number,
-      },
-      feedback: {
-        type: String,
-      },
-      from: {
-        type: Schema.Types.ObjectId,
-        ref: "user",
-      },
-    },
-  ],
 }, { timestamps: true });
 
 jobPostSchema.index({ latLng: "2dsphere" });
