@@ -1172,7 +1172,7 @@ const searchPosts = async (
         { subCatagory: { $regex: searchQuery, $options: "i" } },
         { serviceDescription: { $regex: searchQuery, $options: "i" } },
       ]
-    }).sort({ createdAt: -1 }).select("-password -latLng -favouriteServices -iOffered -myOffer -orders -searchedCatagory -accountStatus")
+    }).select("-password -latLng -favouriteServices -iOffered -myOffer -orders -searchedCatagory -accountStatus -isSocialAccount -otpVerification").sort({ createdAt: -1 })
   }
 
   return data;
@@ -1198,49 +1198,70 @@ const getRecommendedPosts = async (
   }
 
   const postType = user.role === USER_ROLES.SERVICE_PROVIDER ? "POST" : "PROVIDER";
-
+  
   if (user.searchedCatagory.length <= 0 || !user.searchedCatagory ) {
-    return await Post.find({ postType: postType.toString() }).sort({createdAt: -1});
+    if ( postType === "POST" ) {
+      return await Post
+                  .find()
+                  .select("-latLng")
+                  .sort({createdAt: -1});
+    } else if ( postType === "PROVIDER" ) {
+      return await User
+                   .find({ 
+                      role: USER_ROLES.SERVICE_PROVIDER, 
+                      accountStatus: ACCOUNT_STATUS.ACTIVE
+                    })
+                   .select("-password -latLng -isSocialAccount -otpVerification -__v -searchedCatagory -orders -myOffer -iOffered -favouriteServices -job -accountBalance -accountStatus");
+    }
   }
 
   if (user.searchedCatagory.length > 0) {
-
     if ( postType === "POST" ) {
 
-      const regexQueries = user.searchedCatagory.map((keyword: any) => ({
-        title: { $regex: keyword, $options: "i" },
-        catagory: { $regex: keyword, $option: "i"},
-        subCatagory: { $regex: keyword, $option: "i"},
-        jobDescription: { $regex: keyword, $potion: "i"}
-      }));
-
+      const regexQueries:any = [];
+      user.searchedCatagory.forEach((keyword: any) => {
+        regexQueries.push(
+          { title: { $regex: keyword, $options: "i" } },
+          { catagory: { $regex: keyword, $options: "i" } },
+          { subCatagory: { $regex: keyword, $options: "i" } },
+          { jobDescription: { $regex: keyword, $options: "i" } }
+        );
+      });
 
       const postResuld = await Post.find({
         $or: regexQueries
-      }).sort({ createdAt: -1 });
+      }).sort({ createdAt: -1 }).select("-latLng");
 
       if (postResuld.length <= 0 ) {
-        return await Post.find({ postType: postType.toString() }).sort({createdAt: -1});
+        return await Post.find().sort({createdAt: -1}).select("-latLng");
       }
 
       return postResuld
       
     }else if ( postType === "PROVIDER" ) {
-      const regexQueries = user.searchedCatagory.map((keyword: any) => ({
-        fullName: { $regex: keyword, $options: "i" },
-        subCatagory: { $regex: keyword, $options: "i" },        
-        category: { $regex: keyword, $options: "i" },
-        description: { $regex: keyword, $options: "i" }
-      }));
 
-      const postResuld = await User.find({
-        role: USER_ROLES.SERVICE_PROVIDER,
-        $or: regexQueries
-      }).sort({ createdAt: -1 });
+      const regexQueries:any = [];
+      const keywords = user.searchedCatagory;
+      console.log(keywords)
+      keywords.forEach((keyword: string) => {
+        regexQueries.push(
+          { fullName: { $regex: keyword, $options: "i" } },
+          { category: { $regex: keyword, $options: "i" } },
+          { subCatagory: { $regex: keyword, $options: "i" } },
+          { description: { $regex: keyword, $options: "i" } }
+        );
+      });
 
+      const postResuld = await User.find({ $or: regexQueries })
+      .select("-otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -password -__v")
+      .sort({ createdAt: -1 });
+      
       if (postResuld.length <= 0 ) {
-        return await Post.find({ postType: postType.toString() }).sort({createdAt: -1});
-      }
+        return await User
+                    .find({ role: USER_ROLES.SERVICE_PROVIDER })
+                    .select("-otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -password -__v")
+                    .sort({createdAt: -1});
+      };
 
       return postResuld
     }
