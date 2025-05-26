@@ -176,7 +176,7 @@ const userSchema = new Schema<IUser>({
       default: "Point",
     },
     coordinates: {
-      type: [Number], // [lng, lat]
+      type: [Number],
       required: true,
     },
   },

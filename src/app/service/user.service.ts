@@ -1268,7 +1268,7 @@ const getRecommendedPosts = async (
   };
 };
 
-// Filter data for the 
+// Filter data for the // Not sure mabey it will change some layter
 const filteredData = async (
   payload: JwtPayload, 
   data: FilterPost
@@ -1292,44 +1292,38 @@ const filteredData = async (
   };
 
   const postType = user.role === USER_ROLES.SERVICE_PROVIDER ? "POST" : "PROVIDER";
-
-  const matchStage: any = {
-    postType
-  };
-
-  if (category) matchStage.catagory = category;
-  if (subCategory) matchStage.subCatagory = subCategory;
-
-  const maxDistance = distance ? distance * 1000 : 50000;
-
-  const pipeline: any[] = [
-    {
-      $geoNear: {
-        near: {
-          type: "Point",
-          coordinates: [lng, lat]
-        },
-        distanceField: "distance",
-        spherical: true,
-        maxDistance: maxDistance
-      }
-    },
-    {
-      $match: matchStage
-    }
-  ];
-
-  pipeline.push({
-    $sort: { distance: 1 }
-  });
+  
   let posts;
   
   if ( postType === "PROVIDER" ) {
-    posts = await User.aggregate(pipeline);
-  } else if ( postType !== "POST" ) {
-    posts = await Post.aggregate(pipeline);
+    posts = await User.find({
+      category,
+      subCatagory:subCategory,
+      latLng:{
+        $nearSphere:{
+          $geometry:{
+            type: "Point",
+            coordinates: [lng,lat]
+          },
+          $maxDistance: distance ? distance * 1000 : 50000
+        }
+      }
+    });
+  } else if ( postType === "POST" ) {
+    posts = await Post.find({
+      catagory:category,
+      subCatagory:subCategory,
+      latLng:{
+        $nearSphere:{
+          $geometry:{
+            type: "Point",
+            coordinates: [lng,lat]
+          },
+          $maxDistance: distance ? distance * 1000 : 50000
+        }
+      }
+    });
   }
-
   return posts;
 };
 
