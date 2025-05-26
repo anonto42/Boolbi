@@ -14,8 +14,7 @@ import Offer from "../../model/offer.model";
 import Order from "../../model/order.model";
 import Support from "../../model/support.model";
 import { messageSend } from "../../helpers/firebaseHelper";
-import { socketMessage } from "../../types/message";
-import { MESSAGE_TYPE } from "../../enums/message.enum";
+import Notification from "../../model/notification.model";
 
 //User signUp
 const signUp = async ( 
@@ -83,7 +82,7 @@ const profle = async (
 ) => {
     const { userID } = payload;
 
-    const isExist = await User.findById({_id: userID}).select("-password -otpVerification -isSocialAccount -latLng -__v");
+    const isExist = await User.findById({_id: userID}).select("-password -otpVerification -isSocialAccount -latLng -__v -searchedCatagory");
     // .lean().exec();
     if (!isExist) {
         throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
@@ -885,7 +884,7 @@ const iOfferd = async (
   return isUserExist.iOffered; // now fully populated
 };
 
-// Create order
+// Create offer
 const cOffer = async (
     payload: JwtPayload,
     data: TOffer,
@@ -894,14 +893,13 @@ const cOffer = async (
     try {
       const { userID } = payload;
       const {
-        category,
         companyName,
+        projectName,
+        myBudget,
+        category,
+        location,
         deadline,
         description,
-        location,
-        myBudget,
-        postID,
-        projectName,
         to
       } = data;
       const isUserExist = await User.findById(userID);
@@ -934,8 +932,7 @@ const cOffer = async (
       const offerData = {
         to: ifCustomerExist._id,
         form: isUserExist._id,
-        postID,
-        companyName,
+        companyName, 
         projectName,
         category,
         budget: Number(myBudget),
@@ -962,15 +959,14 @@ const cOffer = async (
         });
       }
   
-      const message: socketMessage = {
-        message: `${isUserExist.fullName} send you a message for ${offer.projectName} project.`,
-        messageType: MESSAGE_TYPE.NOTIFICATION,
-        sender: isUserExist.fullName
-      }
+      const notification = await Notification.create({
+        for:ifCustomerExist._id,
+        content: `You get a offer from ${isUserExist.fullName}`
+      })
   
       //@ts-ignore
       const io = global.io;
-      io.emit(`socket:${ifCustomerExist._id}`,message)
+      io.emit(`socket:${to}`,notification)
      
       return offer;
     } catch (error: any) {
@@ -1327,9 +1323,20 @@ const filteredData = async (
   return posts;
 };
 
+const allNotifications = async ( 
+  payload: JwtPayload
+) => {
+  const { userID } = payload;
+
+  const allNotifications = await Notification.find({for: userID});
+
+  return allNotifications;
+}
+
 export const UserServices = {
     filteredData,
     signUp,
+    allNotifications,
     searchPosts,
     profle,
     UP,

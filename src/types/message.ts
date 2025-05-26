@@ -12,7 +12,8 @@ export type socketMessage = {
     sender?: string;
     chatId?: string;
     message: string;
-    messageType: MESSAGE_TYPE
+    offer?: string;
+    messageType: MESSAGE_TYPE;
 }
 
 /**{

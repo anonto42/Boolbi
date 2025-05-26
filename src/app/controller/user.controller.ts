@@ -384,8 +384,23 @@ const filterPosts = catchAsync(
     }
 )
 
+const notifications = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const result = await UserServices.allNotifications(payload);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully get all notifications",
+            data: result
+        })
+    }
+)
+
 export const UserController = {
     searchPosts,
+    notifications,
     iOfferd,
     filterPosts,
     signupUser,

@@ -11,43 +11,35 @@ const offerSchema = new Schema<IOffer>({
     type: Schema.Types.ObjectId,
     ref: "user"
   },
-  postID:{
-    type: Schema.Types.ObjectId,
-    ref:"post"
-  },
   companyName: {
     type: String,
-    required: true,
     trim: true,
     min: 8
   },
   projectName:{
     type: String,
-    required: true,
     trim: true
   },
   category:{
     type: String,
-    required: true,
     trim: true
+  },
+  timeFrame:{
+    type: Date,
   },
   budget:{
     type: Number,
-    required: true,
     trim: true
   },
   jobLocation:{
     type: String,
-    required: true,
     trim: true
   },
   deadline:{
     type: String,
-    required: true
   },
   description:{
     type: String,
-    required: true,
     trim: true,
     min: 8
   },
@@ -58,7 +50,6 @@ const offerSchema = new Schema<IOffer>({
   },
   companyImages:[{
     type: String,
-    required: true,
     trim: true
   }]
 },{
