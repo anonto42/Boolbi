@@ -130,6 +130,13 @@ router
         UserController.iOfferd
     )
 
+router 
+    .route("/a-offer")
+    .get(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        UserController.aOffer
+    )
+
 router
     .route("/suport-request")
     .post(
