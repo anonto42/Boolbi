@@ -7,7 +7,7 @@ const deliveryRequestSchema = new Schema<IDR>({
     type: Schema.Types.ObjectId,
     ref: "orders"
   },
-  customer:{
+  for:{
     type: Schema.Types.ObjectId,
     ref: "user"
   },
@@ -22,9 +22,9 @@ const deliveryRequestSchema = new Schema<IDR>({
   pdf:{
     type: String
   },
-  projectImage:{
+  images:[{
     type: String
-  },
+  }],
   requestStatus:{
     type: String,
     enum: DELIVERY_STATUS,
