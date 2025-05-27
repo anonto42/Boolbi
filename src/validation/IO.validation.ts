@@ -133,14 +133,15 @@ const UpdatejobPostZodSchem =  z.object({
 
 const offerCreateValidation = z.object({
   body: z.object({
-    to: z.string({required_error: "You must give the id that you want to offer"}),
-    companyName: z.string({ required_error: "You must give the company name"}),
-    projectName: z.string({ required_error: "You must give the project name"}),
-    category: z.string({ required_error: "You must give the category"}), 
-    myBudget: z.string({ required_error: "You must give you project budget"}),
-    location: z.string({ required_error: "You must give the job location"}),
-    deadline: z.string({ required_error: "You must give the deadline"}),
-    description: z.string({ required_error: "You must give the description"})
+    to: z.string().optional(),
+    companyName: z.string().optional(),
+    projectName: z.string().optional(),
+    category: z.string().optional(), 
+    myBudget: z.string().optional(),
+    location: z.string().optional(),
+    deadline: z.string().optional(),
+    description: z.string().optional(),
+    timeFrame: z.string().optional()
   })
 })
 
