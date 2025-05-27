@@ -8,11 +8,11 @@ export interface IOrder extends Document{
         requestID: Types.ObjectId
     },
     trackStatus: {
-        submiteForAdminApproval:{
+            isComplited:{
             date: Date,
             status: boolean
         },
-        approval:{
+        orderCreated:{
             date: Date,
             status: boolean
         },

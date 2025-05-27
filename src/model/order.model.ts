@@ -17,32 +17,28 @@ const orderSchema = new Schema<IOrder>({
     }
   },
   trackStatus: {
-    submiteForAdminApproval:{
-        date: Date,
-        status: {
-          type: Boolean,
-          default: false
-        }
+    orderCreated: {
+      date: Date,
+      status: {
+        type: Boolean,
+        default: true
+      }
     },
-    approval:{
-        date: Date,
-        status: {
-          type: Boolean,
-          default: false
-        }
+    paymentProcessed: {
+      date: Date,
+      status: {
+        type: Boolean,
+        default: false
+      }
     },
-    paymentProcessed:{
-        date: Date,
-        status: {
-          type: Boolean,
-          default: false
-        }
+    isComplited: {
+      date: Date,
+      status: {
+        type: Boolean,
+        default: false
+      }
     },
-  },
-  isProgressDone: {
-    type: Boolean,
-    default: false
-  } 
+  }
 },{
   timestamps: true
 });
