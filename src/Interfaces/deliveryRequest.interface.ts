@@ -2,10 +2,10 @@ import { Document, Types } from "mongoose";
 
 export interface IDR extends Document {
     orderID: Types.ObjectId,
-    customer: Types.ObjectId,
+    for: Types.ObjectId,
     projectDoc: string,
     uploatedProject: string,
     pdf: string,
-    projectImage: string,
+    images: string[],
     requestStatus: string,
 }
