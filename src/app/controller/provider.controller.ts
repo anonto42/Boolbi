@@ -40,13 +40,42 @@ const DOrder = catchAsync(
     }
 )
 
+const completedOrders = catchAsync(
+    async( req, res ) => {
+        const user = (req as any)?.user;
+        const result = ProviderService.AllCompletedOrders(user)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully get all completed orders!",
+            data: result
+        })
+    }
+)
+
 const CDelivery = catchAsync(
     async( req, res ) => {
         const user = (req as any)?.user;
         const doc = getSingleFilePath(req.files,"doc")
-        const image = getSingleFilePath(req.files,"image")
+        const image = getMultipleFilesPath(req.files,"image")
         const {...Data} = req.body;
-        const result = await ProviderService.deliveryRequest(user,Data,doc as string,image as string)
+        const result = await ProviderService.deliveryRequest(user,Data,doc as string,image as string[])
+        
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Delivery request successfully send!",
+            data: result
+        })
+    }
+) 
+
+const ADelivery = catchAsync(
+    async( req, res ) => {
+        const user = (req as any)?.user;
+        const requestId = req.query.id as string;
+        const result = await ProviderService.ADeliveryReqest(user,requestId)
         
         sendResponse(res, {
             success: true,
@@ -107,6 +136,8 @@ export const ProviderController = {
     DOrder,
     CDelivery,
     GDRequest,
+    ADelivery,
+    completedOrders,
     requestStatueUpdate,
     providerAccountVerification
 }
