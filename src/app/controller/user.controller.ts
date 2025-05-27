@@ -273,7 +273,22 @@ const iOfferd = catchAsync(
         sendResponse(res, {
             success: true,
             statusCode: StatusCodes.OK,
-            message: "successfully get all orders",
+            message: "successfully get all offers",
+            data: result
+        })
+    }
+)
+
+const aOffer = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const id = req.query.id as string;
+        const result = await UserServices.getAOffer(payload,id)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "successfully get a offer",
             data: result
         })
     }
@@ -424,5 +439,6 @@ export const UserController = {
     IOffer,
     DOffer,
     supportRequest,
-    recommendedPosts
+    recommendedPosts,
+    aOffer
  }
