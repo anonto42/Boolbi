@@ -5,6 +5,7 @@ import ApiError from "../../errors/ApiError";
 import { ACCOUNT_STATUS } from "../../enums/user.enums";
 import Order from "../../model/order.model";
 import DeliveryRequest from "../../model/deliveryRequest.model";
+import Notification from "../../model/notification.model";
 
 const singleOrder = async (
     payload: JwtPayload,
@@ -13,16 +14,36 @@ const singleOrder = async (
     const { userID } = payload;
     const isExist = await User.findOne({_id: userID});
     if (!isExist) {
-        throw new ApiError(StatusCodes.NOT_FOUND,"User not exist!")
+        throw new ApiError(
+            StatusCodes.NOT_FOUND,
+            "User not exist!"
+        )
     };
     if ( isExist.accountStatus === ACCOUNT_STATUS.DELETE || isExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
+        throw new ApiError(
+            StatusCodes.FORBIDDEN,
+            `Your account was ${isExist.accountStatus.toLowerCase()}!`
+        )
     };
-    const order = await Order.findById(orderID);
+
+    const order = await Order.findById(orderID)
+                                .populate("offerID");
     if (!order) {
-        throw new ApiError(StatusCodes.NOT_FOUND,"Order not exist!")
+        throw new ApiError(
+            StatusCodes.NOT_FOUND,
+            "Order not exist!"
+        )
     };
-    if(order.serviceProvider.toString() !== userID.toString() && order.customer.toString() !== userID.toString()){
+
+    console.log(
+        order.offerID.to,
+        order.offerID.form,isExist._id
+    )
+    
+    if(
+        order.offerID.to === isExist._id && 
+        order.offerID.form === isExist._id 
+    ){
         throw new ApiError(StatusCodes.BAD_GATEWAY,"You are not authorize to access this order")
     };
 
@@ -34,6 +55,7 @@ const AllOrders = async (
 ) => {
     const { userID } = payload;
     const isExist = await User.findOne({_id: userID})
+                                .populate("orders")
     if (!isExist) {
         throw new ApiError(StatusCodes.NOT_FOUND,"User not exist!")
     };
@@ -42,21 +64,29 @@ const AllOrders = async (
         throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
     };
 
-    const allOrders = await User.aggregate([
-        {
-            $match:{ _id: isExist._id }
-        },
-        {
-            $lookup:{
-                from: "orders",
-                localField: "createdOrder",
-                foreignField:"_id",
-                as: "createdOrder"
-            }
-        }
-    ])
+    const allOrders = await isExist
+                            .populate("orders.offerID")
 
-    return allOrders[0].createdOrder
+    return allOrders.orders
+}
+
+const AllCompletedOrders = async (
+    payload: JwtPayload,
+) => {
+    const { userID } = payload;
+    const isExist = await User.findOne({_id: userID})
+                                .populate("orders")
+    if (!isExist) {
+        throw new ApiError(StatusCodes.NOT_FOUND,"User not exist!")
+    };
+
+    if ( isExist.accountStatus === ACCOUNT_STATUS.DELETE || isExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
+    };
+    const allOrders = isExist.orders.filter((e: any) => 
+        e?.trackStatus?.isComplited?.status === true
+    );
+    return allOrders
 }
 
 const dOrder = async (
@@ -66,55 +96,98 @@ const dOrder = async (
     const { userID } = user;
     const isExist = await User.findById(userID)
     if (!isExist) {
-        throw new ApiError(StatusCodes.NOT_FOUND,"User not exist!")
+        throw new ApiError(
+            StatusCodes.NOT_FOUND,
+            "User not exist!"
+        )
     };
-    if ( isExist.accountStatus === ACCOUNT_STATUS.DELETE || isExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
+    if ( 
+        isExist.accountStatus === ACCOUNT_STATUS.DELETE || 
+        isExist.accountStatus === ACCOUNT_STATUS.BLOCK 
+    ) {
+        throw new ApiError(
+            StatusCodes.FORBIDDEN,
+            `Your account was ${isExist.accountStatus.toLowerCase()}!`
+        )
     };
-    const order = await Order.findById(orderID);
+    const order = await Order.findOneAndDelete({
+        "trackStatus.isComplited": true,
+        _id: orderID
+    });
     if (!order) {
-        throw new ApiError(StatusCodes.NOT_FOUND,"Order not exist!")
+        throw new ApiError(
+            StatusCodes.NOT_FOUND,
+            "Order not exist!"
+        )
     };
 
-    isExist.orders = isExist.orders.filter( (e:any) => e !== order._id);
-    isExist.save();
-
+    isExist.orders = isExist.orders.filter( (e:any) => e.toString() !== orderID );
+    await isExist.save();
     return true
 }
 
 const deliveryRequest = async (
     payload: JwtPayload,
-    data: { orderID: string, uploatedProject: string, projectDoc: string},
+    data: { 
+        orderID: string, 
+        uploatedProject: string, 
+        projectDoc: string
+    },
     pdf: string,
-    image: string
+    image: string[]
 ) => {
     const {userID} = payload;
     const { orderID, uploatedProject, projectDoc} = data;
-    const isOrderExist = await Order.findOne({_id: orderID});
+    const isOrderExist = await Order.findOne({_id: orderID}).populate("offerID");
     const isUserExist = await User.findOne({_id: userID});
     if (!isUserExist) {
-        throw new ApiError(StatusCodes.NOT_FOUND,"User not exist!")
+        throw new ApiError(
+        StatusCodes.NOT_FOUND,
+        "User not exist!"
+    )
     };
     if (!isOrderExist) {
-        throw new ApiError(StatusCodes.NOT_FOUND,"Order not exist!")
+        throw new ApiError(
+            StatusCodes.NOT_FOUND,
+            "Order not exist!"
+        )
     };
-    if ( isOrderExist.accountStatus === ACCOUNT_STATUS.DELETE || isOrderExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isOrderExist.accountStatus.toLowerCase()}!`)
+    if ( 
+        isOrderExist.accountStatus === ACCOUNT_STATUS.DELETE || 
+        isOrderExist.accountStatus === ACCOUNT_STATUS.BLOCK 
+    ) {
+        throw new ApiError(
+            StatusCodes.FORBIDDEN,
+            `Your account was ${isOrderExist.accountStatus.toLowerCase()}!`
+        )
     };
     if (!pdf && !image) {
-        throw new ApiError(StatusCodes.BAD_REQUEST,"You must give atlast one image of file for send a delivery request")
+        throw new ApiError(
+            StatusCodes.BAD_REQUEST,
+            "You must give atlast one image of file for send a delivery request"
+        )
     };
 
-    const delivaryData = {
-        orderID,
-        projectDoc,
-        uploatedProject,
-        pdf,
-        projectImage: image,
-        customer: isOrderExist.customer
-    }
+    const delivaryData = 
+        {
+            for: isOrderExist.offerID.form,
+            orderID,
+            projectDoc,
+            uploatedProject,
+            pdf,
+            images: image
+        }
 
-    const delivaryRequest = await DeliveryRequest.create(delivaryData)
+    const delivaryRequest = await DeliveryRequest.create(delivaryData);
+
+    const notification = await Notification.create({
+      for: isOrderExist.offerID.form,
+      content: `Got a new delivery request from ${isUserExist.fullName}`
+    });
+
+    //@ts-ignore
+    const io = global.io;
+    io.emit(`socket:${ isOrderExist.offerID.form }`,notification)
 
     return delivaryRequest;
 
@@ -132,19 +205,48 @@ const getDeliveryReqests = async (
         throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
     };
 
-    const deliveryRequest = await DeliveryRequest.aggregate([
-        {
-            $match: { customer: isExist._id }
-        },
-        {
-            $lookup: {
-              from: "orders",
-              localField: "orderID",
-              foreignField: "_id",
-              as: "orderDetails"
-            }
-        },
-    ])
+    const deliveryRequest = await DeliveryRequest.find({
+        for: isExist._id
+    })
+
+    return deliveryRequest;
+}
+
+const ADeliveryReqest = async (
+    payload: JwtPayload,
+    requestId: string
+) => {
+    const { userID } = payload;
+    const isExist = await User.findOne({_id: userID});
+    if (!requestId) {
+        throw new ApiError(
+            StatusCodes.NOT_ACCEPTABLE,
+            "You must give the request id!"
+        )
+    }
+    if (!isExist) {
+        throw new ApiError(
+            StatusCodes.NOT_FOUND,
+            "User not exist!"
+        )
+    };
+    if ( 
+        isExist.accountStatus === ACCOUNT_STATUS.DELETE || 
+        isExist.accountStatus === ACCOUNT_STATUS.BLOCK 
+    ) {
+        throw new ApiError(
+            StatusCodes.FORBIDDEN,
+            `Your account was ${isExist.accountStatus.toLowerCase()}!`
+        )
+    };
+
+    const deliveryRequest = await DeliveryRequest.findById(requestId);
+    if (!deliveryRequest) {
+        throw new ApiError(
+            StatusCodes.NOT_FOUND,
+            "Delivery request not exist "
+        )
+    }
 
     return deliveryRequest;
 }
@@ -225,5 +327,7 @@ export const ProviderService = {
     dOrder,
     getDeliveryReqests,
     reqestAction,
-    providerAccountVerification
+    providerAccountVerification,
+    AllCompletedOrders,
+    ADeliveryReqest
 }

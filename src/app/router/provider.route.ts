@@ -24,6 +24,13 @@ router
     )
 
 router
+    .route("/complete-orders")
+    .get(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        ProviderController.completedOrders
+    )
+
+router
     .route("/delivery")
     .get(
         auth( USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER ),
@@ -39,6 +46,13 @@ router
         auth( USER_ROLES.USER ),
         validateRequest( DelivaryValidation.acceptdelivaryRequestZodSchema ),
         ProviderController.requestStatueUpdate
+    )
+
+router
+    .route('/a-delivery-request')
+    .get(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        ProviderController.ADelivery
     )
 
 router 
