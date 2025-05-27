@@ -830,8 +830,7 @@ const offers = async (
     path: "myOffer",
     populate: [
       { path: "to", select: "fullName email" },
-      { path: "form", select: "fullName email" },
-      { path: "postID", select: "title" }
+      { path: "form", select: "fullName email" }
     ]
   });
 
@@ -849,7 +848,7 @@ const offers = async (
     );
   }
 
-  return isUserExist.myOffer; // now fully populated
+  return isUserExist.myOffer;
 };
 
 //I Offered
@@ -858,14 +857,15 @@ const iOfferd = async (
 ) => {
   const { userID } = payload;
 
-  const isUserExist = await User.findById(userID).populate({
-    path: "iOffered",
-    populate: [
-      { path: "to", select: "fullName email" },
-      { path: "form", select: "fullName email" },
-      { path: "postID", select: "title" }
-    ]
-  });
+  const isUserExist = await User
+                            .findById(userID)
+                            .populate({
+                              path: "iOffered",
+                              populate: [
+                                { path: "to", select: "fullName email" },
+                                { path: "form", select: "fullName email" }
+                              ]
+                            });
 
   if (!isUserExist) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
@@ -881,7 +881,51 @@ const iOfferd = async (
     );
   }
 
-  return isUserExist.iOffered; // now fully populated
+  return isUserExist.iOffered;
+};
+
+//get a Offer
+const getAOffer = async (
+  payload: JwtPayload,
+  offerId: string
+) => {
+  const { userID } = payload;
+
+  const isUserExist = await User.findById(userID)
+
+  const iOffer = isUserExist.iOffered.filter( (e:any) => e._id.toString() === offerId );
+  const myOffers = isUserExist.myOffer.filter( (e:any) => e._id.toString() === offerId );
+
+  if (!iOffer && !myOffers ) {
+    throw new ApiError(
+      StatusCodes.NOT_ACCEPTABLE,
+      "You are not eligible to get this offer!"
+    );
+  };
+
+  const offer = await Offer.findById(offerId);
+  if (!offer) {
+    throw new ApiError(
+      StatusCodes.NOT_FOUND,
+      "This offer was not exist!"
+    );
+  };
+
+  if (!isUserExist) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  };
+
+  if (
+    isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
+    isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
+    );
+  };
+
+  return offer;
 };
 
 // Create offer
@@ -900,16 +944,33 @@ const cOffer = async (
         location,
         deadline,
         description,
+        timeFrame,
         to
       } = data;
       const isUserExist = await User.findById(userID);
+
       if (!isUserExist) {
-        throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+        throw new ApiError(
+          StatusCodes.NOT_FOUND, 
+          "User not found"
+        );
       };
+
       const ifCustomerExist = await User.findById(to);
       if (!ifCustomerExist) {
-        throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+        throw new ApiError(
+          StatusCodes.NOT_FOUND, 
+          "User not found"
+        );
       };
+
+      if ( !isUserExist.paymentCartDetails.customerID || !isUserExist.paymentCartDetails ) {
+        throw new ApiError(
+          StatusCodes.NOT_ACCEPTABLE,
+          "You don't have the payment details at first inshoure the payment details!"
+        )  
+      };
+
       if (
         isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
         isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
@@ -933,6 +994,7 @@ const cOffer = async (
         to: ifCustomerExist._id,
         form: isUserExist._id,
         companyName, 
+        timeFrame,
         projectName,
         category,
         budget: Number(myBudget),
@@ -992,10 +1054,15 @@ const intracatOffer = async(
     const { acction,offerId } = data;
     const isUserExist = await User.findById(userID);
     const isOfferExist = await Offer.findById(offerId);
-    console.log(isOfferExist)
+    
     if (!isOfferExist) {
       throw new ApiError(StatusCodes.NOT_FOUND,"Offer not founded");
     };
+
+    if ( isOfferExist.status === "APPROVE" ) {
+      throw new ApiError(StatusCodes.NOT_FOUND,"Offer already accepted!");
+    };
+
     const to = await User.findById(isOfferExist.to);
     if (!isUserExist) {
       throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
@@ -1005,7 +1072,7 @@ const intracatOffer = async(
       throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
     };
 
-    if ( acction === "DECLINE") {
+    if ( acction === "DECLINE" ) {
       isOfferExist.status = "DECLINE";
       const newArr = to.myOffer.filter( (e: any) => e !== data.offerId );
       to.myOffer = newArr;
@@ -1016,20 +1083,35 @@ const intracatOffer = async(
     };
 
     const orderCreationData = {
-      customer: isOfferExist.customer,
-      serviceProvider: userID,
-      deliveryDate: isOfferExist.deadline,
-      totalPrice: isOfferExist.budget,
-      offerID: isOfferExist._id,
-      serviceID: isOfferExist.serviceID
+      offerID: isOfferExist._id
     };
     
     const order = await Order.create(orderCreationData);
 
-    isUserExist.orders.push(order._id)
-    isOfferExist.status = "APPROVE"
+    const notification = await Notification.create({
+      for: to._id,
+      content: `A new order from ${isUserExist.fullName}`
+    });
+
+    //@ts-ignore
+    const io = global.io;
+    io.emit(`socket:${isOfferExist.form}`,notification)
+
+    const userOne = await User.findById(isOfferExist.to);
+    const userTwo = await User.findById(isOfferExist.form);
+    
+    if (!userOne.orders.includes(order._id)) {
+      userOne.orders.push(order._id);
+      await userOne.save();
+    }
+
+    if (!userTwo.orders.includes(order._id)) {
+      userTwo.orders.push(order._id);
+      await userTwo.save();
+    }
+
+    isOfferExist.status = "APPROVE";
     await isOfferExist.save();
-    await isUserExist.save();
 
     return order;
 
@@ -1049,14 +1131,20 @@ const deleteOffer = async(
       throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
     };
 
-    const offer = await Offer.findById(offerID);
+    const iOffer = isUserExist.iOffered.filter( (e:any) => e._id.toString() === offerID );
+    const myOffers = isUserExist.myOffer.filter( (e:any) => e._id.toString() === offerID );
+
+    if (!iOffer && !myOffers ) {
+      throw new ApiError(
+        StatusCodes.NOT_ACCEPTABLE,
+        "You are not eligible to get this offer!"
+      );
+    };
+
+    const offer = await Offer.findByIdAndDelete(offerID);
     
     if (!offer) {
       throw new ApiError(StatusCodes.NOT_FOUND,"Offer not founded");
-    };
-    
-    if (offer.form !== isUserExist._id) {
-      throw new ApiError(StatusCodes.NOT_FOUND,"You are not authorize to do that acction!")
     };
 
     return offer;
@@ -1335,6 +1423,7 @@ const allNotifications = async (
 
 export const UserServices = {
     filteredData,
+    getAOffer,
     signUp,
     allNotifications,
     searchPosts,
