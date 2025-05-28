@@ -55,6 +55,18 @@ router
         ProviderController.ADelivery
     )
 
+router
+    .route('/extends-delivery-request')
+    .get(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        ProviderController.deliveryRequests
+    )
+    .post(
+        auth( USER_ROLES.SERVICE_PROVIDER ),
+        validateRequest( DelivaryValidation.timeExtendDelivaryRequestZodSchema ),
+        ProviderController.extendsDeliveryRequest
+    )
+
 router 
     .route("/verify")
     .patch(

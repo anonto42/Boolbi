@@ -29,7 +29,7 @@ const DOrder = catchAsync(
     async( req, res ) => {
         const user = (req as any)?.user;
         const orderID = req.query.orderID;
-        const result = ProviderService.dOrder(user,orderID as string)
+        const result = await ProviderService.dOrder(user,orderID as string);
 
         sendResponse(res, {
             success: true,
@@ -43,7 +43,7 @@ const DOrder = catchAsync(
 const completedOrders = catchAsync(
     async( req, res ) => {
         const user = (req as any)?.user;
-        const result = ProviderService.AllCompletedOrders(user)
+        const result = await ProviderService.AllCompletedOrders(user)
 
         sendResponse(res, {
             success: true,
@@ -81,6 +81,42 @@ const ADelivery = catchAsync(
             success: true,
             statusCode: StatusCodes.OK,
             message: "Delivery request successfully send!",
+            data: result
+        })
+    }
+) 
+
+const extendsDeliveryRequest = catchAsync(
+    async( req, res ) => {
+        const user = (req as any)?.user;
+        const { ...Data } = req.body; 
+        const result = await ProviderService.deliveryTimeExtendsRequest(user,Data)
+        
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Delivery extends request successfully send!",
+            data: result
+        })
+    }
+) 
+
+const deliveryRequests = catchAsync(
+    async( req, res ) => {
+        const user = (req as any)?.user;
+        const id = req.query.requestID as string;
+    
+        let result;
+        if (!id) {
+            result = await ProviderService.getDeliveryTimeExtendsRequest(user);
+        }else{
+            result = await ProviderService.getADeliveryTimeExtendsRequest(user,id);
+        }
+        
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Delivery extends request successfully send!",
             data: result
         })
     }
@@ -137,7 +173,9 @@ export const ProviderController = {
     CDelivery,
     GDRequest,
     ADelivery,
+    deliveryRequests,
     completedOrders,
     requestStatueUpdate,
-    providerAccountVerification
+    providerAccountVerification,
+    extendsDeliveryRequest
 }

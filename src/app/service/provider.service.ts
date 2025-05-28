@@ -6,6 +6,8 @@ import { ACCOUNT_STATUS } from "../../enums/user.enums";
 import Order from "../../model/order.model";
 import DeliveryRequest from "../../model/deliveryRequest.model";
 import Notification from "../../model/notification.model";
+import { REQUEST_TYPE } from "../../enums/delivery.enum";
+import mongoose from "mongoose";
 
 const singleOrder = async (
     payload: JwtPayload,
@@ -110,20 +112,25 @@ const dOrder = async (
             `Your account was ${isExist.accountStatus.toLowerCase()}!`
         )
     };
-    const order = await Order.findOneAndDelete({
-        "trackStatus.isComplited": true,
-        _id: orderID
-    });
+    const order = await Order.findById(orderID);
     if (!order) {
         throw new ApiError(
             StatusCodes.NOT_FOUND,
             "Order not exist!"
         )
     };
+    if ( order.provider.toString() !== isExist._id.toString() && order.customer.toString() !== isExist._id.toString() ) {
+        throw new ApiError(
+            StatusCodes.METHOD_NOT_ALLOWED,
+            "You are not authorize to delete this order!"
+        )
+    };
+
+    await Order.deleteOne({ _id: order._id })
 
     isExist.orders = isExist.orders.filter( (e:any) => e.toString() !== orderID );
     await isExist.save();
-    return true
+    return true;
 }
 
 const deliveryRequest = async (
@@ -153,8 +160,8 @@ const deliveryRequest = async (
         )
     };
     if ( 
-        isOrderExist.accountStatus === ACCOUNT_STATUS.DELETE || 
-        isOrderExist.accountStatus === ACCOUNT_STATUS.BLOCK 
+        isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || 
+        isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK 
     ) {
         throw new ApiError(
             StatusCodes.FORBIDDEN,
@@ -170,9 +177,10 @@ const deliveryRequest = async (
 
     const delivaryData = 
         {
-            for: isOrderExist.offerID.form,
+            for: isOrderExist.customer,
             orderID,
             projectDoc,
+            requestType: REQUEST_TYPE.DELIVERY,
             uploatedProject,
             pdf,
             images: image
@@ -180,17 +188,135 @@ const deliveryRequest = async (
 
     const delivaryRequest = await DeliveryRequest.create(delivaryData);
 
+    isOrderExist.deliveryRequest.isRequested = true;
+    isOrderExist.deliveryRequest.requestID = delivaryRequest._id;
+
+    await isOrderExist.save();
+
     const notification = await Notification.create({
-      for: isOrderExist.offerID.form,
+      for: isOrderExist.customer,
       content: `Got a new delivery request from ${isUserExist.fullName}`
     });
 
     //@ts-ignore
     const io = global.io;
-    io.emit(`socket:${ isOrderExist.offerID.form }`,notification)
+    io.emit(`socket:${ isOrderExist.customer }`,notification)
 
-    return delivaryRequest;
+    return true;
 
+}
+
+const deliveryTimeExtendsRequest = async (
+    payload: JwtPayload,
+    data: {
+        reason: string,
+        nextDate: string,
+        orderID: string
+    }
+) => {
+    const { userID } = payload;
+    const { orderID, reason, nextDate } = data;
+    const isOrderExist = await Order.findById(orderID).populate("offerID");
+    const isUserExist = await User.findById(userID);
+    if (!isUserExist) {
+        throw new ApiError(
+        StatusCodes.NOT_FOUND,
+        "User not exist!"
+    )
+    };
+    if (!isOrderExist) {
+        throw new ApiError(
+            StatusCodes.NOT_FOUND,
+            "Order not exist!"
+        )
+    };
+    if ( 
+        isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || 
+        isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK 
+    ) {
+        throw new ApiError(
+            StatusCodes.FORBIDDEN,
+            `Your account was ${isOrderExist.accountStatus.toLowerCase()}!`
+        )
+    };
+
+    const delivaryData = 
+    {
+        for: isOrderExist.customer,
+        orderID,
+        projectDoc: reason,
+        requestType: REQUEST_TYPE.TIME_EXTEND,
+        uploatedProject: nextDate,
+    }
+
+    await DeliveryRequest.create(delivaryData);
+
+    const notification = await Notification.create({
+      for: isOrderExist.customer,
+      content: `Got a new delivery time extends request from ${isUserExist.fullName}`
+    });
+
+    //@ts-ignore
+    const io = global.io;
+    io.emit(`socket:${ isOrderExist.customer }`,notification)
+
+    return true;
+}
+
+const getDeliveryTimeExtendsRequest = async (
+    payload: JwtPayload,
+) => {
+    const { userID } = payload;
+    const isUserExist = await User.findById(userID);
+    if (!isUserExist) {
+        throw new ApiError(
+            StatusCodes.NOT_FOUND,
+            "User not exist!"
+        )
+    };
+    if ( 
+        isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || 
+        isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK 
+    ) {
+        throw new ApiError(
+            StatusCodes.FORBIDDEN,
+            `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
+        )
+    };
+    
+    const requests = await DeliveryRequest.find({
+        for: new mongoose.Types.ObjectId(isUserExist._id),
+        requestType: "TIME_EXTEND"
+    })
+
+    return requests;
+}
+
+const getADeliveryTimeExtendsRequest = async (
+    payload: JwtPayload,
+    requestId: string
+) => {
+    const { userID } = payload;
+    const isUserExist = await User.findById(userID);
+    if (!isUserExist) {
+        throw new ApiError(
+            StatusCodes.NOT_FOUND,
+            "User not exist!"
+        )
+    };
+    if ( 
+        isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || 
+        isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK 
+    ) {
+        throw new ApiError(
+            StatusCodes.FORBIDDEN,
+            `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
+        )
+    };
+    
+    const requests = await DeliveryRequest.findById(requestId)
+
+    return requests;
 }
 
 const getDeliveryReqests = async (
@@ -244,7 +370,7 @@ const ADeliveryReqest = async (
     if (!deliveryRequest) {
         throw new ApiError(
             StatusCodes.NOT_FOUND,
-            "Delivery request not exist "
+            "Delivery request not exist!"
         )
     }
 
@@ -320,6 +446,9 @@ const providerAccountVerification = async (
 };
 
 
+// TO Do delivary request intractions 
+
+
 export const ProviderService = {
     deliveryRequest,
     singleOrder,
@@ -329,5 +458,8 @@ export const ProviderService = {
     reqestAction,
     providerAccountVerification,
     AllCompletedOrders,
-    ADeliveryReqest
+    ADeliveryReqest,
+    deliveryTimeExtendsRequest,
+    getDeliveryTimeExtendsRequest,
+    getADeliveryTimeExtendsRequest
 }
