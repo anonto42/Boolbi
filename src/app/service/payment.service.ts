@@ -58,19 +58,18 @@ const createSession = async (
 
 const chargeCustomer = async (
     payload: JwtPayload,
-    offerId: any
+    orderId: any
 ) => {
     
-    const { userID } = payload;
-    const offer = await Offer.findById(offerId);
-    const user = await User.findById(userID);
+    const order = await Order.findById(orderId).populate("offerID");
+    const user = await User.findById(order.offerID.to);
     if (!user || !user.paymentCartDetails.customerID) {
         throw new ApiError(
             StatusCodes.BAD_GATEWAY,
-            "You have not connecte your Stripe account at first connect your account or add the card"
+            "Customer don't have Stripe account details!"
         )
     };
-    if (!offer) {
+    if (!order) {
         throw new ApiError(
             StatusCodes.NOT_FOUND,
             "We don't found the offer!"
@@ -79,7 +78,7 @@ const chargeCustomer = async (
 
     // Charge customer
     const paymentIntent = await paymentIntents.create({
-      amount: Math.round(offer.budget * 100),
+      amount: Math.round(order.offerID.budget * 100),
       currency: 'usd',
       customer: user.paymentCartDetails.customerID,
       confirm: true,
