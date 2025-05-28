@@ -24,9 +24,6 @@ const offerSchema = new Schema<IOffer>({
     type: String,
     trim: true
   },
-  timeFrame:{
-    type: Date,
-  },
   budget:{
     type: Number,
     trim: true
@@ -36,7 +33,7 @@ const offerSchema = new Schema<IOffer>({
     trim: true
   },
   deadline:{
-    type: String,
+    type: Date,
   },
   description:{
     type: String,

@@ -9,14 +9,17 @@ export const superUserCreate = async () => {
         const isSuperUserExist = await User.findOne({ email: config.super_user_email, role: USER_ROLES.SUPER_ADMIN });
         if (isSuperUserExist) {
             return console.log("Your Database has a super admin and the email is : "+isSuperUserExist.email)    
-        }
+        };
 
         const hasedPassword = await bcryptjs.Hash(config.super_user_password!);
 
         const superUserCreateData = {
             password: hasedPassword,
             email: config.super_user_email,
-            role: USER_ROLES.SUPER_ADMIN
+            role: USER_ROLES.SUPER_ADMIN,
+            latLng: {
+                coordinates: [ 11, 11 ]
+            }
         }
 
         await User.create(superUserCreateData);

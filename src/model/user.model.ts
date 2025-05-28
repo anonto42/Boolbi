@@ -110,20 +110,9 @@ const userSchema = new Schema<IUser>({
     default: 0
   },
   otpVerification:{
-    isVerified: {
-      status:{
-        type: Boolean,
-        default: false
-      },
-      time: Date
-    },
     otp: Number,
     time: Date,
-    hash: String,
-    verificationType:{
-      type: String,
-      enum: Verification_For,
-    }
+    key: String,
   },
   privacyPolicy:{
     type: String,

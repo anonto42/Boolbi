@@ -1,6 +1,6 @@
 import { model, models, Schema } from "mongoose";
 import { IDR } from "../Interfaces/deliveryRequest.interface";
-import { DELIVERY_STATUS } from "../enums/delivery.enum";
+import { DELIVERY_STATUS, REQUEST_TYPE } from "../enums/delivery.enum";
 
 const deliveryRequestSchema = new Schema<IDR>({
   orderID:{
@@ -10,6 +10,10 @@ const deliveryRequestSchema = new Schema<IDR>({
   for:{
     type: Schema.Types.ObjectId,
     ref: "user"
+  },
+  requestType:{
+    type: String,
+    enum: REQUEST_TYPE
   },
   projectDoc:{
     type: String,

@@ -1,6 +1,7 @@
 
 export type ISignUpData = { 
     fullName: string, 
+    address: string,
     email: string, 
     password: string, 
     confirmPassword: string, 
@@ -48,5 +49,4 @@ export type TOffer = {
     deadline: Date;
     description: string;
     postID: string;
-    timeFrame: string;
 }

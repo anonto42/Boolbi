@@ -39,8 +39,7 @@ const authEmailOTPZodSchema =  z.object({
       .string({ required_error: "You must give your email to process next steps." })
       .min(1, "Email is required.")
       .email("Please provide a valid email address.")
-      .regex(emailRegex, "Email format is invalid."),
-    verificationType: z.string({ required_error: "You must give a verification type"})
+      .regex(emailRegex, "Email format is invalid.")
   })
 });
 
@@ -51,24 +50,7 @@ const OTPZodSchema =  z.object({
       .min(1, "Email is required.")
       .email("Please provide a valid email address.")
       .regex(emailRegex, "Email format is invalid."),
-    otp: z.string({ required_error: "You must give the otp"})
-  })
-});
-
-const changePasswordZodSchema = z.object({
-  body: z.object({
-    email: z
-      .string({ required_error: "You must give your email to process next steps." })
-      .min(1, "Email is required.")
-      .email("Please provide a valid email address.")
-      .regex(emailRegex, "Email format is invalid."),
-    password: z.string({ required_error: "You must give the password"}),
-    token: z.string({ required_error: "You must give the token"}),
-    otp: z.string({ required_error: "You must give the otp"}),
-    confirmPassword: z.string({ required_error: "You must give the confirm password"}),
-    oparationType: z.enum(["CHANGE_PASSWORD" , "FORGET_PASSWORD"], {
-      required_error: "You must give your operation type to perform the operation"
-    })
+    otp: z.number({ required_error: "You must give the otp"})
   })
 });
 
@@ -140,8 +122,7 @@ const offerCreateValidation = z.object({
     myBudget: z.string().optional(),
     location: z.string().optional(),
     deadline: z.string().optional(),
-    description: z.string().optional(),
-    timeFrame: z.string().optional()
+    description: z.string().optional()
   })
 })
 
@@ -175,13 +156,18 @@ const filterData = z.object({
   })
 })
 
+const forgetPassword = z.object({
+  body: z.object({
+
+  })
+})
+
 export const Validation = {
   singnUpZodSchema,
   filterData,
   signInZodSchema,
   authEmailOTPZodSchema,
   OTPZodSchema,
-  changePasswordZodSchema,
   socalLoginZodSchema,
   userUpdateProfileZodSchem,
   updateUserLangouageZodSchem,
@@ -190,5 +176,6 @@ export const Validation = {
   offerCreateValidation,
   offerValidation,
   offerDeletaionValidationZod,
-  searchValidationZod
+  searchValidationZod,
+  forgetPassword
 };

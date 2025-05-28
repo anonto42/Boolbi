@@ -34,14 +34,9 @@ export interface IUser extends Document {
         status: boolean
     };
     otpVerification: {
-        isVerified: {
-            status: boolean,
-            time: Date
-        },
         otp: number,
         time: Date,
-        hash: string,
-        verificationType: Verification_For
+        key: string
     };
     isSocialAccount:{
         isSocal: boolean;

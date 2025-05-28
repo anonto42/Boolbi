@@ -6,6 +6,17 @@ const orderSchema = new Schema<IOrder>({
     type: Schema.Types.ObjectId,
     ref: "offer"
   },
+  customer: {
+    type: Schema.Types.ObjectId,
+    ref:"user"
+  },
+  provider: {
+    type: Schema.Types.ObjectId,
+    ref: "user"
+  },
+  deliveryDate: {
+    type: Date
+  },
   deliveryRequest:{
     isRequested: {
       type: Boolean,
@@ -28,7 +39,7 @@ const orderSchema = new Schema<IOrder>({
       date: Date,
       status: {
         type: Boolean,
-        default: false
+        default: true
       }
     },
     isComplited: {

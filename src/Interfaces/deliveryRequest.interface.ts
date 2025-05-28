@@ -4,6 +4,7 @@ export interface IDR extends Document {
     orderID: Types.ObjectId,
     for: Types.ObjectId,
     projectDoc: string,
+    requestType: string,
     uploatedProject: string,
     pdf: string,
     images: string[],

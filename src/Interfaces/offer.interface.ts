@@ -9,8 +9,7 @@ export interface IOffer extends Document {
     category: string;
     budget: number;
     jobLocation: string;
-    timeFrame: Date;
-    deadline: string;
+    deadline: Date;
     description: string;
     companyImages: string[];
 }

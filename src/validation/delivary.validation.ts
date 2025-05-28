@@ -15,8 +15,17 @@ const acceptdelivaryRequestZodSchema = z.object({
     })
 })
 
+const timeExtendDelivaryRequestZodSchema = z.object({
+    body: z.object({
+        orderID: z.string({required_error:"You must give the order id"}),
+        nextDate: z.string({required_error:"You must give the next date"}),        
+        reason: z.string({required_error:"You must give the reason"}),
+    })
+})
+
 
 export const DelivaryValidation = {
     createRequest,
-    acceptdelivaryRequestZodSchema
+    acceptdelivaryRequestZodSchema,
+    timeExtendDelivaryRequestZodSchema
 }

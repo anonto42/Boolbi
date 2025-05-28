@@ -5,3 +5,8 @@ export enum DELIVERY_STATUS {
     APPROVE = "APPROVE",
     WATING = "WATING"
 }
+
+export enum REQUEST_TYPE {
+    TIME_EXTEND = "TIME_EXTEND",
+    DELIVERY = "DELIVERY"
+}
