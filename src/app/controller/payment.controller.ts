@@ -27,7 +27,7 @@ const createSession = catchAsync(
 const chargeUser = catchAsync(
     async( req: Request, res: Response ) => {
         const payload = (req as any).user;
-        const offerID = req.query.offerID as string;
+        const offerID = req.query.orderID as string;
         const result = await PaymentService.chargeCustomer( payload, offerID );
 
         sendResponse(res, {
