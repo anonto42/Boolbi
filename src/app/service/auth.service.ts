@@ -10,6 +10,7 @@ import { emailHelper } from "../../helpers/emailHelper";
 import { IChangePassword, ISocalLogin } from "../../types/auth";
 import { ACCOUNT_STATUS } from "../../enums/user.enums";
 import { compare, hash } from "bcryptjs";
+import { JwtPayload } from "jsonwebtoken";
 
 const signIn = async ( 
     payload : SignInData
@@ -32,6 +33,7 @@ const signIn = async (
     };
 
     isUser.deviceID = deviceID;
+    await isUser.save()
 
     const token = jwtHelper.createToken({language: isUser.language, role: isUser.role, userID: isUser._id});
     
@@ -40,8 +42,7 @@ const signIn = async (
 
 const emailSend = async (
     payload : { 
-        email: string, 
-        verificationType: "FORMAT_PASSWORD" | "CHANGE_PASSWORD" | "ACCOUNT_VERIFICATION" 
+        email: string
     }
 ) => {
     const { email } = payload;
@@ -61,10 +62,8 @@ const emailSend = async (
     // generate otp
     const otp = generateOTP();
 
-    const hashedOTP = await hash(otp.toString(),1);
-
     //Send Mail
-    const forgetPassword = emailTemplate.sendMail({otp, email,name: isUser.fullName, subjet: payload.verificationType});
+    const forgetPassword = emailTemplate.sendMail({otp, email,name: isUser.fullName, subjet: "Get otp "});
     emailHelper.sendEmail(forgetPassword);
 
     await User.updateOne(
@@ -72,14 +71,12 @@ const emailSend = async (
         {
           $set: {
             'otpVerification.otp': otp,
-            'otpVerification.time': new Date(Date.now() + 3 * 60000),
-            'otpVerification.hash': hashedOTP,
-            'otpVerification.verificationType': payload.verificationType,
+            'otpVerification.time': new Date(Date.now() + 3 * 60000)
           },
         }
     );
       
-    return { email:isUser.email, token: hashedOTP };
+    return { email:isUser.email };
 }
 
 const verifyOtp = async (
@@ -90,10 +87,6 @@ const verifyOtp = async (
 ) => {
     const { email, otp } = payload;
     const isUser = await User.findOne({email});
-    const hash = isUser.otpVerification.hash;
-    if (!isUser) {
-        throw new ApiError(StatusCodes.NOT_FOUND,`No account exists with this ( ${email} ) email`)
-    };
     
     if ( isUser.accountStatus === ACCOUNT_STATUS.DELETE || isUser.accountStatus === ACCOUNT_STATUS.BLOCK ) {
         throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUser.accountStatus.toLowerCase()}!`)
@@ -102,7 +95,6 @@ const verifyOtp = async (
     if (
         !otp && 
         !isUser.otpVerification.otp &&
-        !isUser.otpVerification.hash && 
         isUser.otpVerification.time < new Date( Date.now() )
     ) {
         throw new ApiError(
@@ -110,19 +102,15 @@ const verifyOtp = async (
             "Your otp verification in not acceptable for this moment!")
     };
 
-    const com = await compare(otp.toString(),hash);
-
-    if (!com) {
+    if (isUser.otpVerification.otp !== otp) {
         throw new ApiError(
             StatusCodes.NOT_ACCEPTABLE,
-            "Your otp was wrong!"
+            "You given a wrone otp!"
         )
-    };
+    }
 
-    await User.findByIdAndUpdate({_id: isUser._id},{$set: {
-        "otpVerification.isVerified.status": true,
-        "otpVerification.isVerified.time": new Date(Date.now() + 10 * 60 * 1000),
-    }});
+    const key = Math.floor(Math.random() * 1000000);
+    const hasedKey = await hash(key.toString(),1);
 
     await User.updateOne(
         { email },
@@ -130,18 +118,64 @@ const verifyOtp = async (
           $set: {
             'otpVerification.otp': 0,
             'otpVerification.time': new Date(),
-            'otpVerification.verificationType': ""
+            'otpVerification.key': key.toString()
           },
         }
     );
       
-    return { token: hash, otp };
+    return { token: hasedKey };
 }
 
 const changePassword = async (
+    payload : JwtPayload,
+    data: {
+        currentPassword: string,
+        password: string,
+        confirmPassword: string
+    }
+) => {
+    const { userID } = payload;
+    const { currentPassword, password, confirmPassword } = data;
+    const isUser = await User.findById(userID);
+    if (!isUser) {
+        throw new ApiError(
+            StatusCodes.NOT_FOUND,
+            `No account exists!`
+        )
+    };
+    if ( 
+        isUser.accountStatus === ACCOUNT_STATUS.DELETE || 
+        isUser.accountStatus === ACCOUNT_STATUS.BLOCK 
+    ) {
+        throw new ApiError(
+            StatusCodes.FORBIDDEN,
+            `Your account was ${isUser.accountStatus.toLowerCase()}!`
+        )
+    };
+    
+    if (password !== confirmPassword) {
+        throw new ApiError(
+            StatusCodes.NOT_ACCEPTABLE,
+            "Please check your new password and the confirm password!"
+        )
+    };
+
+    const isCurrentPasswordValid = await bcryptjs.compare(currentPassword, isUser.password)
+    if (!isCurrentPasswordValid) {
+        throw new ApiError(StatusCodes.BAD_REQUEST,"You have gived the wrong old password!")
+    };
+
+    const newPassword = await bcryptjs.Hash(password);
+
+    await User.findByIdAndUpdate(isUser._id, { password: newPassword });
+
+    return true;
+} 
+
+const forgetPassword = async (
     payload : IChangePassword
 ) => {
-    const { email, currentPassword, password, confirmPassword, oparationType } = payload;
+    const { email, password, confirmPassword, token } = payload;
     const isUser = await User.findOne({email});
     if (!isUser) {
         throw new ApiError(
@@ -158,19 +192,6 @@ const changePassword = async (
             `Your account was ${isUser.accountStatus.toLowerCase()}!`
         )
     };
-    if ( !isUser.otpVerification.isVerified.status ) {
-        throw new ApiError(
-            StatusCodes.NOT_ACCEPTABLE,
-            "Your verification date is over now you can't change the password!"
-        )
-    };
-    
-    if ( isUser.otpVerification.isVerified.time < new Date( Date.now())  ) {
-        throw new ApiError(
-            StatusCodes.NOT_ACCEPTABLE,
-            "Your verification date is over now you can't change the password!"
-        )
-    };
     
     if (password !== confirmPassword) {
         throw new ApiError(
@@ -179,37 +200,29 @@ const changePassword = async (
         )
     };
 
-    if ( oparationType === "CHANGE_PASSWORD" ) {
-        
-        const isCurrentPasswordValid = await bcryptjs.compare(currentPassword, isUser.password)
-        if (!isCurrentPasswordValid) {
-            throw new ApiError(StatusCodes.BAD_REQUEST,"You have gived the wrong old password!")
-        };
-
-        const newPassword = await bcryptjs.Hash(password);
-
-        await User.findByIdAndUpdate(isUser._id, {
-            $set:{
-                password: newPassword,
-                "otpVerification.isVerified.status": false,
-                "otpVerification.isVerified.time": new Date( 0 ),
-            }
-        });
-
+    if ( !isUser.otpVerification.key ) {
+        throw new ApiError(
+            StatusCodes.NOT_FOUND,
+            "You don't have ganarate any token for change the password"
+        )
     };
 
-    if ( oparationType === "FORGET_PASSWORD" ) {
-        const newPassword = await bcryptjs.Hash(password);
-
-        await User.findByIdAndUpdate(isUser._id, {
-            $set:{
-                password: newPassword,
-                "otpVerification.isVerified.status": false,
-                "otpVerification.isVerified.time": new Date( 0 ),
-            }
-        });
+    const isValid = await compare( isUser.otpVerification.key ,token);
+    if (!isValid) {
+        throw new ApiError(
+            StatusCodes.NOT_ACCEPTABLE,
+            "You have inter a wrong token"
+        )
     };
-      
+
+    const newPassword = await bcryptjs.Hash(password);
+    await User.findByIdAndUpdate(isUser._id, {
+        $set:{
+            password: newPassword,
+            "otpVerification.key": "",
+        }
+    });
+
     return true;
 } 
 
@@ -233,7 +246,10 @@ const socalLogin = async (
             role: accountType,
             password: "--",
             email: "--",
-            fullName: "--"
+            fullName: "--",
+            latLng:{
+                coordinates:[11,11]
+            }
         })
         
         const token = jwtHelper.createToken({language: "en", role: user.role, userID: user._id});
@@ -253,5 +269,6 @@ export const AuthServices = {
     emailSend,
     verifyOtp,
     changePassword,
-    socalLogin
+    socalLogin,
+    forgetPassword
 }

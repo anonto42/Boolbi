@@ -65,8 +65,23 @@ const verifyOtp = catchAsync(
 
 const changePassword = catchAsync(
     async( req: Request, res: Response ) => {
+        const user = (req as any).user;
         const {...data} = req.body;
-        const result = await AuthServices.changePassword(data);
+        const result = await AuthServices.changePassword(user,data);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Your pasword was changed successfully",
+            data: result
+        })
+    }
+)
+
+const forgetPassword = catchAsync(
+    async( req: Request, res: Response ) => {
+        const {...data} = req.body;
+        const result = await AuthServices.forgetPassword(data);
 
         sendResponse(res, {
             success: true,
@@ -96,5 +111,6 @@ export const AuthController = {
     getOpt,
     verifyOtp,
     changePassword,
-    socalLogin
+    socalLogin,
+    forgetPassword
 }

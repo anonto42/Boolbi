@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { AuthController } from '../controller/auth.controller';
 import validateRequest from '../../middlewares/validateRequest';
 import { Validation } from '../../validation/IO.validation';
+import auth from '../../middlewares/Auth.middleware';
+import { USER_ROLES } from '../../enums/user.enums';
 
 const router = Router();
 
@@ -29,8 +31,15 @@ router
 router
     .route("/change-password")
     .post(
-        validateRequest(Validation.changePasswordZodSchema),
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
         AuthController.changePassword
+    )
+
+router
+    .route("/forget-password")
+    .post(
+        validateRequest(Validation.forgetPassword),
+        AuthController.forgetPassword
     )
 
 router
