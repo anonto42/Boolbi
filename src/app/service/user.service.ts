@@ -21,7 +21,7 @@ import { paymentIntents } from "../router/payment.route";
 const signUp = async ( 
     payload : ISignUpData
 ) => {
-    const { fullName, email, password, confirmPassword, phone, role, lat, lng } = payload;
+    const { fullName, email, password, address, confirmPassword, phone, role, lat, lng } = payload;
 
     const isExist = await User.findOne({email: email});
     if (isExist) {
@@ -52,6 +52,7 @@ const signUp = async (
         email,
         password: hashed,
         phone,
+        address,
         role,
         latLng: {
           type: "Point",
@@ -67,14 +68,7 @@ const signUp = async (
       )
     };
 
-    const userObject = user.toObject();
-    delete userObject.password;
-    delete userObject.latLng;
-    delete userObject.otpVerification;
-    delete userObject.isSocialAccount;
-    delete userObject.accountStatus;
-
-    return { user: userObject }
+    return true;
 }
 
 //All Profile Information
@@ -238,15 +232,27 @@ const Images = async (
 ) => {
     const { userID } = payload;
     const { fildName } = data;
-    if (!fildName) throw new ApiError(StatusCodes.BAD_REQUEST,"You must give the the name of your fild to add the images");
+    if (!fildName) throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      "You must give the the name of your fild to add the images"
+    );
 
     const isExist = await User.findOne({_id: userID});
     if (!isExist) {
-        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
+        throw new ApiError(
+          StatusCodes.NOT_ACCEPTABLE,
+          "User not exist!"
+        )
     };
     
-    if ( isExist.accountStatus === ACCOUNT_STATUS.DELETE || isExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
+    if ( 
+      isExist.accountStatus === ACCOUNT_STATUS.DELETE || 
+      isExist.accountStatus === ACCOUNT_STATUS.BLOCK 
+    ) {
+        throw new ApiError(
+          StatusCodes.FORBIDDEN,
+          `Your account was ${isExist.accountStatus.toLowerCase()}!`
+        )
     };
 
     if (fildName === "samplePictures" && images.length < 1) {
@@ -258,19 +264,32 @@ const Images = async (
     };
 
     if (fildName === "profileImage") {
-        const user = await User.findByIdAndUpdate(isExist._id,{ profileImage: images[0] })
+        const user = await User.findByIdAndUpdate(
+          isExist._id,
+          { 
+            profileImage: images[0] 
+          }
+        )
         unlinkFile(user.profileImage)
         return images[0]
     };
 
     if ( fildName === "samplePictures") {
-        const user = await User.findByIdAndUpdate(isExist._id,{ samplePictures: images });
+        const user = await User.findByIdAndUpdate(
+          isExist._id,
+          { 
+            samplePictures: images 
+          }
+        );
         user.samplePictures.map( (e: any) => unlinkFile(e))
         return images
     };
 
     if ( fildName !== "samplePictures" && fildName !== "profileImage" ) {
-        throw new ApiError(StatusCodes.BAD_REQUEST,"You give a wrong inpout on the fildName you must give profileImage or samplePictures")
+        throw new ApiError(
+          StatusCodes.BAD_REQUEST,
+          "You give a wrong inpout on the fildName you must give profileImage or samplePictures"
+        )
     };
 }
 
@@ -892,7 +911,7 @@ const getAOffer = async (
 ) => {
   const { userID } = payload;
 
-  const isUserExist = await User.findById(userID)
+  const isUserExist = await User.findById(userID);
 
   const iOffer = isUserExist.iOffered.filter( (e:any) => e._id.toString() === offerId );
   const myOffers = isUserExist.myOffer.filter( (e:any) => e._id.toString() === offerId );
@@ -904,7 +923,7 @@ const getAOffer = async (
     );
   };
 
-  const offer = await Offer.findById(offerId);
+  const offer = await Offer.findById(offerId).populate("to","fullName").populate("form","fullName email");
   if (!offer) {
     throw new ApiError(
       StatusCodes.NOT_FOUND,
@@ -945,7 +964,6 @@ const cOffer = async (
         location,
         deadline,
         description,
-        timeFrame,
         to
       } = data;
       const isUserExist = await User.findById(userID);
@@ -994,8 +1012,7 @@ const cOffer = async (
       const offerData = {
         to: ifCustomerExist._id,
         form: isUserExist._id,
-        companyName, 
-        timeFrame,
+        companyName,
         projectName,
         category,
         budget: Number(myBudget),
@@ -1064,8 +1081,9 @@ const intracatOffer = async(
       throw new ApiError(StatusCodes.NOT_FOUND,"Offer already accepted!");
     };
 
-    const to = await User.findById(isOfferExist.to);
-    if (!isUserExist) {
+    const user1 = await User.findById(isOfferExist.to);
+    const user2 = await User.findById(isOfferExist.form);
+    if (!user1 || !user2) {
       throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
     };
     
@@ -1075,19 +1093,32 @@ const intracatOffer = async(
 
     if ( acction === "DECLINE" ) {
       isOfferExist.status = "DECLINE";
-      const newArr = to.myOffer.filter( (e: any) => e !== data.offerId );
-      to.myOffer = newArr;
+      const newArr = user1.myOffer.filter( (e: any) => e !== data.offerId );
+      user1.myOffer = newArr;
        
-      await to.save();
+      await user1.save();
       await isOfferExist.save();
       return "Offer Decline"
     };
 
-    const cardDetails = to.paymentCartDetails.customerID;
+    let cardDetails;
+    let customer;
+    let provider;
+
+    if (user1.role === USER_ROLES.USER) {
+      customer = user1;
+      provider = user2;
+      cardDetails = user1.paymentCartDetails.customerID;
+    }else if ( user2.role === USER_ROLES.USER ) {
+      customer = user2;
+      provider = user1;
+      cardDetails = user2.paymentCartDetails.customerID;
+    }
+
     if (!cardDetails) {
       throw new ApiError(
         StatusCodes.NOT_ACCEPTABLE,
-        `${to.fullName} don't have the payment details`
+        `${customer.fullName} don't have the payment details`
       )
     }
 
@@ -1113,19 +1144,27 @@ const intracatOffer = async(
     
     const orderCreationData = {
       offerID: isOfferExist._id,
-      trackStatus: {
-        paymentProcessed: true,
-        orderCreated: true,
-        isComplited: true
-      }
+      provider,
+      customer,
+      deliveryDate: isOfferExist.deadline
     };
     
     const order = await Order.create(orderCreationData);
 
     const notification = await Notification.create({
-      for: to._id,
-      content: `A new order from ${isUserExist.fullName}`
+      for: provider._id,
+      content: `A new order from ${customer.fullName}`
     });
+
+    if (provider.deviceID) {
+        await messageSend({
+          notification: {
+            title: `Got a new Order from ${customer.fullName}!`,
+            body: `${isOfferExist.description}`
+          },
+          token: provider.deviceID
+        });
+    }
 
     //@ts-ignore
     const io = global.io;
@@ -1147,7 +1186,7 @@ const intracatOffer = async(
     isOfferExist.status = "APPROVE";
     await isOfferExist.save();
 
-    return order;
+    return true;
 
 }
 
