@@ -15,6 +15,7 @@ import Order from "../../model/order.model";
 import Support from "../../model/support.model";
 import { messageSend } from "../../helpers/firebaseHelper";
 import Notification from "../../model/notification.model";
+import { paymentIntents } from "../router/payment.route";
 
 //User signUp
 const signUp = async ( 
@@ -1082,8 +1083,41 @@ const intracatOffer = async(
       return "Offer Decline"
     };
 
+    const cardDetails = to.paymentCartDetails.customerID;
+    if (!cardDetails) {
+      throw new ApiError(
+        StatusCodes.NOT_ACCEPTABLE,
+        `${to.fullName} don't have the payment details`
+      )
+    }
+
+    // Charge customer
+    const paymentIntent = await paymentIntents.create({
+      amount: Math.round(isOfferExist.budget * 100),
+      currency: 'usd',
+      customer: cardDetails,
+      confirm: true,
+      payment_method: 'pm_card_visa',
+      automatic_payment_methods: {
+        enabled: true,
+        allow_redirects: "never"
+      }
+    });
+    
+    if (paymentIntent.status !== 'succeeded') {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        "Pyment was now successfull so we can't create your order from the offer!"
+      )
+    }
+    
     const orderCreationData = {
-      offerID: isOfferExist._id
+      offerID: isOfferExist._id,
+      trackStatus: {
+        paymentProcessed: true,
+        orderCreated: true,
+        isComplited: true
+      }
     };
     
     const order = await Order.create(orderCreationData);
