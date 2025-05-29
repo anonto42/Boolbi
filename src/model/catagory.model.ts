@@ -1,6 +1,5 @@
 import { model, models, Schema } from "mongoose";
 import { ICatagory } from "../Interfaces/catagory.interface";
-import { string } from "zod";
 
 const categorySchema = new Schema<ICatagory>({
   name: {
