@@ -2,12 +2,14 @@ import { JwtPayload } from "jsonwebtoken"
 import User from "../../model/user.model";
 import { StatusCodes } from "http-status-codes";
 import ApiError from "../../errors/ApiError";
-import { ACCOUNT_STATUS } from "../../enums/user.enums";
+import { ACCOUNT_STATUS, ACCOUNT_VERIFICATION_STATUS, USER_ROLES } from "../../enums/user.enums";
 import Order from "../../model/order.model";
 import DeliveryRequest from "../../model/deliveryRequest.model";
 import Notification from "../../model/notification.model";
 import { DELIVERY_STATUS, REQUEST_TYPE } from "../../enums/delivery.enum";
 import mongoose from "mongoose";
+import { transfers } from "../router/payment.route";
+import Verification from "../../model/verifyRequest.model";
 
 const singleOrder = async (
     payload: JwtPayload,
@@ -390,59 +392,90 @@ const reqestAction = async (
     if (!isUser) {
         throw new ApiError(StatusCodes.NOT_FOUND,"User not exist!")
     };
-    if ( isUser.accountStatus === ACCOUNT_STATUS.DELETE || isUser.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUser.accountStatus.toLowerCase()}!`)
+    if ( 
+        isUser.accountStatus === ACCOUNT_STATUS.DELETE || 
+        isUser.accountStatus === ACCOUNT_STATUS.BLOCK 
+    ) {
+        throw new ApiError(
+            StatusCodes.FORBIDDEN,
+            `Your account was ${isUser.accountStatus.toLowerCase()}!`
+        )
     };
 
-    const delivaryRequest = await DeliveryRequest.findByIdAndUpdate(requestID,{ requestStatus: acction },{new: true});
+    if (acction === "DECLINE") {
+        const request = await DeliveryRequest   
+                .findByIdAndUpdate(
+                    requestID,
+                    {
+                        requestStatus: DELIVERY_STATUS.DECLINE
+                    }
+                )
+        const order = await Order.findById(request.orderID).populate("customer", "fullName");
+        const notification = await Notification.create({
+            for: order.provider,
+            content: `Your delivery request was cancelled by ${order.customer.fullName}`
+        });
+
+        //@ts-ignore
+        const io = global.io;
+        io.emit(`socket:${ order.provider }`, notification)
+    };
+
+    const delivaryRequest = await DeliveryRequest
+                                .findByIdAndUpdate(
+                                    requestID,
+                                    { 
+                                        requestStatus: acction 
+                                    },{
+                                        new: true
+                                    });
+
+    const order = await Order
+                .findByIdAndUpdate(delivaryRequest.orderID)
+                .populate("provider")
+                .populate("offerID")
+
+    const budget = order.offerID.budget;
+    const amountAfterFee = Math.round(budget * 0.95 * 100);
+
+    await transfers.create({
+        amount: amountAfterFee,
+        currency: 'usd',
+        destination: order.provider.paymentCartDetails.accountID
+    });
+
     if (!delivaryRequest) {
-        throw new ApiError(StatusCodes.FAILED_DEPENDENCY,"Something was problem on delivery request oparation!")
-    }
+        throw new ApiError(
+            StatusCodes.FAILED_DEPENDENCY,
+            "Something was problem on delivery request oparation!"
+        )
+    };
+    if (!order) {
+        throw new ApiError(
+            StatusCodes.NOT_FOUND,
+            "We don't found the order!"
+        )
+    };
 
-    return delivaryRequest
-}
+    const notification = await Notification.create({
+        for: order.provider._id,
+        content: `Your order was delivared successfully`
+    });
 
-const providerAccountVerification = async (
-    user: JwtPayload,
-    images: string[],
-    doc: string
-) => {
-    const { userID } = user;
+    await Order.findByIdAndUpdate(
+        order._id,
+        {
+            $set:{
+                "trackStatus.isComplited" : true
+            }
+        }
+    )
+    
+    //@ts-ignore
+    const io = global.io;
+    io.emit(`socket:${ order.provider._id }`,notification)
 
-    const isUser = await User.findById(userID);
-    if (!isUser) {
-        throw new ApiError(StatusCodes.NOT_FOUND, "User not exist!");
-    }
-
-    if (
-        isUser.accountStatus === ACCOUNT_STATUS.DELETE ||
-        isUser.accountStatus === ACCOUNT_STATUS.BLOCK
-    ) {
-        throw new ApiError(StatusCodes.FORBIDDEN, `Your account was ${isUser.accountStatus.toLowerCase()}!`);
-    }
-
-    if (!images || images.length < 1) {
-        throw new ApiError(StatusCodes.BAD_GATEWAY, "You should provide at least 1 image");
-    }
-
-    if (!isUser.isVerified) isUser.isVerified = {};
-    if (!Array.isArray(isUser.isVerified.sampleImages)) isUser.isVerified.sampleImages = [];
-    if (!isUser.isVerified) isUser.isVerified = {};
-
-    isUser.isVerified.trdLicense = doc;
-
-    isUser.isVerified.sampleImages.push(...images);
-
-    if (
-        isUser.isVerified.trdLicense &&
-        isUser.isVerified.sampleImages.length > 0
-    ) {
-        isUser.isVerified.status = true;
-    }
-
-    await isUser.save();
-
-    return true;
+    return true
 }
 
 const DelivaryRequestForTimeExtends = async (
@@ -477,6 +510,7 @@ const DelivaryRequestForTimeExtends = async (
                     }
                 )
         const order = await Order.findById(request.orderID).populate("customer", "fullName");
+        
         const notification = await Notification.create({
             for: order.provider,
             content: `Your delivery time extends request was cancelled by ${order.customer.fullName}`
@@ -527,11 +561,106 @@ const DelivaryRequestForTimeExtends = async (
     return true;
 }
 
+const providerAccountVerification = async (
+    user: JwtPayload,
+    images: string[],
+    doc: string
+) => {
+    const { userID } = user;
+
+    const isUser = await User.findById(userID);
+    if (!isUser) {
+        throw new ApiError(
+            StatusCodes.NOT_FOUND, 
+            "User not exist!"
+        );
+    }
+
+    if (
+        isUser.accountStatus === ACCOUNT_STATUS.DELETE ||
+        isUser.accountStatus === ACCOUNT_STATUS.BLOCK
+    ) {
+        throw new ApiError(
+            StatusCodes.FORBIDDEN, 
+            `Your account was ${isUser.accountStatus.toLowerCase()}!`
+        );
+    };
+
+    if (
+        !images || 
+        images.length < 1 || 
+        !doc 
+    ) {
+        throw new ApiError(
+            StatusCodes.BAD_GATEWAY, 
+            "You should provide all documents!"
+        );
+    };
+
+    if (!isUser.isVerified) {
+        isUser.isVerified.images = []
+        isUser.isVerified.doc = ""
+    };
+
+    isUser.isVerified.doc = doc;
+    isUser.isVerified.images.push(...images);
+    
+    if (
+        isUser.isVerified.trdLicense &&
+        isUser.isVerified.images.length > 0
+    ) {
+        isUser.isVerified.status = ACCOUNT_VERIFICATION_STATUS.WAITING
+    };
+
+    await Verification.create({
+        user: isUser._id,
+        doc,
+        image: images
+    })
+
+    const admins = await User.find({ 
+        role: {
+            $in: [ USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ]
+        } 
+    })
+    
+    //@ts-ignore
+    const io = global.io;
+    admins.forEach( async ( e: any ) => {
+        const notification = await Notification.create({
+            for: e._id,
+            content: `${isUser.fullName}`
+        });
+        
+        io.emit(`socket:${ e._id }`, notification)
+    })
+
+    await isUser.save();
+
+    return true;
+}
+
+const verificationData = async (
+    payload: JwtPayload
+) => {
+    const { userID } = payload;
+    const user = await User.findById(userID);
+    if (!user) {
+        throw new ApiError(
+            StatusCodes.NOT_FOUND,
+            "User not founded!"
+        )
+    };
+
+    return user.isVerified
+}
+
 export const ProviderService = {
     deliveryRequest,
     singleOrder,
     AllOrders,
     dOrder,
+    verificationData,
     getDeliveryReqests,
     reqestAction,
     DelivaryRequestForTimeExtends,
