@@ -1,5 +1,4 @@
 import { Document, Types } from "mongoose";
-import { Verification_For } from "../enums/user.enums";
 
 export interface IUser extends Document {
     job: Types.ObjectId[];
@@ -29,8 +28,8 @@ export interface IUser extends Document {
     termsConditions: string;
     language: string;
     isVerified: {
-        trdLicense: "",
-        sampleImages: string[],
+        doc: string,
+        images: string[],
         status: boolean
     };
     otpVerification: {
