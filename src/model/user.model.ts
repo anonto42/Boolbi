@@ -1,6 +1,6 @@
 import { model, models, Schema } from "mongoose";
 import { IUser } from "../Interfaces/User.interface";
-import { ACCOUNT_STATUS, ACCOUTN_ACTVITY_STATUS, SELECTED_LANGUAGE, USER_ROLES, Verification_For } from "../enums/user.enums";
+import { ACCOUNT_STATUS, ACCOUNT_VERIFICATION_STATUS, ACCOUTN_ACTVITY_STATUS, SELECTED_LANGUAGE, USER_ROLES } from "../enums/user.enums";
 
 const userSchema = new Schema<IUser>({
   role: { 
@@ -96,13 +96,14 @@ const userSchema = new Schema<IUser>({
     default: SELECTED_LANGUAGE.ENGLISH 
   },
   isVerified: { 
-    trdLicense: String,
-    sampleImages: [{
+    doc: String,
+    images: [{
       type: String
     }],
     status: {
-      type: Boolean,
-      default: false
+      type: String,
+      enum: ACCOUNT_VERIFICATION_STATUS,
+      default: ACCOUNT_VERIFICATION_STATUS.UNVERIFIED
     }
   },
   accountBalance:{
@@ -139,7 +140,7 @@ const userSchema = new Schema<IUser>({
     customerID:{
       type: String
     },
-    cardID:{
+    accountID:{
       type: String
     }
   },
