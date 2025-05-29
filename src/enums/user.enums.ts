@@ -25,12 +25,7 @@ export enum SELECTED_LANGUAGE {
 }
 
 export enum ACCOUNT_VERIFICATION_STATUS {
-  VERIFIED = 'true',
-  UNVERIFIED = 'false'
-}
-
-export enum Verification_For { 
-    FORMAT_PASSWORD = "FORMAT_PASSWORD", 
-    CHANGE_PASSWORD = "CHANGE_PASSWORD",
-    NULL = ""
+  VERIFIED = 'verified',
+  UNVERIFIED = 'unverified',
+  WAITING = 'waiting'
 }
