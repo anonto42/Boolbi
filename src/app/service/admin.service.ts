@@ -235,25 +235,29 @@ const addNewCatagory = async (
   image: string,
   catagoryName: string
 ) => {
-    const { userID } = payload;
-    const isAdmin = await User.findById(userID);
-    if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
-        throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
-    };
-    if (!image || !catagoryName) {
-        throw new ApiError(StatusCodes.BAD_REQUEST,"You should give all the required details to create a new catagory!")
-    };
-    const catagoryModel = await Catagroy.findOne({name: catagoryName});
-    if (catagoryModel) {
-        throw new ApiError(StatusCodes.BAD_REQUEST,`${catagoryName} is already exist your can't add this`)
-    };
-
-    const newCatagory = Catagroy.create({
-      name: catagoryName,
-      image
-    })
-
-    return newCatagory;
+    try {
+      const { userID } = payload;
+      const isAdmin = await User.findById(userID);
+      if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
+          throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+      };
+      if (!image || !catagoryName) {
+          throw new ApiError(StatusCodes.BAD_REQUEST,"You should give all the required details to create a new catagory!")
+      };
+      const catagoryModel = await Catagroy.findOne({name: catagoryName});
+      if (catagoryModel) {
+          throw new ApiError(StatusCodes.BAD_REQUEST,`${catagoryName} is already exist your can't add this`)
+      };
+  
+      const newCatagory = Catagroy.create({
+        name: catagoryName,
+        image
+      })
+  
+      return newCatagory;
+    } catch (error) {
+      unlinkFile(image);
+    }
 }
 
 const addSubCatagorys = async (
@@ -318,6 +322,7 @@ const deleteCatagory = async (
         throw new ApiError(StatusCodes.BAD_REQUEST,"You should give the catagory id for delete!")
     };
     const catagoryModel = await Catagroy.findOneAndDelete({_id: catagoryId});
+    unlinkFile((catagoryModel as any).image)
     if (!catagoryModel) {
         throw new ApiError(StatusCodes.NOT_FOUND,"Your giver catagory not exist!")
     };
@@ -333,30 +338,34 @@ const updateCatagory = async (
   },
   image?: string
 ) => {
-  const { userID } = payload;
-
-  const isAdmin = await User.findById(userID);
-  if (!isAdmin || (isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
-    throw new ApiError(StatusCodes.FORBIDDEN, "Access denied. Admin only.");
+  try {
+    const { userID } = payload;
+  
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin || (isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
+      throw new ApiError(StatusCodes.FORBIDDEN, "Access denied. Admin only.");
+    }
+  
+    const catagoryModel = await Catagroy.findById(data.id);
+    if (!catagoryModel) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Category does not exist!");
+    }
+  
+    if (data.name && data.name !== catagoryModel.name) {
+      catagoryModel.name = data.name;
+    }
+  
+    if (image && image !== catagoryModel.image) {
+      unlinkFile(catagoryModel.image)
+      catagoryModel.image = image;
+    }
+  
+    await catagoryModel.save();
+  
+    return catagoryModel;
+  } catch (error) {
+    if (image) unlinkFile(image)
   }
-
-  const catagoryModel = await Catagroy.findById(data.id);
-  if (!catagoryModel) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "Category does not exist!");
-  }
-
-  if (data.name && data.name !== catagoryModel.name) {
-    catagoryModel.name = data.name;
-  }
-
-  if (image && image !== catagoryModel.image) {
-    unlinkFile(catagoryModel.image)
-    catagoryModel.image = image;
-  }
-
-  await catagoryModel.save();
-
-  return catagoryModel;
 };
 
 const updateSubCatagory = async (
