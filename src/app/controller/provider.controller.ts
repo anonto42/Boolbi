@@ -111,7 +111,7 @@ const delivaryTimeExtendsRequest = catchAsync(
         sendResponse(res, {
             success: true,
             statusCode: StatusCodes.OK,
-            message: "Delivery extends request successfully send!",
+            message: "Successfully intract with request!",
             data: result
         })
     }
@@ -183,9 +183,24 @@ const providerAccountVerification = catchAsync(
     }
 ) 
 
+const verificatioData = catchAsync(
+    async( req, res ) => {
+        const user = (req as any)?.user;
+        const result = await ProviderService.verificationData(user);
+        
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Account verification get successfully!",
+            data: result
+        })
+    }
+)
+
 export const ProviderController = {
     gOrder,
     DOrder,
+    verificatioData,
     CDelivery,
     GDRequest,
     ADelivery,
