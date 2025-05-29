@@ -74,6 +74,19 @@ router
 
 router 
     .route("/verify")
+    .get(
+        auth( 
+            USER_ROLES.SERVICE_PROVIDER, 
+            USER_ROLES.ADMIN, 
+            USER_ROLES.SUPER_ADMIN 
+        ),
+        ProviderController.verificatioData
+    )
+    .post(
+        auth( USER_ROLES.SERVICE_PROVIDER ),
+        fileUploadHandler(),
+        ProviderController.providerAccountVerification
+    )
     .patch(
         auth( USER_ROLES.SERVICE_PROVIDER ),
         fileUploadHandler(),
