@@ -3,7 +3,7 @@ import { model, models, Schema } from "mongoose";
 const VerificationSchema = new Schema({
   user:{
     type: Schema.Types.ObjectId,
-    ref: "users"
+    ref: "user"
   },
   doc:{
     type: String,
