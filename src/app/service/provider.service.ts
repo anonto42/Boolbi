@@ -441,7 +441,8 @@ const reqestAction = async (
     await transfers.create({
         amount: amountAfterFee,
         currency: 'usd',
-        destination: order.provider.paymentCartDetails.accountID
+        destination: order.provider.paymentCartDetails.accountID,
+        transfer_group: `order_${order._id}`
     });
 
     if (!delivaryRequest) {

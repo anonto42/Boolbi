@@ -1132,7 +1132,8 @@ const intracatOffer = async(
       automatic_payment_methods: {
         enabled: true,
         allow_redirects: "never"
-      }
+      },
+      transfer_group: `order_${isOfferExist._id}`
     });
     
     if (paymentIntent.status !== 'succeeded') {
