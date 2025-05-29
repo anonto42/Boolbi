@@ -8,7 +8,7 @@ import { cardAddedSuccessfull, errorOnPayment } from "../../shared/paymentTempla
 
 const router = Router();
 // Stripe config for make payment
-export const { checkout, customers, paymentIntents, transfers } = new Stripe(config.strip_secret_key!);
+export const { checkout, customers, paymentIntents, transfers, accounts } = new Stripe(config.strip_secret_key!);
 
 router
     .route("/create")
