@@ -1,12 +1,10 @@
 import { JwtPayload } from "jsonwebtoken"
 import User from "../../model/user.model";
 import { StatusCodes } from "http-status-codes";
-import { ACCOUNT_STATUS } from "../../enums/user.enums";
+import { ACCOUNT_STATUS, USER_ROLES } from "../../enums/user.enums";
 import ApiError from "../../errors/ApiError";
-import { checkout, customers, paymentIntents, transfers } from "../router/payment.route";
-import Offer from "../../model/offer.model";
+import { accounts, checkout, customers, paymentIntents, transfers } from "../router/payment.route";
 import Order from "../../model/order.model";
-
 
 const createSession = async (
     payload: JwtPayload,
@@ -23,7 +21,10 @@ const createSession = async (
         isUser.accountStatus === ACCOUNT_STATUS.DELETE || 
         isUser.accountStatus === ACCOUNT_STATUS.BLOCK 
     ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUser.accountStatus.toLowerCase()}!`)
+        throw new ApiError(
+            StatusCodes.FORBIDDEN,
+            `Your account was ${isUser.accountStatus.toLowerCase()}!`
+        )
     };
 
     if (!isUser.paymentCartDetails.customerID) {
@@ -43,6 +44,37 @@ const createSession = async (
         isUser.paymentCartDetails.customerID = customer.id;
         await isUser.save();
     };
+
+    if (
+        isUser.role === USER_ROLES.SERVICE_PROVIDER &&
+        !isUser.paymentCartDetails.accountID
+    ) {
+
+        const account = await accounts.create({
+            type: "express",
+            country: "US",
+            email: isUser.email,
+            capabilities: {
+                transfers: {
+                    requested: true
+                },
+                card_payments:{
+                    requested: true
+                }
+            },
+            business_type: "individual",
+        });
+
+        if (!account) {
+            throw new ApiError(
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                "Failed to create the Stripe Connect account!"
+            );
+        };
+
+        isUser.paymentCartDetails.accountID = account.id;
+        await isUser.save();
+    }
 
     //Setup session
     const session = await checkout.sessions.create({
