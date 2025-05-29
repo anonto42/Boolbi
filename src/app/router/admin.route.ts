@@ -163,4 +163,16 @@ router
         AdminController.giveSupport
     )
 
+router
+    .route("/verification-requests")
+    .get(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        AdminController.allVerifications
+    )
+    .patch(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        validateRequest( AdminValidation.validationRequest ),
+        AdminController.intrackWithRequest
+    )
+
 export const AdminRoter = router;
