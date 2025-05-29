@@ -6,7 +6,6 @@ import { AdminService } from "../service/admin.service";
 import { ACCOUNT_STATUS } from "../../enums/user.enums";
 import { getSingleFilePath } from "../../shared/getFilePath";
 
-//overview of the dashoboard data
 const overView = catchAsync(
     async( req: Request, res: Response ) => {
         const Payload = (req as any).user;
@@ -16,6 +15,20 @@ const overView = catchAsync(
             success: true,
             statusCode: StatusCodes .OK,
             message: "Admin overview data get successfully",
+            data: result
+        })
+    }
+)
+
+const engagement = catchAsync(
+    async( req: Request, res: Response ) => {
+        const year = req.query.year as string;
+        const result = await AdminService.engagementData(year);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully geted the Engagements",
             data: result
         })
     }
@@ -478,5 +491,6 @@ export const AdminController = {
     giveSupport,
     newSubCatagroys,
     deleteSubCatagroys,
-    updateSubCatagroys
+    updateSubCatagroys,
+    engagement
 }

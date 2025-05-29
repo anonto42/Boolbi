@@ -2,6 +2,7 @@ import { JwtPayload } from "jsonwebtoken"
 import User from "../../model/user.model";
 import ApiError from "../../errors/ApiError";
 import { StatusCodes } from "http-status-codes";
+import { subDays, startOfDay, addDays } from "date-fns";
 import Offer from "../../model/offer.model";
 import Post from "../../model/post.model";
 import Payment from "../../model/payment.model";
@@ -14,62 +15,209 @@ import SubCatagroy from "../../model/subCategory.model";
 import unlinkFile from "../../shared/unlinkFile";
 import Verification from "../../model/verifyRequest.model";
 import Notification from "../../model/notification.model";
+import { PAYMENT_STATUS } from "../../enums/payment.enum";
+import Order from "../../model/order.model";
 
-// Need more oparation for the best responce
 const overview = async (
     payload: JwtPayload
 ) => {
     const { userID } = payload;
     const user = await User.findById(userID);
-    if ( user ) {
-        throw new ApiError(StatusCodes.NOT_FOUND,"Admin not founded!")
+    if ( !user ) {
+      throw new ApiError(
+        StatusCodes.NOT_FOUND,
+        "Admin not founded!"
+      )
     };
 
-    const totalUser = await User.find({});
-    const totalJobRequest = await Offer.find({});
-    const totalJobPost = await Post.find({});
-    
-    const result = await Payment.aggregate([
-        {
-            $match: {
-            status: "SUCCESS",
-            },
-        },
-        {
-            $group: {
-            _id: {
-                year: { $year: "$createdAt" },
-                month: { $month: "$createdAt" },
-            },
-            monthlyCommission: { $sum: "$commission" },
-            },
-        },
-        {
-            $sort: { "_id.year": 1, "_id.month": 1 }
+    const totalUser = await User.find().countDocuments();
+    const totalJobRequest = await Offer.find().countDocuments();
+    const totalJobPost = await Post.find().countDocuments();
+    const totalCommission = await Payment.aggregate([
+      { $match: { status: PAYMENT_STATUS.SUCCESS } },
+      {
+        $group: {
+          _id: null,
+          totalCommission: { $sum: "$commission" }
         }
-        ]);
+      }
+    ]);
+    const commissionSum = totalCommission[0]?.totalCommission || 0;
 
-        const totalRevenue = result.reduce((sum, item) => sum + item.monthlyCommission, 0);
+    const currentYear = new Date().getFullYear();
 
-        const monthlyRevenue = result.map(item => {
-            const monthName = new Date(item._id.year, item._id.month - 1).toLocaleString("default", { month: "long" });
-            return {
-                month: monthName,
-                year: item._id.year,
-                revenue: item.monthlyCommission,
-            };
-        });
-    
+    const result = await Payment.aggregate([
+      {
+        $match: {
+          createdAt: {
+            $gte: new Date(`${currentYear}-01-01`),
+            $lt: new Date(`${currentYear + 1}-01-01`)
+          }
+        }
+      },
+      {
+        $group: {
+          _id: { $month: "$createdAt" },
+          totalCommission: { $sum: "$commission" }
+        }
+      }
+    ]);
+
+    const months = [
+      "jan", "feb", "mar", "apr", "may", "jun",
+      "jul", "aug", "sep", "oct", "nov", "dec"
+    ];
+
+    const commissionData: Record<string, number> = {};
+    months.forEach(month => {
+      commissionData[month] = 0;
+    });
+
+    // Fill in actual values
+    result.forEach(entry => {
+      const monthIndex = entry._id - 1;
+      const monthName = months[monthIndex];
+      commissionData[monthName] = entry.totalCommission;
+    });
+
+    const today = startOfDay(new Date());
+    const lastWeek = subDays(today, 6);
+
+    const data = await User.aggregate([
+      {
+        $match: {
+          createdAt: {
+            $gte: lastWeek,
+            $lte: addDays(today, 1)
+          },
+          role: { $in: [ USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER] }
+        }
+      },
+      {
+        $project: {
+          role: 1,
+          day: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }
+        }
+      },
+      {
+        $group: {
+          _id: { day: "$day", role: "$role" },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $group: {
+          _id: "$_id.day",
+          roles: {
+            $push: {
+              role: "$_id.role",
+              count: "$count"
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          day: "$_id",
+          serviceProvider: {
+            $let: {
+              vars: {
+                sp: {
+                  $arrayElemAt: [
+                    {
+                      $filter: {
+                        input: "$roles",
+                        as: "item",
+                        cond: { $eq: ["$$item.role", "serviceProvider"] }
+                      }
+                    },
+                    0
+                  ]
+                }
+              },
+              in: { $ifNull: ["$$sp.count", 0] }
+            }
+          },
+          categoryUser: {
+            $let: {
+              vars: {
+                cu: {
+                  $arrayElemAt: [
+                    {
+                      $filter: {
+                        input: "$roles",
+                        as: "item",
+                        cond: { $eq: ["$$item.role", "categoryUser"] }
+                      }
+                    },
+                    0
+                  ]
+                }
+              },
+              in: { $ifNull: ["$$cu.count", 0] }
+            }
+          }
+        }
+      },
+      {
+        $sort: { day: 1 }
+      }
+    ]);
 
     return {
         totalJobPost,
         totalJobRequest,
         totalUser,
-        totalRevenue:{
-            totalRevenue,
-            monthlyRevenue
-        }
+        totalRevenue: commissionSum,
+        yearlyRevenueData: commissionData,
+        userJoined: data
     };
+}
+
+const engagementData = async (
+  year : string
+) => {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    const numericYear = parseInt(year);
+
+    const pipeline = [
+      {
+        $match: {
+          createdAt: {
+            $gte: new Date(`${numericYear}-01-01T00:00:00Z`),
+            $lt: new Date(`${numericYear + 1}-01-01T00:00:00Z`)
+          }
+        }
+      },
+      {
+        $group: {
+          _id: { $month: "$createdAt" },
+          count: { $sum: 1 }
+        }
+      }
+    ];
+
+    const [userCounts, orderCounts] = await Promise.all([
+      User.aggregate(pipeline),
+      Order.aggregate(pipeline)
+    ]);
+
+    const userMap = new Map(userCounts.map(item => [item._id, item.count]));
+    const orderMap = new Map(orderCounts.map(item => [item._id, item.count]));
+
+    const result = months.map((monthName, index) => {
+      const monthIndex = index + 1;
+      return {
+        month: monthName,
+        userCount: userMap.get(monthIndex) || 0,
+        orderCount: orderMap.get(monthIndex) || 0
+      };
+    });
+
+    console.log(result)
+    return result
 }
 
 const allCustomers = async (
@@ -929,6 +1077,7 @@ const intractVerificationRequest = async (
 
 export const AdminService = {
     overview,
+    engagementData,
     allCustomers,
     intractVerificationRequest,
     aCustomer,

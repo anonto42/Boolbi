@@ -16,6 +16,13 @@ router
         AdminController.overView
     )
 
+router
+    .route("/engagement")
+    .get(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        AdminController.engagement
+    )
+
 router 
     .route("/customer")
     .get(
