@@ -5,13 +5,15 @@ import { StatusCodes } from "http-status-codes";
 import Offer from "../../model/offer.model";
 import Post from "../../model/post.model";
 import Payment from "../../model/payment.model";
-import { ACCOUNT_STATUS, USER_ROLES } from "../../enums/user.enums";
+import { ACCOUNT_STATUS, ACCOUNT_VERIFICATION_STATUS, USER_ROLES } from "../../enums/user.enums";
 import Catagroy from "../../model/catagory.model";
 import Announcement from "../../model/announcement.model";
 import { bcryptjs } from "../../helpers/bcryptHelper";
 import Support from "../../model/support.model";
 import SubCatagroy from "../../model/subCategory.model";
 import unlinkFile from "../../shared/unlinkFile";
+import Verification from "../../model/verifyRequest.model";
+import Notification from "../../model/notification.model";
 
 // Need more oparation for the best responce
 const overview = async (
@@ -761,30 +763,165 @@ const allSupportRequests = async (
 const giveSupport = async (
     payload: JwtPayload,
     {
-        supportID,
-        reply
+      supportID,
+      reply
     }:{
-        supportID: string,
-        reply: string
+      supportID: string,
+      reply: string
     }
 ) => {
     const { userID } = payload;
     const isAdmin = await User.findById(userID);
-    if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
-        throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+    if (
+      !isAdmin || 
+      ( 
+        isAdmin.role !== USER_ROLES.ADMIN && 
+        isAdmin.role !== USER_ROLES.SUPER_ADMIN
+      )
+    ) {
+      throw new ApiError(
+        StatusCodes.NOT_FOUND, 
+        "Admin not found"
+      );
     };
 
-    const supportUpdated = await Support.findByIdAndUpdate(supportID,{adminReply: reply, status: "SOLVED"},{ new: true });
+    const supportUpdated = await Support.findByIdAndUpdate(
+      supportID,
+      {
+        adminReply: reply, 
+        status: "SOLVED"
+      },{ new: true }
+    );
+
+    
+    //@ts-ignore
+    const io = global.io;
+    
+    const notification = await Notification.create({
+        for: supportUpdated.from,
+        content: `You got a replay from the support request!`
+    });
+        
+    io.emit(`socket:${ supportUpdated.from }`, notification);
+
     if (!supportUpdated) {
-        throw new ApiError(StatusCodes.NOT_FOUND,"Not founded the support, something was wrong")
+      throw new ApiError(
+        StatusCodes.NOT_FOUND,
+        "Not founded the support, something was wrong"
+      )
     };
     
     return supportUpdated
 }
 
+const allVericifationRequestes = async (
+  payload: JwtPayload
+) => {
+  const { userID } = payload;
+  const isAdmin = await User.findById( userID );
+  if (
+    !isAdmin ||
+    isAdmin.role !== USER_ROLES.ADMIN && 
+    isAdmin.role !== USER_ROLES.SUPER_ADMIN   
+  ) {
+    throw new ApiError(
+      StatusCodes.INTERNAL_SERVER_ERROR,
+      "You are not availe to do that!"
+    )
+  }
+
+  return await Verification.find();
+}
+
+const aVerification = async (
+  payload: JwtPayload,
+  id: string
+) => {
+  const { userID } = payload;
+  const isAdmin = await User.findById( userID );
+  if (
+    !isAdmin ||
+    isAdmin.role !== USER_ROLES.ADMIN && 
+    isAdmin.role !== USER_ROLES.SUPER_ADMIN   
+  ) {
+    throw new ApiError(
+      StatusCodes.INTERNAL_SERVER_ERROR,
+      "You are not available to do that!"
+    )
+  }
+  if (!id) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      "You must give the id of the request"
+    )
+  }
+
+  return await Verification.findById(id)
+}
+
+const intractVerificationRequest = async (
+  payload: JwtPayload,
+  requestId: string,
+  acction: "APPROVE" | "DECLINE"
+) => {
+  const { userID } = payload;
+  const isAdmin = await User.findById( userID );
+  if (
+    !isAdmin ||
+    isAdmin.role !== USER_ROLES.ADMIN && 
+    isAdmin.role !== USER_ROLES.SUPER_ADMIN   
+  ) {
+    throw new ApiError(
+      StatusCodes.INTERNAL_SERVER_ERROR,
+      "You are not availe to do that!"
+    )
+  }
+
+  const request = await Verification.findById(requestId).populate("user");
+  if (!request) {
+    throw new ApiError(
+      StatusCodes.NOT_FOUND,
+      "Request not founded!"
+    )
+  }
+  
+  //@ts-ignore
+  const io = global.io;
+
+  if ( acction === "APPROVE" ) {
+    await User.findByIdAndUpdate( request.user , {
+      $set: {
+        "isVerified.status": ACCOUNT_VERIFICATION_STATUS.VERIFIED
+      }
+    })
+    const notification = await Notification.create({
+        for: request.user._id,
+        content: `${request.user.fullName} your verificaiton request was approved`
+    });
+        
+    io.emit(`socket:${ request.user._id }`, notification);
+
+  } else if ( acction === "DECLINE" ) {
+    await User.findByIdAndUpdate( request.user , {
+      $set: {
+        "isVerified.status": ACCOUNT_VERIFICATION_STATUS.UNVERIFIED
+      }
+    })
+    const notification = await Notification.create({
+        for: request.user._id,
+        content: `${request.user.fullName} your verificaiton request was rejected!`
+    });
+        
+    io.emit(`socket:${ request.user._id }`, notification);
+  }
+
+  return await Verification.find();
+}
+
 export const AdminService = {
     overview,
     allCustomers,
+    intractVerificationRequest,
     aCustomer,
     updateUserAccountStatus,
     allProvider,
@@ -801,6 +938,7 @@ export const AdminService = {
     updateAnnounsments,
     statusAnnounsments,
     privacyPolicy,
+    aVerification,
     editePrivacyPolicy,
     conditions,
     editeConditions,
@@ -811,5 +949,6 @@ export const AdminService = {
     giveSupport,
     addSubCatagorys,
     deleteSubCatagory,
-    updateSubCatagory
+    updateSubCatagory,
+    allVericifationRequestes
 }
