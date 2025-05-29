@@ -75,9 +75,17 @@ const supportRequestAdminSchema = z.object({
     })
 })
 
+const validationRequest = z.object({
+    body: z.object({
+        requestId: z.string({ required_error:"You must give a request Id" }),
+        acction: z.enum(["APPROVE","DECLINE"])
+    })
+})
+
 
 export const AdminValidation = {
     userUpdateSchema,
+    validationRequest,
     catagorySchema,
     announcementSchema,
     announceUpdate,
