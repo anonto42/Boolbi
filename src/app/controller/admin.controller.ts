@@ -414,10 +414,47 @@ const giveSupport = catchAsync(
     }
 );
 
+const allVerifications = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const id = req.query.id as string;
+        let result ;
+
+        if ( !id ) {
+            result = await AdminService.allVericifationRequestes(Payload)
+        } else if ( result ) {
+            result = await AdminService.aVerification(Payload,id)   
+        }
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully get verification requests!",
+            data: result
+        });
+    }
+);
+
+const intrackWithRequest = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const { action, requestId } = req.body;
+        const result = await AdminService.intractVerificationRequest(Payload,requestId, action)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully send the support message",
+            data: result
+        });
+    }
+);
+
 export const AdminController = {
     overView,
     customers,
     updateAccountStatus,
+    intrackWithRequest,
     providers,
     payments,
     catagroys,
@@ -433,6 +470,7 @@ export const AdminController = {
     editeyPolicy,
     termsAndConditions,
     allAdmins,
+    allVerifications,
     editeConditions,
     newAdmins,
     deleteAdmin,
