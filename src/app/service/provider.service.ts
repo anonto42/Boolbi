@@ -10,6 +10,8 @@ import { DELIVERY_STATUS, REQUEST_TYPE } from "../../enums/delivery.enum";
 import mongoose from "mongoose";
 import { transfers } from "../router/payment.route";
 import Verification from "../../model/verifyRequest.model";
+import Payment from "../../model/payment.model";
+import { PAYMENT_STATUS } from "../../enums/payment.enum";
 
 const singleOrder = async (
     payload: JwtPayload,
@@ -475,6 +477,14 @@ const reqestAction = async (
     //@ts-ignore
     const io = global.io;
     io.emit(`socket:${ order.provider._id }`,notification)
+
+    await Payment.create({
+        userId: order.customer,
+        orderId: order._id,
+        amount: budget,
+        commission: amountAfterFee,
+        status: PAYMENT_STATUS.SUCCESS
+    })
 
     return true
 }
