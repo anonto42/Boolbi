@@ -6,7 +6,7 @@ import { ACCOUNT_STATUS } from "../../enums/user.enums";
 import Order from "../../model/order.model";
 import DeliveryRequest from "../../model/deliveryRequest.model";
 import Notification from "../../model/notification.model";
-import { REQUEST_TYPE } from "../../enums/delivery.enum";
+import { DELIVERY_STATUS, REQUEST_TYPE } from "../../enums/delivery.enum";
 import mongoose from "mongoose";
 
 const singleOrder = async (
@@ -246,7 +246,7 @@ const deliveryTimeExtendsRequest = async (
         orderID,
         projectDoc: reason,
         requestType: REQUEST_TYPE.TIME_EXTEND,
-        uploatedProject: nextDate,
+        nextExtendeDate: nextDate,
     }
 
     await DeliveryRequest.create(delivaryData);
@@ -443,11 +443,89 @@ const providerAccountVerification = async (
     await isUser.save();
 
     return true;
-};
+}
 
+const DelivaryRequestForTimeExtends = async (
+    user: JwtPayload,
+    requestData: {
+        acction: "DECLINE" | "APPROVE";
+        requestID: string
+    }
+) => {
+    const { userID } = user;
+    const { acction, requestID } = requestData;
+    const isUser = await User.findOne({_id: userID});
+    if (!isUser) {
+        throw new ApiError(StatusCodes.NOT_FOUND,"User not exist!")
+    };
+    if ( 
+        isUser.accountStatus === ACCOUNT_STATUS.DELETE || 
+        isUser.accountStatus === ACCOUNT_STATUS.BLOCK 
+    ) {
+        throw new ApiError(
+            StatusCodes.FORBIDDEN,
+            `Your account was ${isUser.accountStatus.toLowerCase()}!`
+        )
+    };
 
-// TO Do delivary request intractions 
+    if (acction === "DECLINE") {
+        const request = await DeliveryRequest   
+                .findByIdAndUpdate(
+                    requestID,
+                    {
+                        requestStatus: DELIVERY_STATUS.DECLINE
+                    }
+                )
+        const order = await Order.findById(request.orderID).populate("customer", "fullName");
+        const notification = await Notification.create({
+            for: order.provider,
+            content: `Your delivery time extends request was cancelled by ${order.customer.fullName}`
+        });
 
+        //@ts-ignore
+        const io = global.io;
+        io.emit(`socket:${ order.provider }`, notification)
+    };
+
+    const delivaryRequest = await DeliveryRequest
+                                .findByIdAndUpdate(
+                                    requestID,
+                                    { 
+                                        requestStatus: acction 
+                                    },{
+                                        new: true
+                                    });
+
+    const order = await Order.findByIdAndUpdate(
+        delivaryRequest.orderID,
+        {
+            deliveryDate: delivaryRequest.nextExtendeDate
+        }
+    ).populate("customer","fullName")
+    if (!delivaryRequest) {
+        throw new ApiError(
+            StatusCodes.FAILED_DEPENDENCY,
+            "Something was problem on delivery request oparation!"
+        )
+    };
+    if (!order) {
+        throw new ApiError(
+            StatusCodes.NOT_FOUND,
+            "We don't found the order!"
+        )
+    };
+
+    const notification = await Notification.create({
+        for: order.provider,
+        content: `You delivery time extends request approved by ${order.customer.fullName}`
+    });
+
+    //@ts-ignore
+    const io = global.io;
+    io.emit(`socket:${ order.provider }`,notification)
+
+    return true;
+}
 
 export const ProviderService = {
     deliveryRequest,
@@ -456,6 +534,7 @@ export const ProviderService = {
     dOrder,
     getDeliveryReqests,
     reqestAction,
+    DelivaryRequestForTimeExtends,
     providerAccountVerification,
     AllCompletedOrders,
     ADeliveryReqest,

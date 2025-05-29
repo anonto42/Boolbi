@@ -6,6 +6,7 @@ export interface IDR extends Document {
     projectDoc: string,
     requestType: string,
     uploatedProject: string,
+    nextExtendeDate: Date,
     pdf: string,
     images: string[],
     requestStatus: string,

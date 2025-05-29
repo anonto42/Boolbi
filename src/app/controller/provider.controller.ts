@@ -101,6 +101,22 @@ const extendsDeliveryRequest = catchAsync(
     }
 ) 
 
+const delivaryTimeExtendsRequest = catchAsync(
+    async( req, res ) => {
+        const user = (req as any)?.user;
+        const {...data} = req.body;
+    
+        const result = await ProviderService.DelivaryRequestForTimeExtends(user,data);
+    
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Delivery extends request successfully send!",
+            data: result
+        })
+    }
+) 
+
 const deliveryRequests = catchAsync(
     async( req, res ) => {
         const user = (req as any)?.user;
@@ -176,6 +192,7 @@ export const ProviderController = {
     deliveryRequests,
     completedOrders,
     requestStatueUpdate,
+    delivaryTimeExtendsRequest,
     providerAccountVerification,
     extendsDeliveryRequest
 }

@@ -23,6 +23,9 @@ const deliveryRequestSchema = new Schema<IDR>({
     type: String,
     required: true
   },
+  nextExtendeDate:{
+    type: Date
+  },
   pdf:{
     type: String
   },

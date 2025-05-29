@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { DELIVERY_STATUS } from "../enums/delivery.enum"
 
 const createRequest = z.object({
     body: z.object({
@@ -23,9 +24,17 @@ const timeExtendDelivaryRequestZodSchema = z.object({
     })
 })
 
+const timeExtendDelivaryRequestIntraction = z.object({
+    body: z.object({
+        requestID: z.string({required_error:"You must give the order id"}),
+        acction: z.enum([ DELIVERY_STATUS.APPROVE, DELIVERY_STATUS.DECLINE ]),
+    })
+})
+
 
 export const DelivaryValidation = {
     createRequest,
     acceptdelivaryRequestZodSchema,
-    timeExtendDelivaryRequestZodSchema
+    timeExtendDelivaryRequestZodSchema,
+    timeExtendDelivaryRequestIntraction
 }

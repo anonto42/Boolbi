@@ -66,6 +66,11 @@ router
         validateRequest( DelivaryValidation.timeExtendDelivaryRequestZodSchema ),
         ProviderController.extendsDeliveryRequest
     )
+    .patch(
+        auth( USER_ROLES.USER ),
+        validateRequest( DelivaryValidation.timeExtendDelivaryRequestIntraction ),
+        ProviderController.delivaryTimeExtendsRequest
+    )
 
 router 
     .route("/verify")
