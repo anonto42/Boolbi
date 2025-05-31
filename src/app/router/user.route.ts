@@ -174,5 +174,13 @@ router
         UserController.notifications
     )
 
+router
+    .route("/rating")
+    .post(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        validateRequest( Validation.ratingZodSchema ),
+        UserController.giveReting
+    )
+
 
 export const UserRouter = router;
