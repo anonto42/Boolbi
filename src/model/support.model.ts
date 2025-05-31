@@ -4,7 +4,7 @@ import { ISupport } from "../Interfaces/support.interface";
 const supportSchema = new Schema<ISupport>({
   for:{
     type: Schema.Types.ObjectId,
-    ref: "users"
+    ref: "user"
   },
   catagory:{
     type: String,
