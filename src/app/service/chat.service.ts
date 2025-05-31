@@ -130,7 +130,7 @@ const deleteChat = async ( userID: string, id: string ) => {
 
   return true
 
-}
+};
 
 export const chatService = {
   createChat,
