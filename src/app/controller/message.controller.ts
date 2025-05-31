@@ -83,8 +83,8 @@ const sendMessage = catchAsync(
 const allMessages = catchAsync(
     async( req: Request, res: Response ) => {
         const {userID} = ( req as any ).user;
-        const chatID = req.query.chatID as string;
-        const result = await messageService.getMessages(chatID, userID,{});
+        const { limit, chatID } = req.body;
+        const result = await messageService.getMessages(chatID, userID,{limit});
 
         sendResponse(res, {
             success: true,
