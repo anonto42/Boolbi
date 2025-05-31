@@ -2,7 +2,7 @@ import { model, models, Schema } from "mongoose";
 import { ISupport } from "../Interfaces/support.interface";
 
 const supportSchema = new Schema<ISupport>({
-  from:{
+  for:{
     type: Schema.Types.ObjectId,
     ref: "users"
   },
