@@ -39,7 +39,7 @@ const addMessage = async (
       StatusCodes.FORBIDDEN,
       `Your account was ${user.accountStatus.toLowerCase()}!`
     );
-  }
+  };
 
   const message = await Message.create({
     sender: user._id,
@@ -65,7 +65,7 @@ const addMessage = async (
     if (userId.toString() !== userID) {
       const targetSocketId = socketHelper.connectedUsers.get(userId.toString());
       if (targetSocketId) {
-        io.to(targetSocketId).emit(`socket:${userId}`, socketMessage);
+        io.to(targetSocketId).emit(`socket:message:${userId}`, socketMessage);
       }
     }
   }
@@ -112,7 +112,7 @@ const getMessages = async (
       { $match: { chatID: chat } },
       { $sort: { createdAt: -1 } },
       { $skip: skip },
-      // { $limit: limit },
+      { $limit: limit },
       {
         $lookup: {
           from: 'users',
@@ -122,19 +122,9 @@ const getMessages = async (
         },
       },
       { $unwind: '$sender' },
-      // {
-      //   $lookup: {
-      //     from: 'chat',
-      //     localField: 'chatID',
-      //     foreignField: '_id',
-      //     as: 'chatDetails',
-      //   },
-      // },
-      // { $unwind: '$chatDetails' },
       {
         $project: {
           _id: 1,
-          // chat: 1,
           message: 1,
           type: 1,
           sender: {
