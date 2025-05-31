@@ -413,9 +413,25 @@ const notifications = catchAsync(
     }
 )
 
+const giveReting = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const {...data} = req.body;
+        const result = await UserServices.addRating(payload,data);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully add the rating!",
+            data: result
+        })
+    }
+)
+
 export const UserController = {
     searchPosts,
     notifications,
+    giveReting,
     iOfferd,
     filterPosts,
     signupUser,
