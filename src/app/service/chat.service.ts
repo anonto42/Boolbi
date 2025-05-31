@@ -17,7 +17,7 @@ const createChat = async (
   const isRecever = await User.findById( chatInfo.receiver );
   
   if (!isRecever) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "Receiver not found");
+    throw new ApiError(StatusCodes.NOT_FOUND, "Receiver not found");
   };
 
   if (!isUser) {
