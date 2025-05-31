@@ -1,7 +1,7 @@
 import { StatusCodes } from "http-status-codes";
 import ApiError from "../../errors/ApiError";
 import User from "../../model/user.model";
-import { FilterPost, ISignUpData, JobPost, TOffer } from "../../types/user"
+import { FilterPost, ISignUpData, JobPost, TOffer, TRating } from "../../types/user"
 import { bcryptjs } from "../../helpers/bcryptHelper";
 import { IUser } from "../../Interfaces/User.interface";
 import { JwtPayload } from "jsonwebtoken";
@@ -1226,54 +1226,69 @@ const deleteOffer = async(
 
 // suport request
 const supportRequest = async(
-    payload: JwtPayload,
-    {
-      message,
-      category
-    }:{
-      from: string,
-      message: string,
-      category: string,
-    }
+  payload: JwtPayload,
+  {
+    message,
+    category
+  }:{
+    from: string,
+    message: string,
+    category: string,
+  }
 )=>{
-    const { userID } = payload;
-    if ( !message || !category ) {
-      throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"You must give the required fields")
-    };
-    const isUserExist = await User.findById(userID);
-    if (!isUserExist) {
-        throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
-    };
-    if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
-    };
+  const { userID } = payload;
+  if ( !message || !category ) {
+    throw new ApiError(
+      StatusCodes.NOT_ACCEPTABLE,
+      "You must give the required fields"
+    )
+  };
+  const isUserExist = await User.findById(userID);
+  if (!isUserExist) {
+    throw new ApiError(
+      StatusCodes.NOT_FOUND,
+      "User not founded"
+    );
+  };
+  if ( 
+    isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || 
+    isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK 
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
+    )
+  };
 
-  // Create the support request in DB
+  const admins = await User.find({
+    role: { $in: [USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN] }
+  });
+
   const support = await Support.create({
-    from: isUserExist._id,
+    for: isUserExist._id,
     catagory: category,
     message,
   });
 
   if (!support) {
-    throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Support not created");
-  }
+    throw new ApiError(
+      StatusCodes.INTERNAL_SERVER_ERROR, 
+      "Support not created"
+    );
+  };
 
-  // Emit socket notification
-  //@ts-ignore
-  const io = global.io;
+  admins.map( async ( e: any ) => {
+    const notification = await Notification.create({
+      for:e._id,
+      content: `You get a support request from ${isUserExist.fullName}`
+    })
   
-  const roomID = `support_${support._id}`;
+      //@ts-ignore
+    const io = global.io;
+    io.emit(`socket:${e._id}`,notification)
+  })
 
-  io.to(roomID).emit("receive notification", {
-    roomID,
-    userName: isUserExist.name,
-    message,
-    iconImage: isUserExist.profileImage || null,
-    createdAt: new Date(),
-  });
-
-    return support;
+  return support;
 }
 
 // This funciton is for search some data
@@ -1495,8 +1510,48 @@ const allNotifications = async (
   return allNotifications;
 }
 
+const addRating = async ( 
+  payload: JwtPayload,
+  data: TRating
+) => {
+  const { userID } = payload;
+  const { feedback, star, orderID } = data;
+  const order = await Order.findById(orderID);
+  if (!order) {
+    throw new ApiError(
+      StatusCodes.NOT_FOUND,
+      "Order not founded!"
+    );
+  };
+  if (order.customer.toString() !== userID.toString()) {
+    throw new ApiError(
+      StatusCodes.NOT_FOUND,
+      "You are not authorize to give him a reating!"
+    );
+  }
+  const provider = await User.findById(order.provider);
+  if (!provider) {
+    throw new ApiError(
+      StatusCodes.NOT_FOUND,
+      "Provider not founded!"
+    );
+  };
+  
+  const feedBack = {
+      stars: star,
+      feedback,
+      from: userID,
+    };
+
+  provider.ratings.push(feedBack);
+  await provider.save();
+
+  return true;
+}
+
 export const UserServices = {
     filteredData,
+    addRating,
     getAOffer,
     signUp,
     allNotifications,
