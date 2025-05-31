@@ -158,12 +158,25 @@ const filterData = z.object({
 
 const forgetPassword = z.object({
   body: z.object({
-
+    email: z.string({required_error: "You must give the email"}), 
+    password: z.string({required_error: "You must give the password!"}), 
+    confirmPassword: z.string({required_error: "You must give the confirm password"}), 
+    token: z.string({required_error: "You must give the token for change the password!"})
   })
 })
 
+const ratingZodSchema = z.object({
+  body: z.object({
+    star: z.number({required_error: "You must give the number that you want to give!"}), 
+    feedback: z.string({required_error: "You must give the feedback"}), 
+    providerID: z.string({required_error: "You must give the id of the provider that you want to give rating!"})
+  })
+})
+
+
 export const Validation = {
   singnUpZodSchema,
+  ratingZodSchema,
   filterData,
   signInZodSchema,
   authEmailOTPZodSchema,
