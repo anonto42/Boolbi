@@ -1291,6 +1291,17 @@ const supportRequest = async(
   return support;
 }
 
+// won created requests
+const getRequests = async (
+  payload: JwtPayload
+) => {
+  const { userID } = payload;
+  
+  const requests = await Support.find({for: userID});
+
+  return requests;
+}
+
 // This funciton is for search some data
 const searchPosts = async (
   payload: JwtPayload, 
@@ -1552,6 +1563,7 @@ const addRating = async (
 export const UserServices = {
     filteredData,
     addRating,
+    getRequests,
     getAOffer,
     signUp,
     allNotifications,

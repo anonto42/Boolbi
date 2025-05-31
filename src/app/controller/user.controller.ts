@@ -428,8 +428,23 @@ const giveReting = catchAsync(
     }
 )
 
+const getRequests = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const result = await UserServices.getRequests(payload);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully get all the requests!",
+            data: result
+        })
+    }
+)
+
 export const UserController = {
     searchPosts,
+    getRequests,
     notifications,
     giveReting,
     iOfferd,

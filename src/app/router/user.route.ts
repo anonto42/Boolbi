@@ -5,6 +5,7 @@ import { Validation } from '../../validation/IO.validation';
 import { USER_ROLES } from '../../enums/user.enums';
 import auth from '../../middlewares/Auth.middleware';
 import fileUploadHandler from '../../middlewares/fileUploadHandler';
+import { UserServices } from '../service/user.service';
 
 const router = Router();
 
@@ -139,6 +140,10 @@ router
 
 router
     .route("/suport-request")
+    .get(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        UserController.getRequests
+    )
     .post(
         auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
         UserController.supportRequest
