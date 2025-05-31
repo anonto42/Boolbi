@@ -900,16 +900,25 @@ const deleteAdmin = async (
 }
 
 const allSupportRequests = async (
-    payload: JwtPayload
+  payload: JwtPayload
 ) => {
   const { userID } = payload;
   const isAdmin = await User.findById(userID);
-  if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+  if (
+      !isAdmin || 
+      ( 
+        isAdmin.role !== USER_ROLES.ADMIN && 
+        isAdmin.role !== USER_ROLES.SUPER_ADMIN
+      )
+    ) {
+      throw new ApiError(
+        StatusCodes.NOT_FOUND, 
+        "Admin not found"
+      );
   };
   
   const supports = await Support.find()
-    .populate({ path: 'from', select: 'fullName email' })
+    .populate({ path: 'for', select: 'fullName email' })
     .sort({ createdAt: -1 })
     .exec();
 
@@ -952,13 +961,12 @@ const giveSupport = async (
     
     //@ts-ignore
     const io = global.io;
-    
     const notification = await Notification.create({
-        for: supportUpdated.from,
-        content: `You got a replay from the support request!`
+      for: supportUpdated.for,
+      content: `You got a replay from the support request!`
     });
         
-    io.emit(`socket:${ supportUpdated.from }`, notification);
+    io.emit(`socket:${ supportUpdated.for }`, notification);
 
     if (!supportUpdated) {
       throw new ApiError(
