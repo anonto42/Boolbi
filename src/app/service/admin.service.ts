@@ -64,21 +64,21 @@ const overview = async (
     ]);
 
     const months = [
-      "jan", "feb", "mar", "apr", "may", "jun",
-      "jul", "aug", "sep", "oct", "nov", "dec"
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
     ];
 
-    const commissionData: Record<string, number> = {};
-    months.forEach(month => {
-      commissionData[month] = 0;
+    // Convert aggregation result to a map for fast access
+    const commissionMap = new Map<number, number>();
+    result.forEach(entry => {
+      commissionMap.set(entry._id, entry.totalCommission);
     });
 
-    // Fill in actual values
-    result.forEach(entry => {
-      const monthIndex = entry._id - 1;
-      const monthName = months[monthIndex];
-      commissionData[monthName] = entry.totalCommission;
-    });
+    // Build the final array format
+    const formattedData = months.map((monthName, index) => ({
+      month: monthName,
+      commission: commissionMap.get(index + 1) || 0
+    }));
 
     const today = startOfDay(new Date());
     const lastWeek = subDays(today, 6);
@@ -170,7 +170,7 @@ const overview = async (
         totalJobRequest,
         totalUser,
         totalRevenue: commissionSum,
-        yearlyRevenueData: commissionData,
+        yearlyRevenueData: formattedData,
         userJoined: data
     };
 }
@@ -216,7 +216,6 @@ const engagementData = async (
       };
     });
 
-    console.log(result)
     return result
 }
 
