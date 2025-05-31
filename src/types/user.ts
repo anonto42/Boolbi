@@ -50,3 +50,9 @@ export type TOffer = {
     description: string;
     postID: string;
 }
+
+export type TRating = {
+    star: number,
+    feedback: string,
+    orderID: string
+}
