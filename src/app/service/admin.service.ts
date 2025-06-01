@@ -17,6 +17,7 @@ import Verification from "../../model/verifyRequest.model";
 import Notification from "../../model/notification.model";
 import { PAYMENT_STATUS } from "../../enums/payment.enum";
 import Order from "../../model/order.model";
+import { PaginationParams } from "../../types/user";
 
 const overview = async (
     payload: JwtPayload
@@ -220,32 +221,45 @@ const engagementData = async (
 }
 
 const allCustomers = async (
-    payload: JwtPayload 
+  payload: JwtPayload,
+  params: PaginationParams = {}
 ) => {
-    const { userID } = payload;
-    const isAdmin = await User.findById(userID);
-    if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
-    };
-    
-    const allUsers = await User.aggregate([
-      {
-        $match: { role: "USER" }
-      },
-      {
-        $project: {
-          _id: 1,
-          fullName: 1,
-          email: 1,
-          accountStatus: 1,
-          deviceID: 1,
-          createdAt: 1,
-          updatedAt: 1
-        }
+  const { userID } = payload;
+  const { page = 1, limit = 10 } = params;
+  const skip = (page - 1) * limit;
+
+  const isAdmin = await User.findById(userID);
+  if (!isAdmin || (isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+  }
+
+  const total = await User.countDocuments({ role: "USER" });
+
+  const allUsers = await User.aggregate([
+    { $match: { role: "USER" } },
+    {
+      $project: {
+        _id: 1,
+        fullName: 1,
+        email: 1,
+        accountStatus: 1,
+        deviceID: 1,
+        createdAt: 1,
+        updatedAt: 1
       }
-    ]);
-    return allUsers;
-}
+    },
+    { $sort: { createdAt: -1 } },
+    { $skip: skip },
+    { $limit: limit }
+  ]);
+
+  return {
+    data: allUsers,
+    total,
+    currentPage: page,
+    totalPages: Math.ceil(total / limit)
+  };
+};
 
 const aCustomer = async (
     payload: JwtPayload,
@@ -286,47 +300,76 @@ const updateUserAccountStatus = async (
 }
 
 const allProvider = async (
-    payload: JwtPayload 
+  payload: JwtPayload,
+  params: PaginationParams = {}
 ) => {
-    const { userID } = payload;
-    const isAdmin = await User.findById(userID);
-    if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
-    };
-    
-    const allServiceProviders = await User.aggregate([
-      {
-        $match: { role: "SERVICE_PROVIDER" }
-      },
-      {
-        $project: {
-          _id: 1,
-          fullName: 1,
-          email: 1,
-          accountStatus: 1,
-          deviceID: 1,
-          createdAt: 1,
-          updatedAt: 1,
-          category: 1
-        }
+  const { userID } = payload;
+  const { page = 1, limit = 10 } = params;
+  const skip = (page - 1) * limit;
+
+  const isAdmin = await User.findById(userID);
+  if (!isAdmin || (isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+  }
+
+  const total = await User.countDocuments({ role: "SERVICE_PROVIDER" });
+
+  const allServiceProviders = await User.aggregate([
+    { $match: { role: "SERVICE_PROVIDER" } },
+    {
+      $project: {
+        _id: 1,
+        fullName: 1,
+        email: 1,
+        accountStatus: 1,
+        deviceID: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        category: 1
       }
-    ]);
-    return allServiceProviders;
-}
+    },
+    { $sort: { createdAt: -1 } },
+    { $skip: skip },
+    { $limit: limit }
+  ]);
+
+  return {
+    data: allServiceProviders,
+    total,
+    currentPage: page,
+    totalPages: Math.ceil(total / limit)
+  };
+};
 
 const allPayments = async (
-    payload: JwtPayload 
+  payload: JwtPayload,
+  params: PaginationParams = {}
 ) => {
-    const { userID } = payload;
-    const isAdmin = await User.findById(userID);
-    if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
-    };
-    
-    const allPayments = await Payment.find({});
+  const { userID } = payload;
+  const { page = 1, limit = 10 } = params;
+  const skip = (page - 1) * limit;
 
-    return allPayments;
-}
+  const isAdmin = await User.findById(userID);
+  if (!isAdmin || (isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+  }
+
+  const total = await Payment.countDocuments();
+
+  const allPayments = await Payment.find({})
+    .populate("userId","fullName email phone")
+    .populate("orderId")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  return {
+    data: allPayments,
+    total,
+    currentPage: page,
+    totalPages: Math.ceil(total / limit)
+  };
+};
 
 const APayments = async (
     payload: JwtPayload,
@@ -338,7 +381,7 @@ const APayments = async (
       throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
     };
     
-    const allPayments = await Payment.findById(paymentID);
+    const allPayments = await Payment.findById(paymentID).populate("userId","fullName email").populate("orderId");
 
     return allPayments;
 }
@@ -543,30 +586,45 @@ const updateSubCatagory = async (
 };
 
 const announcements = async (
-    payload: JwtPayload
+  payload: JwtPayload,
+  page = 1,
+  limit = 10
 ) => {
-    const { userID } = payload;
-    const isAdmin = await User.findById(userID);
-    if (!isAdmin) {
-        throw new ApiError(StatusCodes.EXPECTATION_FAILED,"User not founded")
-    }
-    if (
-      isAdmin.accountStatus === ACCOUNT_STATUS.DELETE ||
-      isAdmin.accountStatus === ACCOUNT_STATUS.BLOCK
-    ) {
-      throw new ApiError(
-        StatusCodes.FORBIDDEN,
-        `Your account was ${isAdmin.accountStatus.toLowerCase()}!`
-      );
-    }
+  const { userID } = payload;
+  const isAdmin = await User.findById(userID);
 
-    const catagoryModel = await Announcement.find({});
-    if (!catagoryModel) {
-        throw new ApiError(StatusCodes.NOT_FOUND, "Category does not exist!");
-    };
+  if (!isAdmin) {
+    throw new ApiError(StatusCodes.EXPECTATION_FAILED, "User not found");
+  }
 
-    return catagoryModel;
-}
+  if (
+    isAdmin.accountStatus === ACCOUNT_STATUS.DELETE ||
+    isAdmin.accountStatus === ACCOUNT_STATUS.BLOCK
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `Your account was ${isAdmin.accountStatus.toLowerCase()}!`
+    );
+  }
+
+  const skip = (page - 1) * limit;
+
+  const [announcements, total] = await Promise.all([
+    Announcement.find({})
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Announcement.countDocuments()
+  ]);
+
+  return {
+    data: announcements,
+    total,
+    totalPages: Math.ceil(total / limit),
+    currentPage: page,
+  };
+};
 
 const singleAnnouncement = async (
     payload: JwtPayload,
@@ -814,27 +872,45 @@ const editeConditions = async (
 
 const allAdmins = async (
   payload: JwtPayload,
+  params: PaginationParams = {}
 ) => {
-    const { userID } = payload;
-    const isAdmin = await User.findById(userID);
-    if (!isAdmin) {
-        throw new ApiError(StatusCodes.EXPECTATION_FAILED,"User not founded")
-    }
-    if (
-      isAdmin.accountStatus === ACCOUNT_STATUS.DELETE ||
-      isAdmin.accountStatus === ACCOUNT_STATUS.BLOCK
-    ) {
-      throw new ApiError(
-        StatusCodes.FORBIDDEN,
-        `Your account was ${isAdmin.accountStatus.toLowerCase()}!`
-      );
-    };
+  const { userID } = payload;
+  const { page = 1, limit = 10 } = params;
+  const skip = (page - 1) * limit;
 
-    const admins = await User.find({role: {
-      $in: [USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN]
-    }}).select("-password -isSocailAccount -isVerified -otpVerification -termsConditions -privacyPolicy -__v -isSocialAccount -accountBalance -samplePictures -orders -myOffer -iOffered -favouriteServices -job -isSocialAccount")
+  const isAdmin = await User.findById(userID);
+  if (!isAdmin) {
+    throw new ApiError(StatusCodes.EXPECTATION_FAILED, "User not found");
+  }
 
-    return admins
+  if (
+    isAdmin.accountStatus === ACCOUNT_STATUS.DELETE ||
+    isAdmin.accountStatus === ACCOUNT_STATUS.BLOCK
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `Your account was ${isAdmin.accountStatus.toLowerCase()}!`
+    );
+  }
+
+  const total = await User.countDocuments({
+    role: { $in: [USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN] }
+  });
+
+  const admins = await User.find({
+    role: { $in: [USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN] }
+  })
+    .select("-password -isSocialAccount -isVerified -otpVerification -termsConditions -privacyPolicy -__v -accountBalance -samplePictures -orders -myOffer -iOffered -favouriteServices -job")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  return {
+    data: admins,
+    total,
+    currentPage: page,
+    totalPages: Math.ceil(total / limit)
+  };
 };
 
 const addNewAdmin = async (
@@ -900,30 +976,43 @@ const deleteAdmin = async (
 }
 
 const allSupportRequests = async (
-  payload: JwtPayload
+  payload: JwtPayload,
+  params: PaginationParams = {}
 ) => {
   const { userID } = payload;
+  const { page = 1, limit = 10 } = params;
+  const skip = (page - 1) * limit;
+
   const isAdmin = await User.findById(userID);
   if (
-      !isAdmin || 
-      ( 
-        isAdmin.role !== USER_ROLES.ADMIN && 
-        isAdmin.role !== USER_ROLES.SUPER_ADMIN
-      )
-    ) {
-      throw new ApiError(
-        StatusCodes.NOT_FOUND, 
-        "Admin not found"
-      );
-  };
-  
+    !isAdmin || 
+    (
+      isAdmin.role !== USER_ROLES.ADMIN && 
+      isAdmin.role !== USER_ROLES.SUPER_ADMIN
+    )
+  ) {
+    throw new ApiError(
+      StatusCodes.NOT_FOUND, 
+      "Admin not found"
+    );
+  }
+
+  const total = await Support.countDocuments();
+
   const supports = await Support.find()
     .populate({ path: 'for', select: 'fullName email' })
     .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
     .exec();
 
-  return supports
-}
+  return {
+    data: supports,
+    total,
+    currentPage: page,
+    totalPages: Math.ceil(total / limit)
+  };
+};
 
 const giveSupport = async (
     payload: JwtPayload,
@@ -979,23 +1068,39 @@ const giveSupport = async (
 }
 
 const allVericifationRequestes = async (
-  payload: JwtPayload
+  payload: JwtPayload,
+  params: PaginationParams = {}
 ) => {
   const { userID } = payload;
-  const isAdmin = await User.findById( userID );
+  const { page = 1, limit = 10 } = params;
+  const skip = (page - 1) * limit;
+
+  const isAdmin = await User.findById(userID);
   if (
     !isAdmin ||
-    isAdmin.role !== USER_ROLES.ADMIN && 
-    isAdmin.role !== USER_ROLES.SUPER_ADMIN   
+    (isAdmin.role !== USER_ROLES.ADMIN &&
+     isAdmin.role !== USER_ROLES.SUPER_ADMIN)
   ) {
     throw new ApiError(
-      StatusCodes.INTERNAL_SERVER_ERROR,
-      "You are not availe to do that!"
-    )
+      StatusCodes.FORBIDDEN,
+      "You are not authorized to perform this action."
+    );
   }
 
-  return await Verification.find();
-}
+  const total = await Verification.countDocuments();
+
+  const verificationRequests = await Verification.find()
+    .skip(skip)
+    .limit(limit)
+    .sort({ createdAt: -1 });
+
+  return {
+    data: verificationRequests,
+    total,
+    currentPage: page,
+    totalPages: Math.ceil(total / limit)
+  };
+};
 
 const aVerification = async (
   payload: JwtPayload,

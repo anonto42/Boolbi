@@ -44,7 +44,7 @@ router
 
 router 
     .route("/payment")
-    .get( //Update some think later on aggrigation // todo
+    .get(
         auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
         AdminController.payments
     )

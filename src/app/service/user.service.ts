@@ -1,7 +1,7 @@
 import { StatusCodes } from "http-status-codes";
 import ApiError from "../../errors/ApiError";
 import User from "../../model/user.model";
-import { FilterPost, ISignUpData, JobPost, TOffer, TRating } from "../../types/user"
+import { FilterPost, GetRecommendedPostsOptions, ISignUpData, JobPost, NotificationQuery, PaginationParams, SearchData, TOffer, TRating } from "../../types/user"
 import { bcryptjs } from "../../helpers/bcryptHelper";
 import { IUser } from "../../Interfaces/User.interface";
 import { JwtPayload } from "jsonwebtoken";
@@ -494,7 +494,9 @@ const createPost = async (
 
 //Wone Created posts 
 const post = async (
-    payload: JwtPayload
+    payload: JwtPayload,
+    page = 1,
+    limit = 10
 ) => {
     const { userID } = payload;
     const isUserExist = await User.findById(userID);
@@ -505,6 +507,8 @@ const post = async (
     if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
         throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
     };
+
+    const skip = (page - 1) * limit;
 
     const jobs = await User.aggregate([
         {
@@ -524,15 +528,18 @@ const post = async (
                       ]
                     }
                   }
-                }
+                },
+                { $sort: { createdAt: -1 } },
+                { $skip: skip },
+                { $limit: limit }
               ],
               as: "userPosts"
             }
         }
-    ]) 
+    ]);
 
-    return (jobs as any)[0].userPosts
-}
+    return (jobs as any)[0]?.userPosts ?? [];
+};
 
 // Update a post
 const UPost = async (
@@ -794,25 +801,51 @@ const favorite = async (
 
 //favorites list 
 const getFavorite = async (
-    payload: JwtPayload
+  payload: JwtPayload,
+  page = 1,
+  limit = 10
 ) => {
   const { userID } = payload;
   const isUserExist = await User.findById(userID);
-  if (!isUserExist) {
-      throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
-  };
-  
-  if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-      throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
-  };
 
-  const jobs = await User
-                      .findById(isUserExist._id)
-                      .populate("favouriteServices")
-                      .select("-latLng")
-  
-  return jobs.favouriteServices
-}
+  if (!isUserExist) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  if (
+    isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
+    isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
+    );
+  }
+
+  const skip = (page - 1) * limit;
+
+  // Get total count of favorites
+  const total = isUserExist.favouriteServices?.length || 0;
+
+  // Populate with pagination
+  const userWithFavorites = await User.findById(userID)
+    .populate({
+      path: "favouriteServices",
+      options: {
+        skip,
+        limit,
+      }
+    })
+    .select("-latLng")
+    .lean();
+
+  return {
+    favorites: (userWithFavorites as any).favouriteServices || [],
+    total,
+    totalPages: Math.ceil(total / limit),
+    currentPage: page,
+  };
+};
 
 //remove favorite 
 const removeFavorite = async (
@@ -842,17 +875,22 @@ const removeFavorite = async (
 
 //My offers
 const offers = async (
-  payload: JwtPayload
+  payload: JwtPayload,
+  page = 1,
+  limit = 10
 ) => {
   const { userID } = payload;
+  const skip = (page - 1) * limit;
 
-  const isUserExist = await User.findById(userID).populate({
-    path: "myOffer",
-    populate: [
-      { path: "to", select: "fullName email" },
-      { path: "form", select: "fullName email" }
-    ]
-  });
+  const isUserExist = await User.findById(userID)
+    .populate({
+      path: "myOffer",
+      options: { skip, limit },
+      populate: [
+        { path: "to", select: "fullName email" },
+        { path: "form", select: "fullName email" }
+      ]
+    });
 
   if (!isUserExist) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
@@ -868,24 +906,36 @@ const offers = async (
     );
   }
 
-  return isUserExist.myOffer;
+  // Total count of offers (not paginated) to calculate totalPages
+  const total = isUserExist.myOffer?.length || 0;
+
+  return {
+    data: isUserExist.myOffer || [],
+    total,
+    totalPages: Math.ceil(total / limit),
+    currentPage: page,
+  };
 };
 
 //I Offered
 const iOfferd = async (
-  payload: JwtPayload
+  payload: JwtPayload,
+  page = 1,
+  limit = 10
 ) => {
   const { userID } = payload;
 
-  const isUserExist = await User
-                            .findById(userID)
-                            .populate({
-                              path: "iOffered",
-                              populate: [
-                                { path: "to", select: "fullName email" },
-                                { path: "form", select: "fullName email" }
-                              ]
-                            });
+  const skip = (page - 1) * limit;
+
+  const isUserExist = await User.findById(userID)
+    .populate({
+      path: "iOffered",
+      options: { skip, limit },
+      populate: [
+        { path: "to", select: "fullName email" },
+        { path: "form", select: "fullName email" }
+      ]
+    });
 
   if (!isUserExist) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
@@ -901,7 +951,14 @@ const iOfferd = async (
     );
   }
 
-  return isUserExist.iOffered;
+  const total = isUserExist.iOffered?.length || 0;
+
+  return {
+    data: isUserExist.iOffered || [],
+    total,
+    totalPages: Math.ceil(total / limit),
+    currentPage: page,
+  };
 };
 
 //get a Offer
@@ -1291,23 +1348,37 @@ const supportRequest = async(
   return support;
 }
 
-// won created requests
 const getRequests = async (
-  payload: JwtPayload
+  payload: JwtPayload,
+  params: PaginationParams = {}
 ) => {
   const { userID } = payload;
-  
-  const requests = await Support.find({for: userID});
+  const { page = 1, limit = 20 } = params;
 
-  return requests;
-}
+  const skip = (page - 1) * limit;
 
-// This funciton is for search some data
+  const [requests, total] = await Promise.all([
+    Support.find({ for: userID })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    Support.countDocuments({ for: userID })
+  ]);
+
+  return {
+    data: requests,
+    total,
+    currentPage: page,
+    totalPages: Math.ceil(total / limit)
+  };
+};
+
 const searchPosts = async (
-  payload: JwtPayload, 
-  searchQuery: string
+  payload: JwtPayload,
+  data: SearchData
 ) => {
   const { userID } = payload;
+  const { searchQuery, page = 1, limit = 20 } = data;
 
   if (!searchQuery) {
     throw new ApiError(StatusCodes.NOT_ACCEPTABLE, "Search query is required.");
@@ -1328,44 +1399,70 @@ const searchPosts = async (
 
   const serchType = user.role === USER_ROLES.SERVICE_PROVIDER ? "POST" : "PROVIDER";
 
+  // Update searched history
   const updatedKeywords = user.searchedCatagory.filter(
-    (term : any) => term.toLowerCase() !== searchQuery.toLowerCase()
+    (term: string) => term.toLowerCase() !== searchQuery.toLowerCase()
   );
-
   updatedKeywords.unshift(searchQuery);
-
   user.searchedCatagory = updatedKeywords.slice(0, 5);
   await user.save();
 
-  let data; 
+  const skip = (page - 1) * limit;
+
+  let results, total;
+
   if (serchType === "POST") {
-    data = await Post.find({
-      $or:[
+    const searchConditions = {
+      $or: [
         { title: { $regex: searchQuery, $options: "i" } },
         { catagory: { $regex: searchQuery, $options: "i" } },
         { subCatagory: { $regex: searchQuery, $options: "i" } },
         { companyName: { $regex: searchQuery, $options: "i" } },
         { jobDescription: { $regex: searchQuery, $options: "i" } },
       ]
-    }).sort({ createdAt: -1 });
-  } else if ( serchType === "PROVIDER") {
-    data = await User.find({
+    };
+
+    [results, total] = await Promise.all([
+      Post.find(searchConditions)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Post.countDocuments(searchConditions)
+    ]);
+  } else if (serchType === "PROVIDER") {
+    const searchConditions = {
       $or: [
         { fullName: { $regex: searchQuery, $options: "i" } },
         { category: { $regex: searchQuery, $options: "i" } },
         { subCatagory: { $regex: searchQuery, $options: "i" } },
         { serviceDescription: { $regex: searchQuery, $options: "i" } },
       ]
-    }).select("-password -latLng -favouriteServices -iOffered -myOffer -orders -searchedCatagory -accountStatus -isSocialAccount -otpVerification").sort({ createdAt: -1 })
+    };
+
+    [results, total] = await Promise.all([
+      User.find(searchConditions)
+        .select("-password -latLng -favouriteServices -iOffered -myOffer -orders -searchedCatagory -accountStatus -isSocialAccount -otpVerification")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      User.countDocuments(searchConditions)
+    ]);
   }
 
-  return data;
+  return {
+    data: results,
+    total,
+    currentPage: page,
+    totalPages: Math.ceil(total! / limit)
+  };
 };
 
 // Recommended post types
-const getRecommendedPosts = async (
-  payload: JwtPayload
-) => {
+const getRecommendedPosts = async ({
+  payload,
+  page = 1,
+  limit = 20, // Default limit
+}: GetRecommendedPostsOptions ) => {
   const { userID } = payload;
 
   const user = await User.findById(userID);
@@ -1382,88 +1479,102 @@ const getRecommendedPosts = async (
   }
 
   const postType = user.role === USER_ROLES.SERVICE_PROVIDER ? "POST" : "PROVIDER";
-  
-  if (user.searchedCatagory.length <= 0 || !user.searchedCatagory ) {
-    if ( postType === "POST" ) {
-      return await Post
-                  .find()
-                  .select("-latLng")
-                  .sort({createdAt: -1});
-    } else if ( postType === "PROVIDER" ) {
-      return await User
-                   .find({ 
-                      role: USER_ROLES.SERVICE_PROVIDER, 
-                      accountStatus: ACCOUNT_STATUS.ACTIVE
-                    })
-                   .select("-password -latLng -isSocialAccount -otpVerification -__v -searchedCatagory -orders -myOffer -iOffered -favouriteServices -job -accountBalance -accountStatus");
+  const skip = (page - 1) * limit;
+
+  // Helper to shuffle array
+  const shuffleArray = (arr: any[]) => arr.sort(() => Math.random() - 0.5);
+
+  // ========== No Search Category ==========
+  if (!user.searchedCatagory || user.searchedCatagory.length === 0) {
+    if (postType === "POST") {
+      const allPosts = await Post.find().select("-latLng");
+      const shuffledPosts = shuffleArray(allPosts);
+      return shuffledPosts.slice(skip, skip + limit);
+    } else if (postType === "PROVIDER") {
+      const allProviders = await User.find({
+        role: USER_ROLES.SERVICE_PROVIDER,
+        accountStatus: ACCOUNT_STATUS.ACTIVE,
+      }).select(
+        "-password -latLng -isSocialAccount -otpVerification -__v -searchedCatagory -orders -myOffer -iOffered -favouriteServices -job -accountBalance -accountStatus"
+      );
+
+      const shuffledProviders = shuffleArray(allProviders);
+      return shuffledProviders.slice(skip, skip + limit);
     }
   }
 
-  if (user.searchedCatagory.length > 0) {
-    if ( postType === "POST" ) {
+  // ========== With Search Category ==========
+  const keywords = user.searchedCatagory;
+  const regexQueries: any[] = [];
 
-      const regexQueries:any = [];
-      user.searchedCatagory.forEach((keyword: any) => {
-        regexQueries.push(
-          { title: { $regex: keyword, $options: "i" } },
-          { catagory: { $regex: keyword, $options: "i" } },
-          { subCatagory: { $regex: keyword, $options: "i" } },
-          { jobDescription: { $regex: keyword, $options: "i" } }
-        );
-      });
-
-      const postResuld = await Post.find({
-        $or: regexQueries
-      }).sort({ createdAt: -1 }).select("-latLng");
-
-      if (postResuld.length <= 0 ) {
-        return await Post.find().sort({createdAt: -1}).select("-latLng");
-      }
-
-      return postResuld
-      
-    }else if ( postType === "PROVIDER" ) {
-
-      const regexQueries:any = [];
-      const keywords = user.searchedCatagory;
-      console.log(keywords)
-      keywords.forEach((keyword: string) => {
-        regexQueries.push(
-          { fullName: { $regex: keyword, $options: "i" } },
-          { category: { $regex: keyword, $options: "i" } },
-          { subCatagory: { $regex: keyword, $options: "i" } },
-          { description: { $regex: keyword, $options: "i" } }
-        );
-      });
-
-      const postResuld = await User.find({ $or: regexQueries })
-      .select("-otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -password -__v")
-      .sort({ createdAt: -1 });
-      
-      if (postResuld.length <= 0 ) {
-        return await User
-                    .find({ role: USER_ROLES.SERVICE_PROVIDER })
-                    .select("-otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -password -__v")
-                    .sort({createdAt: -1});
-      };
-
-      return postResuld
+  keywords.forEach((keyword: string) => {
+    if (postType === "POST") {
+      regexQueries.push(
+        { title: { $regex: keyword, $options: "i" } },
+        { catagory: { $regex: keyword, $options: "i" } },
+        { subCatagory: { $regex: keyword, $options: "i" } },
+        { jobDescription: { $regex: keyword, $options: "i" } }
+      );
+    } else {
+      regexQueries.push(
+        { fullName: { $regex: keyword, $options: "i" } },
+        { category: { $regex: keyword, $options: "i" } },
+        { subCatagory: { $regex: keyword, $options: "i" } },
+        { description: { $regex: keyword, $options: "i" } }
+      );
     }
-  };
+  });
+
+  if (postType === "POST") {
+    const posts = await Post.find({ $or: regexQueries })
+      .sort({ createdAt: -1 })
+      .select("-latLng")
+      .skip(skip)
+      .limit(limit);
+
+    if (posts.length === 0) {
+      return await Post.find()
+        .sort({ createdAt: -1 })
+        .select("-latLng")
+        .skip(skip)
+        .limit(limit);
+    }
+
+    return posts;
+  } else if (postType === "PROVIDER") {
+    const providers = await User.find({ $or: regexQueries })
+      .select(
+        "-otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -password -__v"
+      )
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    if (providers.length === 0) {
+      return await User.find({ role: USER_ROLES.SERVICE_PROVIDER })
+        .select(
+          "-otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -password -__v"
+        )
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+    }
+
+    return providers;
+  }
+
+  return [];
 };
 
-// Filter data for the // Not sure mabey it will change some layter
 const filteredData = async (
-  payload: JwtPayload, 
+  payload: JwtPayload,
   data: FilterPost
 ) => {
   const { userID } = payload;
-  const { category, lat, lng, distance, subCategory } = data;
+  const { category, subCategory, lat, lng, distance, page = 1, limit = 20 } = data;
 
   const user = await User.findById(userID);
-  if (!user) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
-  }
+  if (!user) throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
 
   if (
     user.accountStatus === ACCOUNT_STATUS.DELETE ||
@@ -1473,53 +1584,101 @@ const filteredData = async (
       StatusCodes.FORBIDDEN,
       `Your account was ${user.accountStatus.toLowerCase()}!`
     );
-  };
+  }
 
   const postType = user.role === USER_ROLES.SERVICE_PROVIDER ? "POST" : "PROVIDER";
-  
-  let posts;
-  
-  if ( postType === "PROVIDER" ) {
-    posts = await User.find({
-      category,
-      subCatagory:subCategory,
-      latLng:{
-        $nearSphere:{
-          $geometry:{
-            type: "Point",
-            coordinates: [lng,lat]
-          },
-          $maxDistance: distance ? distance * 1000 : 50000
-        }
-      }
-    });
-  } else if ( postType === "POST" ) {
-    posts = await Post.find({
-      catagory:category,
-      subCatagory:subCategory,
-      latLng:{
-        $nearSphere:{
-          $geometry:{
-            type: "Point",
-            coordinates: [lng,lat]
-          },
-          $maxDistance: distance ? distance * 1000 : 50000
-        }
-      }
-    });
+  const skip = (page - 1) * limit;
+
+  const geoQuery = {
+    latLng: {
+      $nearSphere: {
+        $geometry: {
+          type: "Point",
+          coordinates: [lng, lat],
+        },
+        $maxDistance: distance ? distance * 1000 : 50000, // default 50km
+      },
+    },
+  };
+
+  const categoryQuery: any = {};
+  if (category) categoryQuery.category = category;
+  if (subCategory) categoryQuery.subCatagory = subCategory;
+
+  let query = { ...categoryQuery, ...geoQuery };
+
+  if (postType === "PROVIDER") {
+    const [results, total] = await Promise.all([
+      User.find(query)
+        .select(
+          "-otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -password -__v"
+        )
+        .skip(skip)
+        .limit(limit),
+      User.countDocuments(query),
+    ]);
+
+    return {
+      data: results,
+      total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+    };
   }
-  return posts;
+
+  if (postType === "POST") {
+    // Adjust category field for Post model
+    const postQuery = {
+      ...(category ? { catagory: category } : {}),
+      ...(subCategory ? { subCatagory: subCategory } : {}),
+      ...geoQuery,
+    };
+
+    const [results, total] = await Promise.all([
+      Post.find(postQuery).select("-latLng").skip(skip).limit(limit),
+      Post.countDocuments(postQuery),
+    ]);
+
+    return {
+      data: results,
+      total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  return {
+    data: [],
+    total: 0,
+    currentPage: page,
+    totalPages: 0,
+  };
 };
 
-const allNotifications = async ( 
-  payload: JwtPayload
+const allNotifications = async (
+  payload: JwtPayload,
+  query: NotificationQuery = {}
 ) => {
   const { userID } = payload;
+  const { page = 1, limit = 20 } = query;
 
-  const allNotifications = await Notification.find({for: userID});
+  const skip = (page - 1) * limit;
 
-  return allNotifications;
-}
+  const [notifications, total] = await Promise.all([
+    Notification.find({ for: userID })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    Notification.countDocuments({ for: userID })
+  ]);
+
+  return {
+    data: notifications,
+    total,
+    currentPage: page,
+    totalPages: Math.ceil(total / limit)
+  };
+};
 
 const addRating = async ( 
   payload: JwtPayload,

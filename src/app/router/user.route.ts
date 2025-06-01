@@ -5,7 +5,6 @@ import { Validation } from '../../validation/IO.validation';
 import { USER_ROLES } from '../../enums/user.enums';
 import auth from '../../middlewares/Auth.middleware';
 import fileUploadHandler from '../../middlewares/fileUploadHandler';
-import { UserServices } from '../service/user.service';
 
 const router = Router();
 

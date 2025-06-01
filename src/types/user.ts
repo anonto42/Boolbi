@@ -1,3 +1,4 @@
+import { JwtPayload } from "jsonwebtoken"
 
 export type ISignUpData = { 
     fullName: string, 
@@ -30,13 +31,14 @@ export type JobPost = {
     lat: number
 }
 
-export type FilterPost = {
-    category: string,
-    subCategory: string,
-    serviceRating: number,
-    distance: number,
-    lat: number,
-    lng: number
+export interface FilterPost {
+  category?: string;
+  subCategory?: string;
+  lat: number;
+  lng: number;
+  distance?: number;
+  page?: number;
+  limit?: number;
 }
 
 export type TOffer = {
@@ -55,4 +57,26 @@ export type TRating = {
     star: number,
     feedback: string,
     orderID: string
+}
+
+export interface GetRecommendedPostsOptions {
+  payload: JwtPayload;
+  page?: number;
+  limit?: number;
+}
+
+export interface NotificationQuery {
+  page?: number;
+  limit?: number;
+}
+
+export interface SearchData {
+  searchQuery: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
 }

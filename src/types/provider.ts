@@ -8,3 +8,8 @@ export type offer = {
     budget: number;
     description: string;
 }
+
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+}

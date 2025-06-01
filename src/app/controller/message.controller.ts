@@ -24,7 +24,8 @@ const createChat = catchAsync(
 const chatRooms = catchAsync(
     async( req: Request, res: Response ) => {
         const payload = (req as any).user;
-        const result = await chatService.allChats(payload.userID);
+        const { page, limit} = req.body;
+        const result = await chatService.allChats(payload.userID,page,limit);
 
         sendResponse(res, {
             success: true,
@@ -83,8 +84,8 @@ const sendMessage = catchAsync(
 const allMessages = catchAsync(
     async( req: Request, res: Response ) => {
         const {userID} = ( req as any ).user;
-        const { limit, chatID } = req.body;
-        const result = await messageService.getMessages(chatID, userID,{limit});
+        const { limit, chatID, page } = req.body;
+        const result = await messageService.getMessages(chatID, userID,{limit,page});
 
         sendResponse(res, {
             success: true,

@@ -38,9 +38,10 @@ const customers = catchAsync(
     async( req: Request, res: Response ) => {
         const Payload = (req as any).user;
         const specificUser = req.query.id;
+        const {...data} = req.body;
         let result;
         if (!specificUser) {
-            result = await AdminService.allCustomers(Payload);
+            result = await AdminService.allCustomers(Payload,data);
         } else if ( specificUser ) {
             result = await AdminService.aCustomer(Payload,specificUser as string)
         }
@@ -74,9 +75,10 @@ const providers = catchAsync(
     async( req: Request, res: Response ) => {
         const Payload = (req as any).user;
         const specificUser = req.query.id;
+        const { ...data } = req.body;
         let result;
         if (!specificUser) {
-            result = await AdminService.allProvider(Payload);
+            result = await AdminService.allProvider(Payload,data);
         } else if ( specificUser ) {
             result = await AdminService.aCustomer(Payload,specificUser as string)
         }
@@ -94,9 +96,10 @@ const payments = catchAsync(
     async( req: Request, res: Response ) => {
         const Payload = (req as any).user;
         const specificUser = req.query.id;
+        const {...data} = req.body;
         let result;
         if (!specificUser) {
-            result = await AdminService.allPayments(Payload);
+            result = await AdminService.allPayments(Payload,data);
         } else if ( specificUser ) {
             result = await AdminService.APayments(Payload,specificUser as string)
         }
@@ -220,9 +223,10 @@ const getAnnounsments = catchAsync(
     async( req: Request, res: Response ) => {
         const Payload = (req as any).user;
         const announcementID = req.query.id;
+        const { page, limit } = req.body;
         let result;
         if (!announcementID) {
-            result = await AdminService.announcements(Payload);
+            result = await AdminService.announcements(Payload,page,limit);
         } else if ( announcementID ) {
             result = await AdminService.singleAnnouncement(Payload,announcementID as string)
         }
@@ -357,7 +361,8 @@ const editeConditions = catchAsync(
 const allAdmins = catchAsync(
     async( req: Request, res: Response ) => {
         const Payload = (req as any).user;
-        const result = await AdminService.allAdmins(Payload)
+        const {...data} = req.body;
+        const result = await AdminService.allAdmins(Payload,data)
 
         sendResponse(res, {
             success: true,
@@ -401,7 +406,8 @@ const deleteAdmin = catchAsync(
 const supportReques = catchAsync(
     async( req: Request, res: Response ) => {
         const Payload = (req as any).user;
-        const result = await AdminService.allSupportRequests(Payload)
+        const {...data} = req.body;
+        const result = await AdminService.allSupportRequests(Payload,data)
 
         sendResponse(res, {
             success: true,
@@ -431,10 +437,11 @@ const allVerifications = catchAsync(
     async( req: Request, res: Response ) => {
         const Payload = (req as any).user;
         const id = req.query.id as string;
+        const {...data}= req.body;
         let result ;
 
         if ( !id ) {
-            result = await AdminService.allVericifationRequestes(Payload)
+            result = await AdminService.allVericifationRequestes(Payload,data)
         } else if ( result ) {
             result = await AdminService.aVerification(Payload,id)   
         }

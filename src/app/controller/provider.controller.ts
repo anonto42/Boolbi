@@ -9,11 +9,12 @@ const gOrder = catchAsync(
     async( req, res ) => {
         const user = (req as any)?.user;
         const orderID = req.query.orderID;
+        const {...data} = req.body;
         let result;
         if (orderID) {
             result = await ProviderService.singleOrder(user,orderID as string);
         } else if ( !orderID ) {
-            result = await ProviderService.AllOrders(user)
+            result = await ProviderService.AllOrders(user,data)
         }
 
         sendResponse(res, {
@@ -43,7 +44,8 @@ const DOrder = catchAsync(
 const completedOrders = catchAsync(
     async( req, res ) => {
         const user = (req as any)?.user;
-        const result = await ProviderService.AllCompletedOrders(user)
+        const {...data} = req.body;
+        const result = await ProviderService.AllCompletedOrders(user,data)
 
         sendResponse(res, {
             success: true,
@@ -121,10 +123,10 @@ const deliveryRequests = catchAsync(
     async( req, res ) => {
         const user = (req as any)?.user;
         const id = req.query.requestID as string;
-    
+        const { ...data} = req.body;
         let result;
         if (!id) {
-            result = await ProviderService.getDeliveryTimeExtendsRequest(user);
+            result = await ProviderService.getDeliveryTimeExtendsRequest(user,data);
         }else{
             result = await ProviderService.getADeliveryTimeExtendsRequest(user,id);
         }
@@ -141,7 +143,8 @@ const deliveryRequests = catchAsync(
 const GDRequest = catchAsync(
     async( req, res ) => {
         const user = (req as any)?.user;
-        const result = await ProviderService.getDeliveryReqests(user);
+        const {...data} = req.body;
+        const result = await ProviderService.getDeliveryReqests(user,data);
         
         sendResponse(res, {
             success: true,

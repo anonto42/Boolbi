@@ -173,14 +173,13 @@ const updateJob = catchAsync(
 const post = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
-        const postID = req.query.postID as string
-        console.log(postID)
+        const {postID,limit,page} = req.body;
 
         let result;
         if (postID) {
             result = await UserServices.singlePost(payload,{postID: postID})    
         } else if ( !postID ) {
-            result = await UserServices.post(payload)
+            result = await UserServices.post(payload,page,limit)
         }
 
         sendResponse(res, {
@@ -225,7 +224,8 @@ const favorite = catchAsync(
 const getFavorite = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
-        const result = await UserServices.getFavorite(payload)
+        const {page,limit} = req.body;
+        const result = await UserServices.getFavorite(payload,page,limit)
 
         sendResponse(res, {
             success: true,
@@ -254,7 +254,8 @@ const removeFavorite = catchAsync(
 const offers = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
-        const result = await UserServices.offers(payload)
+        const { page, limit } = req.body;
+        const result = await UserServices.offers(payload,page,limit)
 
         sendResponse(res, {
             success: true,
@@ -268,7 +269,8 @@ const offers = catchAsync(
 const iOfferd = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
-        const result = await UserServices.iOfferd(payload)
+        const { page, limit } = req.body;
+        const result = await UserServices.iOfferd(payload,page,limit);
 
         sendResponse(res, {
             success: true,
@@ -358,7 +360,7 @@ const supportRequest = catchAsync(
 const searchPosts = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
-        const data = req.query.string as string;
+        const {...data} = req.body;
         const result = await UserServices.searchPosts(payload,data);
 
         sendResponse(res, {
@@ -373,7 +375,8 @@ const searchPosts = catchAsync(
 const recommendedPosts = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
-        const result = await UserServices.getRecommendedPosts(payload);
+        const { limit, page } = req.body;
+        const result = await UserServices.getRecommendedPosts({payload,limit,page});
 
         sendResponse(res, {
             success: true,
@@ -402,7 +405,8 @@ const filterPosts = catchAsync(
 const notifications = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
-        const result = await UserServices.allNotifications(payload);
+        const {...data} = req.body;
+        const result = await UserServices.allNotifications(payload,data);
 
         sendResponse(res, {
             success: true,
@@ -431,7 +435,8 @@ const giveReting = catchAsync(
 const getRequests = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
-        const result = await UserServices.getRequests(payload);
+        const {...data} = req.body;
+        const result = await UserServices.getRequests(payload,data);
 
         sendResponse(res, {
             success: true,
@@ -472,4 +477,4 @@ export const UserController = {
     supportRequest,
     recommendedPosts,
     aOffer
- }
+}

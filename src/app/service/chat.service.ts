@@ -70,13 +70,13 @@ const getChatById = async ( id: string ) => {
   return await Chat.findById(id).populate("users","fullName email");
 };
 
-const allChats = async ( id: string ) => {
+const allChats = async (id: string, page = 1, limit = 10) => {
   const user = await User.findById(id);
 
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
-  };
-  
+  }
+
   if (
     user.accountStatus === ACCOUNT_STATUS.DELETE ||
     user.accountStatus === ACCOUNT_STATUS.BLOCK
@@ -85,12 +85,30 @@ const allChats = async ( id: string ) => {
       StatusCodes.FORBIDDEN,
       `Your account was ${user.accountStatus.toLowerCase()}!`
     );
+  }
+
+  // Calculate how many documents to skip
+  const skip = (page - 1) * limit;
+
+  // Fetch paginated chats
+  const chats = await Chat.find({
+    users: { $in: [id] }
+  })
+    .populate("users", "email fullName")
+    .skip(skip)
+    .limit(limit);
+
+  // Optionally, you may want to return total count for pagination UI
+  const totalChats = await Chat.countDocuments({
+    users: { $in: [id] }
+  });
+
+  return {
+    chats,
+    totalChats,
+    currentPage: page,
+    totalPages: Math.ceil(totalChats / limit),
   };
-
-  return await Chat.find({
-    users: { $in: [ id ] }
-  }).populate("users", "email fullName");
-
 };
 
 const deleteChat = async ( userID: string, id: string ) => {

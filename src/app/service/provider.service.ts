@@ -12,6 +12,7 @@ import { transfers } from "../router/payment.route";
 import Verification from "../../model/verifyRequest.model";
 import Payment from "../../model/payment.model";
 import { PAYMENT_STATUS } from "../../enums/payment.enum";
+import { PaginationParams } from "../../types/user";
 
 const singleOrder = async (
     payload: JwtPayload,
@@ -57,43 +58,88 @@ const singleOrder = async (
 }
 
 const AllOrders = async (
-    payload: JwtPayload,
+  payload: JwtPayload,
+  params: PaginationParams = {}
 ) => {
-    const { userID } = payload;
-    const isExist = await User.findOne({_id: userID})
-                                .populate("orders")
-    if (!isExist) {
-        throw new ApiError(StatusCodes.NOT_FOUND,"User not exist!")
-    };
+  const { userID } = payload;
+  const { page = 1, limit = 10 } = params;
+  const skip = (page - 1) * limit;
 
-    if ( isExist.accountStatus === ACCOUNT_STATUS.DELETE || isExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
-    };
+  const user = await User.findOne({ _id: userID });
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not exist!");
+  }
 
-    const allOrders = await isExist
-                            .populate("orders.offerID")
+  if (
+    user.accountStatus === ACCOUNT_STATUS.DELETE ||
+    user.accountStatus === ACCOUNT_STATUS.BLOCK
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `Your account was ${user.accountStatus.toLowerCase()}!`
+    );
+  }
 
-    return allOrders.orders
-}
+  // Get total order count
+  const totalOrders = await Order.countDocuments({ _id: { $in: user.orders } });
+
+  // Fetch paginated orders and populate
+  const paginatedOrders = await Order.find({ _id: { $in: user.orders } })
+    .skip(skip)
+    .limit(limit)
+    .populate("offerID")
+    .sort({ createdAt: -1 });
+
+  return {
+    data: paginatedOrders,
+    total: totalOrders,
+    currentPage: page,
+    totalPages: Math.ceil(totalOrders / limit),
+  };
+};
 
 const AllCompletedOrders = async (
-    payload: JwtPayload,
+  payload: JwtPayload,
+  params: PaginationParams = {}
 ) => {
-    const { userID } = payload;
-    const isExist = await User.findOne({_id: userID})
-                                .populate("orders")
-    if (!isExist) {
-        throw new ApiError(StatusCodes.NOT_FOUND,"User not exist!")
-    };
+  const { userID } = payload;
+  const { page = 1, limit = 10 } = params;
+  const skip = (page - 1) * limit;
 
-    if ( isExist.accountStatus === ACCOUNT_STATUS.DELETE || isExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
-    };
-    const allOrders = isExist.orders.filter((e: any) => 
-        e?.trackStatus?.isComplited?.status === true
+  const isExist = await User.findOne({ _id: userID }).populate({
+    path: "orders",
+    populate: { path: "offerID" }
+  });
+
+  if (!isExist) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not exist!");
+  }
+
+  if (
+    isExist.accountStatus === ACCOUNT_STATUS.DELETE ||
+    isExist.accountStatus === ACCOUNT_STATUS.BLOCK
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `Your account was ${isExist.accountStatus.toLowerCase()}!`
     );
-    return allOrders
-}
+  }
+
+  // Filter completed orders
+  const completedOrders = isExist.orders.filter(
+    (order: any) => order?.trackStatus?.isComplited?.status === true
+  );
+
+  const total = completedOrders.length;
+  const paginatedOrders = completedOrders.slice(skip, skip + limit);
+
+  return {
+    data: paginatedOrders,
+    total,
+    currentPage: page,
+    totalPages: Math.ceil(total / limit),
+  };
+};
 
 const dOrder = async (
     user: JwtPayload,
@@ -268,33 +314,48 @@ const deliveryTimeExtendsRequest = async (
 }
 
 const getDeliveryTimeExtendsRequest = async (
-    payload: JwtPayload,
+  payload: JwtPayload,
+  params: PaginationParams = {}
 ) => {
-    const { userID } = payload;
-    const isUserExist = await User.findById(userID);
-    if (!isUserExist) {
-        throw new ApiError(
-            StatusCodes.NOT_FOUND,
-            "User not exist!"
-        )
-    };
-    if ( 
-        isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || 
-        isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK 
-    ) {
-        throw new ApiError(
-            StatusCodes.FORBIDDEN,
-            `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
-        )
-    };
-    
-    const requests = await DeliveryRequest.find({
-        for: new mongoose.Types.ObjectId(isUserExist._id),
-        requestType: "TIME_EXTEND"
-    })
+  const { userID } = payload;
+  const { page = 1, limit = 10 } = params;
+  const skip = (page - 1) * limit;
 
-    return requests;
-}
+  const isUserExist = await User.findById(userID);
+  if (!isUserExist) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not exist!");
+  }
+
+  if (
+    isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
+    isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
+    );
+  }
+
+  const total = await DeliveryRequest.countDocuments({
+    for: new mongoose.Types.ObjectId(isUserExist._id),
+    requestType: "TIME_EXTEND",
+  });
+
+  const requests = await DeliveryRequest.find({
+    for: new mongoose.Types.ObjectId(isUserExist._id),
+    requestType: "TIME_EXTEND",
+  })
+    .skip(skip)
+    .limit(limit)
+    .sort({ createdAt: -1 });
+
+  return {
+    data: requests,
+    total,
+    currentPage: page,
+    totalPages: Math.ceil(total / limit),
+  };
+};
 
 const getADeliveryTimeExtendsRequest = async (
     payload: JwtPayload,
@@ -324,23 +385,42 @@ const getADeliveryTimeExtendsRequest = async (
 }
 
 const getDeliveryReqests = async (
-    payload: JwtPayload
+  payload: JwtPayload,
+  params: PaginationParams = {}
 ) => {
-    const { userID } = payload;
-    const isExist = await User.findOne({_id: userID});
-    if (!isExist) {
-        throw new ApiError(StatusCodes.NOT_FOUND,"User not exist!")
-    };
-    if ( isExist.accountStatus === ACCOUNT_STATUS.DELETE || isExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
-    };
+  const { userID } = payload;
+  const { page = 1, limit = 10 } = params;
+  const skip = (page - 1) * limit;
 
-    const deliveryRequest = await DeliveryRequest.find({
-        for: isExist._id
-    })
+  const isExist = await User.findOne({ _id: userID });
+  if (!isExist) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not exist!");
+  }
 
-    return deliveryRequest;
-}
+  if (
+    isExist.accountStatus === ACCOUNT_STATUS.DELETE ||
+    isExist.accountStatus === ACCOUNT_STATUS.BLOCK
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `Your account was ${isExist.accountStatus.toLowerCase()}!`
+    );
+  }
+
+  const totalRequests = await DeliveryRequest.countDocuments({ for: isExist._id });
+
+  const deliveryRequests = await DeliveryRequest.find({ for: isExist._id })
+    .skip(skip)
+    .limit(limit)
+    .sort({ createdAt: -1 }); // optional sort by newest first
+
+  return {
+    data: deliveryRequests,
+    total: totalRequests,
+    currentPage: page,
+    totalPages: Math.ceil(totalRequests / limit),
+  };
+};
 
 const ADeliveryReqest = async (
     payload: JwtPayload,
