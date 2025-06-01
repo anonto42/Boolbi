@@ -6,7 +6,7 @@
   "author": "",
   "license": "ISC",
   "scripts": {
-    "dev": "nodemon src/server.ts",
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc --project .",
     "start": "node ./dist/index.js"
   },
@@ -22,8 +22,8 @@
     "@types/node": "^20.0.0",
     "@types/nodemailer": "^6.4.17",
     "i": "^0.3.7",
-    "nodemon": "^3.1.10",
     "npm": "^11.3.0",
+    "ts-node-dev": "^2.0.0",
     "typescript": "^5.0.0"
   },
   "dependencies": {
