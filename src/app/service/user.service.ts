@@ -69,7 +69,7 @@ const signUp = async (
     };
 
     return true;
-}
+} // have to add account varification on the user create
 
 //All Profile Information
 const profle = async ( 
