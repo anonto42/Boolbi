@@ -7,6 +7,7 @@ export interface IUser extends Document {
     iOffered: Types.ObjectId[];
     myOffer: Types.ObjectId[];
     deviceID: string;
+    userVerification: boolean;
     description: string;
     fullName: string;
     email: string;

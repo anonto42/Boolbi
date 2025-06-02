@@ -63,8 +63,8 @@ const emailSend = async (
     const otp = generateOTP();
 
     //Send Mail
-    const forgetPassword = emailTemplate.sendMail({otp, email,name: isUser.fullName, subjet: "Get otp "});
-    emailHelper.sendEmail(forgetPassword);
+    const mail = emailTemplate.sendMail({otp, email,name: isUser.fullName, subjet: "Get OTP"});
+    emailHelper.sendEmail(mail);
 
     await User.updateOne(
         { email },
@@ -106,8 +106,8 @@ const verifyOtp = async (
         throw new ApiError(
             StatusCodes.NOT_ACCEPTABLE,
             "You given a wrone otp!"
-        )
-    }
+        );
+    };
 
     const key = Math.floor(Math.random() * 1000000);
     const hasedKey = await hash(key.toString(),1);
@@ -118,8 +118,9 @@ const verifyOtp = async (
           $set: {
             'otpVerification.otp': 0,
             'otpVerification.time': new Date(),
-            'otpVerification.key': key.toString()
-          },
+            'otpVerification.key': key.toString(),
+            "userVerification": true
+          }
         }
     );
       

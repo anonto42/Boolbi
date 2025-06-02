@@ -16,6 +16,13 @@ import Support from "../../model/support.model";
 import { messageSend } from "../../helpers/firebaseHelper";
 import Notification from "../../model/notification.model";
 import { paymentIntents } from "../router/payment.route";
+import generateOTP from "../../util/generateOTP";
+import { emailTemplate } from "../../shared/emailTemplate";
+import { emailHelper } from "../../helpers/emailHelper";
+
+// if ( !isExist.userVerification ) {
+//  throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"Your account was not valid!")
+//};
 
 //User signUp
 const signUp = async ( 
@@ -67,9 +74,26 @@ const signUp = async (
         "We couldn't create your account due to an unexpected issue. Please try again later."
       )
     };
+    
+    // generate otp
+    const otp = generateOTP();
+
+    //Send Mail
+    const mail = emailTemplate.sendMail({otp, email,name: user.fullName, subjet: "Get OTP"});
+    emailHelper.sendEmail(mail);
+
+    await User.updateOne(
+        { email },
+        {
+          $set: {
+            'otpVerification.otp': otp,
+            'otpVerification.time': new Date(Date.now() + 3 * 60000)
+          },
+        }
+    );
 
     return true;
-} // have to add account varification on the user create
+}
 
 //All Profile Information
 const profle = async ( 
@@ -80,11 +104,15 @@ const profle = async (
     const isExist = await User.findById({_id: userID}).select("-password -otpVerification -isSocialAccount -latLng -__v -searchedCatagory");
     // .lean().exec();
     if (!isExist) {
-        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
+      throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
+    };
+
+    if ( !isExist.userVerification ) {
+      throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"Your account was not valid!")
     };
 
     if ( isExist.accountStatus === ACCOUNT_STATUS.DELETE || isExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
+      throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
     };
 
     return { user: isExist }

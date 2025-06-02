@@ -8,6 +8,10 @@ const userSchema = new Schema<IUser>({
     enum: USER_ROLES, 
     required: true 
   },
+  userVerification: { 
+    type: Boolean,
+    default: false
+  },
   fullName: {
     type: String,
     min: 6,
