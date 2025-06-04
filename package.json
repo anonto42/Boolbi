@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "server.js",
   "author": "",
-  "type": "module",
+  "type": "commonjs",
   "license": "ISC",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.dev.ts",
