@@ -447,9 +447,25 @@ const getRequests = catchAsync(
     }
 )
 
+const deleteNotifications = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const ids = req.body.notifications;
+        const result = await UserServices.deleteNotification(ids);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully deleted notificaitons!",
+            data: result
+        })
+    }
+)
+
 export const UserController = {
     searchPosts,
     getRequests,
+    deleteNotifications,
     notifications,
     giveReting,
     iOfferd,

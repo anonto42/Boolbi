@@ -35,6 +35,12 @@ const offerSchema = new Schema<IOffer>({
   deadline:{
     type: Date,
   },
+  startDate: {
+    type: Date
+  },
+  endDate: {
+    endDate: Date
+  },
   description:{
     type: String,
     trim: true,

@@ -177,6 +177,10 @@ router
         auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
         UserController.notifications
     )
+    .delete(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+        UserController.deleteNotifications
+    )
 
 router
     .route("/rating")

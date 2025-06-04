@@ -20,10 +20,6 @@ import generateOTP from "../../util/generateOTP";
 import { emailTemplate } from "../../shared/emailTemplate";
 import { emailHelper } from "../../helpers/emailHelper";
 
-// if ( !isExist.userVerification ) {
-//  throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"Your account was not valid!")
-//};
-
 //User signUp
 const signUp = async ( 
     payload : ISignUpData
@@ -107,8 +103,10 @@ const profle = async (
       throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
     };
 
-    if ( !isExist.userVerification ) {
-      throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"Your account was not valid!")
+    if ( isExist.role !== USER_ROLES.ADMIN && isExist.role !== USER_ROLES.SUPER_ADMIN ) {
+      if ( !isExist.userVerification ) {
+        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"Your account was not valid!")
+      };
     };
 
     if ( isExist.accountStatus === ACCOUNT_STATUS.DELETE || isExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
@@ -1049,7 +1047,9 @@ const cOffer = async (
         location,
         deadline,
         description,
-        to
+        to,
+        endDate,
+        startDate
       } = data;
       const isUserExist = await User.findById(userID);
 
@@ -1104,6 +1104,8 @@ const cOffer = async (
         jobLocation: location,
         deadline,
         description,
+        startDate,
+        endDate,
         companyImages: images
       }
   
@@ -1232,7 +1234,7 @@ const intracatOffer = async(
       offerID: isOfferExist._id,
       provider,
       customer,
-      deliveryDate: isOfferExist.deadline
+      deliveryDate: isUserExist.role === USER_ROLES.USER? isOfferExist.deadline : isOfferExist.endDate
     };
     
     const order = await Order.create(orderCreationData);
@@ -1747,8 +1749,26 @@ const addRating = async (
   return true;
 }
 
+const deleteNotification = async (
+  ids: string[] 
+) => {
+  if (ids.length === 1) {
+    await Notification.findByIdAndDelete(ids[0]);
+  } else if ( ids.length > 1 ) {
+    await Notification.deleteMany({
+      _id: { $in: ids }
+    })
+  } else {
+    throw new ApiError(
+      StatusCodes.NOT_ACCEPTABLE,
+      "You must give notification id to delete!"
+    )
+  }
+}
+
 export const UserServices = {
     filteredData,
+    deleteNotification,
     addRating,
     getRequests,
     getAOffer,

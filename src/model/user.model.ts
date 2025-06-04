@@ -83,7 +83,10 @@ const userSchema = new Schema<IUser>({
     type: String
   },
   samplePictures: [ { type: String } ],
-  profileImage: String,
+  profileImage: {
+    type: String,
+    default: "https://i.ibb.co/z5YHLV9/profile.png"
+  },
   accountActivityStatus: { 
     type: String, 
     enum: ACCOUTN_ACTVITY_STATUS, 

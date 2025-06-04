@@ -51,6 +51,8 @@ export type TOffer = {
     deadline: Date;
     description: string;
     postID: string;
+    endDate: Date;
+    startDate: Date;
 }
 
 export type TRating = {
