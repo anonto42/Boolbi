@@ -1,0 +1,75 @@
+import colors from 'colors';
+import { Server } from 'socket.io';
+import app from './index';
+import config from './config';
+import { socketHelper } from './helpers/socketHelper';
+import { errorLogger, logger } from './shared/logger';
+import DBConnection from './DB/ConnentDB';
+import chalk from 'chalk';
+import { superUserCreate } from './DB/SuperUserCreate';
+
+//uncaught exception
+process.on('uncaughtException', error => {
+  errorLogger.error('UnhandleException Detected', error);
+  process.exit(1);
+});
+
+let server: any;
+async function main() {
+  try {
+    
+    await DBConnection()
+        .then( response =>(
+            console.log(chalk.green("✅ Your Database was hosted on: ") + chalk.cyan(response.connection.host)),
+            console.log(chalk.green("✅ Your Database is running on port: ") + chalk.yellow(response.connection.port)),
+            console.log(chalk.green("✅ Your Database name is: ") + chalk.magenta(response.connection.name))
+        ));
+
+    // Seed Super Admin after database connection is successful
+    await superUserCreate();
+
+    const port =
+      typeof config.port === 'number' ? config.port : Number(config.port);
+
+    server = app.listen(port, config.ip_address as string, () => {
+      logger.info(
+        colors.yellow(`♻️  Application listening on port:${config.port}`)
+      );
+    });
+
+    //socket
+    const io = new Server(server, {
+      pingTimeout: 60000,
+      cors: {
+        origin: '*',
+      },
+    });
+    socketHelper.socket(io);
+    //@ts-ignore
+    global.io = io; 
+  } catch (error) {
+    errorLogger.error(colors.red('🤢 Failed to connect Database'));
+  }
+
+  //handle unhandleRejection
+  process.on('unhandledRejection', error => {
+    if (server) {
+      server.close(() => {
+        errorLogger.error('UnhandleRejection Detected', error);
+        process.exit(1);
+      });
+    } else {
+      process.exit(1);
+    }
+  });
+}
+
+main();
+
+//SIGTERM
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM IS RECEIVE');
+  if (server) {
+    server.close();
+  }
+});
