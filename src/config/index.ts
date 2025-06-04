@@ -21,5 +21,9 @@ export default {
   super_user_email: process.env.SUPER_USER_EMAIL,
   super_user_password: process.env.SUPER_USER_PASSWORD,
   strip_public_key: process.env.STRIP_PUBLIC_KEY,
-  strip_secret_key: process.env.STRIP_SECRET_KEY
+  strip_secret_key: process.env.STRIP_SECRET_KEY,
+  database_user_name: process.env.MONGODB_ADMINUSERNAME!,
+  databse_user_password: process.env.MONGODB_ADMINPASSWORD!,
+  database_name: process.env.DATABASE_NAME!,
+  database_port: process.env.MONGODB_PORT!,
 };
