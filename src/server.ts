@@ -19,8 +19,9 @@ async function main() {
     try {
 
         let response: any = {};
-            await mongoose.connect(`mongodb://${config.database_user_name}:${config.databse_user_password}@mongo:${config.database_port}/${config.database_name}?authSource=admin`)
-        .then( rep => response = rep );
+        await mongoose.connect(`mongodb://${config.database_user_name}:${config.database_user_password}@mongo:${config.database_port}/${config.database_name}?authSource=admin`)
+        .then( rep => response = rep )
+        .catch( err => console.log( err ))
         console.log(chalk.green("✅ Your Database was hosted on: ") + chalk.cyan(response.connection.host)),
         console.log(chalk.green("✅ Your Database is running on port: ") + chalk.yellow(response.connection.port)),
         console.log(chalk.green("✅ Your Database name is: ") + chalk.magenta(response.connection.name))

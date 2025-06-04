@@ -23,7 +23,7 @@ export default {
   strip_public_key: process.env.STRIP_PUBLIC_KEY,
   strip_secret_key: process.env.STRIP_SECRET_KEY,
   database_user_name: process.env.MONGODB_ADMINUSERNAME!,
-  databse_user_password: process.env.MONGODB_ADMINPASSWORD!,
+  database_user_password: process.env.MONGODB_ADMINPASSWORD!,
   database_name: process.env.DATABASE_NAME!,
   database_port: process.env.MONGODB_PORT!,
 };
