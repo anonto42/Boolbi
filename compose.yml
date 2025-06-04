@@ -1,18 +1,17 @@
 services:
 
-  mongo_boolbi:
-    container_name: mongo_boolbi
+  mongo:
     image: mongo
     env_file:
       - .env 
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGODB_ADMINUSERNAME}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_ADMINPASSWORD}
-      - mongo_boolbi_INITDB_DATABASE=${DATABASE_NAME}
+      - MONGO_INITDB_DATABASE=${DATABASE_NAME}
     volumes:
       - shared-data:/shared
     ports:
-      - "${DB_PORT}:27017"
+      - "${MONGODB_PORT}:27017"
     networks:
       - server-net
     deploy:
@@ -38,8 +37,6 @@ services:
       - server3
     networks:
       - server-net
-    # volumes:
-    #   - ./conf/nginx/default.conf:/etc/nginx/conf.d/default.conf
     deploy:
       resources:
         limits:
@@ -64,7 +61,7 @@ services:
     networks:
       - server-net
     depends_on:
-      - mongo_boolbi
+      - mongo
     deploy:
       resources:
         limits:
@@ -89,7 +86,7 @@ services:
     networks:
       - server-net
     depends_on:
-      - mongo_boolbi
+      - mongo
     deploy:
       resources:
         limits:
@@ -114,7 +111,7 @@ services:
     networks:
       - server-net
     depends_on:
-      - mongo_boolbi
+      - mongo
     deploy:
       resources:
         limits:
