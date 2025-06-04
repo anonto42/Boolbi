@@ -1,11 +1,11 @@
 import chalk from "chalk";
 import { errorLogger, logger } from "./shared/logger";
-import DBConnection from "./DB/ConnentDB";
 import config from "./config";
 import app from "./index";
 import { socketHelper } from "./helpers/socketHelper";
 import { Server } from "socket.io";
 import { superUserCreate } from "./DB/SuperUserCreate";
+import mongoose from "mongoose";
 
 
 //uncaught exception
@@ -18,12 +18,12 @@ let server: any;
 async function main() {
     try {
 
-        await DBConnection()
-        .then( response =>(
-            console.log(chalk.green("✅ Your Database was hosted on: ") + chalk.cyan(response.connection.host)),
-            console.log(chalk.green("✅ Your Database is running on port: ") + chalk.yellow(response.connection.port)),
-            console.log(chalk.green("✅ Your Database name is: ") + chalk.magenta(response.connection.name))
-        ));
+        let response: any = {};
+            await mongoose.connect(`mongodb://${config.database_user_name}:${config.databse_user_password}@mongo:${config.database_port}/${config.database_name}?authSource=admin`)
+        .then( rep => response = rep );
+        console.log(chalk.green("✅ Your Database was hosted on: ") + chalk.cyan(response.connection.host)),
+        console.log(chalk.green("✅ Your Database is running on port: ") + chalk.yellow(response.connection.port)),
+        console.log(chalk.green("✅ Your Database name is: ") + chalk.magenta(response.connection.name))
 
         await superUserCreate();
 
