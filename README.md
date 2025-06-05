@@ -1,1 +1,1 @@
-A offer can be valide only for seleted days
+ sudo chmod +x setup.sh && ./setup.sh
