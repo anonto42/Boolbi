@@ -754,7 +754,7 @@ const singlePost = async (
     const post = await Post.aggregate([
         {
             $match:{
-                _id: new mongoose.Types.ObjectId(postID)
+              _id: new mongoose.Types.ObjectId(postID)
             }
         },
         {
@@ -789,8 +789,15 @@ const singlePost = async (
             }
         }
     ])
+
+    const postData = post[0];
+    let isSaved = false;
+    isUserExist.favouriteServices.forEach(( e: any ) => {
+      if (e.toString() === postID.toString()) isSaved = true;
+    });
+    postData.isFavourite = isSaved;
   
-    return post[0];
+    return postData;
 };
   
 //Add to the favorite list 
