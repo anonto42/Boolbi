@@ -8,7 +8,7 @@ import generateOTP from "../../util/generateOTP";
 import { emailTemplate } from "../../shared/emailTemplate";
 import { emailHelper } from "../../helpers/emailHelper";
 import { IChangePassword, ISocalLogin } from "../../types/auth";
-import { ACCOUNT_STATUS } from "../../enums/user.enums";
+import { ACCOUNT_STATUS, USER_ROLES } from "../../enums/user.enums";
 import { compare, hash } from "bcryptjs";
 import { JwtPayload } from "jsonwebtoken";
 
@@ -34,10 +34,11 @@ const signIn = async (
 
     isUser.deviceID = deviceID;
     await isUser.save()
+    const user = await User.findById( isUser._id ).select("-password -latLng -isVerified -isSocialAccount")
 
     const token = jwtHelper.createToken({language: isUser.language, role: isUser.role, userID: isUser._id});
     
-    return { token, user: isUser }
+    return { token, user }
 }
 
 const emailSend = async (
@@ -109,6 +110,20 @@ const verifyOtp = async (
         );
     };
 
+    if ( !isUser.userVerification ) {
+        await User.updateOne(
+            { email },
+            {
+                $set: {
+                    'otpVerification.otp': 0,
+                    'otpVerification.time': new Date(),
+                    "userVerification": true
+                }
+            }
+        );
+        return "Now your account is verifyed!"
+    }
+
     const key = Math.floor(Math.random() * 1000000);
     const hasedKey = await hash(key.toString(),1);
 
@@ -118,8 +133,7 @@ const verifyOtp = async (
           $set: {
             'otpVerification.otp': 0,
             'otpVerification.time': new Date(),
-            'otpVerification.key': key.toString(),
-            "userVerification": true
+            'otpVerification.key': key.toString()
           }
         }
     );
@@ -229,28 +243,28 @@ const forgetPassword = async (
 
 const socalLogin = async (
     {
-        deviceID,
+        uid,
         provider,
-        accountType
+        email,
+        displayName,
+        deviceID
     } : ISocalLogin,
 ) => {
     const isUserExist = await User.findOne({
-        'isSocialAccount.socialIdentity': deviceID
+        'isSocialAccount.socialIdentity': uid
     });
 
     // Create user if there is not any user
     if ( isUserExist === null ) {
         const user = await User.create({
             'isSocialAccount.isSocial': true,
-            'isSocialAccount.socialIdentity': deviceID,
+            'isSocialAccount.socialIdentity': uid,
             'isSocialAccount.provider': provider,
-            role: accountType,
+            deviceID: deviceID,
+            role: USER_ROLES.USER,
             password: "--",
-            email: "--",
-            fullName: "--",
-            latLng:{
-                coordinates:[11,11]
-            }
+            email: email,
+            fullName: displayName
         })
         
         const token = jwtHelper.createToken({language: "en", role: user.role, userID: user._id});
@@ -261,7 +275,8 @@ const socalLogin = async (
         throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
     };
 
-    const token = jwtHelper.createToken({language: "en", role: isUserExist.role, userID: isUserExist});
+    const token = jwtHelper.createToken({language: "en", role: isUserExist.role, userID: isUserExist._id});
+    
     return { token };
 } 
 
