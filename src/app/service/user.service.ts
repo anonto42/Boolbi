@@ -1211,19 +1211,24 @@ const intracatOffer = async(
     //   await userTwo.save();
     // }
 
-    const pushNotificationFor = await User.findById(notification.for)!
-    if (pushNotificationFor.deviceID) {
-      await messageSend({
-        notification: {
-          title: notification.content,
-          body: `${isOfferExist.description}`
-        },
-        token: pushNotificationFor.deviceID
-      });
-    }
-
     isOfferExist.status = OFFER_STATUS.APPROVE;
     await isOfferExist.save();
+
+    try {
+      const pushNotificationFor = await User.findById(notification.for)!
+      if (pushNotificationFor.deviceID) {
+        await messageSend({
+          notification: {
+            title: notification.content,
+            body: `${isOfferExist.description}`
+          },
+          token: pushNotificationFor.deviceID
+        });
+      }
+      
+    } catch (error) {
+      console.log(error)
+    }
 
     return "Offer accepted";
 
