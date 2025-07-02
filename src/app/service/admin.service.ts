@@ -18,6 +18,7 @@ import Notification from "../../model/notification.model";
 import { PAYMENT_STATUS } from "../../enums/payment.enum";
 import Order from "../../model/order.model";
 import { PaginationParams } from "../../types/user";
+import mongoose from "mongoose";
 
 const overview = async (
     payload: JwtPayload
@@ -387,10 +388,24 @@ const APayments = async (
 }
 
 const allCatagorys = async (
-    payload: JwtPayload 
+    payload: JwtPayload,
+    pagination: {
+      page: number,
+      limit: number
+    }
 ) => {
+    const { page= 1, limit= 10 } = pagination;
     const { userID } = payload;
-    const isUserExist = await User.findById(userID);
+    const objID = new mongoose.Types.ObjectId(userID);
+    
+    const isUserExist = await User.findById(objID);
+    
+    if (!isUserExist) {
+      throw new ApiError(
+        StatusCodes.NOT_FOUND,
+        "User not found!"
+      )
+    }
     if (
       isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
       isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
@@ -400,6 +415,8 @@ const allCatagorys = async (
         `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
       );
     }
+
+    const skip = ( page - 1 ) * limit;
     
     const categories = await Catagroy.aggregate([
       {
@@ -414,6 +431,12 @@ const allCatagorys = async (
         $project:{
           subCatagroys: 0
         }
+      },
+      {
+        $skip: skip
+      },
+      {
+        $limit: limit
       }
     ]);
     
