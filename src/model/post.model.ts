@@ -1,11 +1,15 @@
 import { model, models, Schema } from "mongoose";
-import { IPost, Reating } from "../Interfaces/post.interface";
+import { IPost } from "../Interfaces/post.interface";
 
 const jobPostSchema = new Schema<IPost>({
   title: {
     type: String,
     required: true,
   },
+  offers: [{
+    type: Schema.Types.ObjectId,
+    ref: "post"
+  }],
   coverImage: {
     type: String,
     required: true,
@@ -13,10 +17,6 @@ const jobPostSchema = new Schema<IPost>({
   catagory: {
     type: String,
     required: true,
-  },
-  subCatagory: {
-    type: String,
-    required: true, // Fixed typo from "requird"
   },
   companyName: {
     type: String,
@@ -28,7 +28,6 @@ const jobPostSchema = new Schema<IPost>({
     required: true,
     trim: true,
   },
-
   latLng: {
     type: {
       type: String,
@@ -41,9 +40,8 @@ const jobPostSchema = new Schema<IPost>({
       required: true,
     },
   },
-
   deadline: {
-    type: String,
+    type: Date,
     required: true,
   },
   jobDescription: {

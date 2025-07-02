@@ -18,7 +18,9 @@ export type IChangePassword = {
 };
 
 export type ISocalLogin = {
-  deviceID: string;
+  uid: string;
   provider: string;
-  accountType: USER_ROLES.USER | USER_ROLES.SERVICE_PROVIDER
+  email: string;
+  displayName: string;
+  deviceID: string
 }

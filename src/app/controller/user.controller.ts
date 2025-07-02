@@ -173,8 +173,9 @@ const updateJob = catchAsync(
 const post = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
-        const {postID,limit,page} = req.body;
+        const postID = req.query.id as string;
 
+        const {limit,page} = req.body;
         let result;
         if (postID) {
             result = await UserServices.singlePost(payload,{postID: postID})    

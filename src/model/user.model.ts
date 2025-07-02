@@ -169,12 +169,11 @@ const userSchema = new Schema<IUser>({
     type: {
       type: String,
       enum: ["Point"],
-      required: true,
       default: "Point",
     },
     coordinates: {
       type: [Number],
-      required: true,
+      default: [0.0044,0.2333]
     },
   },
 },{

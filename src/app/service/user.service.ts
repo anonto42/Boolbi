@@ -19,12 +19,13 @@ import { paymentIntents } from "../router/payment.route";
 import generateOTP from "../../util/generateOTP";
 import { emailTemplate } from "../../shared/emailTemplate";
 import { emailHelper } from "../../helpers/emailHelper";
+import { OFFER_STATUS } from "../../enums/offer.enum";
 
 //User signUp
 const signUp = async ( 
     payload : ISignUpData
 ) => {
-    const { fullName, email, password, address, confirmPassword, phone, role, lat, lng } = payload;
+    const { fullName, email, password, confirmPassword, phone, role } = payload;
 
     const isExist = await User.findOne({email: email});
     if (isExist) {
@@ -55,12 +56,7 @@ const signUp = async (
         email,
         password: hashed,
         phone,
-        address,
         role,
-        latLng: {
-          type: "Point",
-          coordinates: [Number(lng), Number(lat)],
-        },
     };
 
     const user: IUser = await User.create(userData);
@@ -88,7 +84,7 @@ const signUp = async (
         }
     );
 
-    return true;
+    return "Now you must verify your account!";
 }
 
 //All Profile Information
@@ -96,17 +92,12 @@ const profle = async (
     payload : JwtPayload
 ) => {
     const { userID } = payload;
+    const objID = new mongoose.Types.ObjectId(userID);
 
-    const isExist = await User.findById({_id: userID}).select("-password -otpVerification -isSocialAccount -latLng -__v -searchedCatagory");
+    const isExist = await User.findById(objID).select("-password -otpVerification -isSocialAccount -latLng -__v -searchedCatagory");
     // .lean().exec();
     if (!isExist) {
       throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
-    };
-
-    if ( isExist.role !== USER_ROLES.ADMIN && isExist.role !== USER_ROLES.SUPER_ADMIN ) {
-      if ( !isExist.userVerification ) {
-        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"Your account was not valid!")
-      };
     };
 
     if ( isExist.accountStatus === ACCOUNT_STATUS.DELETE || isExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
@@ -432,8 +423,6 @@ const createPost = async (
       description,
       location,
       title,
-      postType,
-      subCatagory,
       lng,
       lat,
     } = data;
@@ -479,8 +468,6 @@ const createPost = async (
     const jobData = {
       title,
       catagory: category,
-      subCatagory,
-      postType,
       companyName,
       location,
       deadline,
@@ -536,35 +523,12 @@ const post = async (
 
     const skip = (page - 1) * limit;
 
-    const jobs = await User.aggregate([
-        {
-            $match: { _id: isUserExist._id }
-        },
-        {
-            $lookup: {
-              from: "posts",
-              let: { jobIds: "$job", userId: "$_id" },
-              pipeline: [
-                {
-                  $match: {
-                    $expr: {
-                      $and: [
-                        { $in: ["$_id", "$$jobIds"] },
-                        { $eq: ["$creatorID", "$$userId"] }
-                      ]
-                    }
-                  }
-                },
-                { $sort: { createdAt: -1 } },
-                { $skip: skip },
-                { $limit: limit }
-              ],
-              as: "userPosts"
-            }
-        }
-    ]);
+    const posts = await Post.find({ creatorID: isUserExist._id })
+                            .skip(skip)
+                            .limit(limit)
+                            .sort({ createdAt: -1 })
 
-    return (jobs as any)[0]?.userPosts ?? [];
+    return posts
 };
 
 // Update a post
@@ -751,46 +715,10 @@ const singlePost = async (
       );
     }
   
-    const post = await Post.aggregate([
-        {
-            $match:{
-              _id: new mongoose.Types.ObjectId(postID)
-            }
-        },
-        {
-          $lookup: {
-            from: "users",
-            localField: "creatorID",
-            foreignField: "_id",
-            as: "creator"
-          }
-        },
-        {
-            $unwind: "$creator"
-        },
-        {
-            $project:{
-                "creator.password": 0,
-                "creator.isSocialAccount": 0,                
-                "creator.otpVerification": 0,
-                // "creator.email": 1,
-                // "creator.language": 1,
-                // "creator.phone": 1,
-                // title: 1,
-                // catagory: 1,
-                // subCatagory: 1,
-                // companyName: 1,
-                // location: 1,
-                // deadline:1 ,
-                // jobDescription: 1,
-                // showcaseImages: 1,
-                // createdAt: 1,
-                // updatedAt: 1
-            }
-        }
-    ])
+    const post = await Post.findById(Data.postID)
+                           .populate("offers")
 
-    const postData = post[0];
+    const postData: any = post;
     let isSaved = false;
     isUserExist.favouriteServices.forEach(( e: any ) => {
       if (e.toString() === postID.toString()) isSaved = true;
@@ -1075,12 +1003,12 @@ const cOffer = async (
         );
       };
 
-      if ( !isUserExist.paymentCartDetails.customerID || !isUserExist.paymentCartDetails ) {
-        throw new ApiError(
-          StatusCodes.NOT_ACCEPTABLE,
-          "You don't have the payment details at first inshoure the payment details!"
-        )  
-      };
+      // if ( !isUserExist.paymentCartDetails.customerID || !isUserExist.paymentCartDetails ) {
+      //   throw new ApiError(
+      //     StatusCodes.NOT_ACCEPTABLE,
+      //     "You don't have the payment details at first inshoure the payment details!"
+      //   )  
+      // };
 
       if (
         isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
@@ -1123,16 +1051,6 @@ const cOffer = async (
       await ifCustomerExist.save();
       await isUserExist.save();
   
-      if (ifCustomerExist.deviceID) {
-        await messageSend({
-          notification: {
-            title: `${companyName} send you a offer!`,
-            body: `${description}`
-          },
-          token: ifCustomerExist.deviceID
-        });
-      }
-  
       const notification = await Notification.create({
         for:ifCustomerExist._id,
         content: `You get a offer from ${isUserExist.fullName}`
@@ -1141,6 +1059,21 @@ const cOffer = async (
       //@ts-ignore
       const io = global.io;
       io.emit(`socket:${to}`,notification)
+
+      try {
+        if (ifCustomerExist.deviceID) {
+          await messageSend({
+            notification: {
+              title: `${companyName} send you a offer!`,
+              body: `${description}`
+            },
+            token: ifCustomerExist.deviceID
+          });
+        }
+      } catch (error) {
+        console.log(error)
+      }
+
      
       return offer;
     } catch (error: any) {
@@ -1152,7 +1085,7 @@ const cOffer = async (
         error.message
       )
     }
-}
+};
 
 // offer intraction
 const intracatOffer = async(
@@ -1163,7 +1096,7 @@ const intracatOffer = async(
     }
 )=>{
     const { userID } = payload;
-    const { acction,offerId } = data;
+    const { acction, offerId } = data;
     const isUserExist = await User.findById(userID);
     const isOfferExist = await Offer.findById(offerId);
     
@@ -1185,105 +1118,116 @@ const intracatOffer = async(
       throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
     };
 
-    if ( acction === "DECLINE" ) {
-      isOfferExist.status = "DECLINE";
-      const newArr = user1.myOffer.filter( (e: any) => e !== data.offerId );
-      user1.myOffer = newArr;
-       
-      await user1.save();
-      await isOfferExist.save();
-      return "Offer Decline"
-    };
-
-    let cardDetails;
     let customer;
     let provider;
 
     if (user1.role === USER_ROLES.USER) {
       customer = user1;
       provider = user2;
-      cardDetails = user1.paymentCartDetails.customerID;
-    }else if ( user2.role === USER_ROLES.USER ) {
+      // cardDetails = user1.paymentCartDetails.customerID;
+    } else if ( user2.role === USER_ROLES.USER ) {
       customer = user2;
       provider = user1;
-      cardDetails = user2.paymentCartDetails.customerID;
+      // cardDetails = user2.paymentCartDetails.customerID;
     }
 
-    if (!cardDetails) {
-      throw new ApiError(
-        StatusCodes.NOT_ACCEPTABLE,
-        `${customer.fullName} don't have the payment details`
-      )
-    }
+    // if (!cardDetails) {
+    //   throw new ApiError(
+    //     StatusCodes.NOT_ACCEPTABLE,
+    //     `${customer.fullName} don't have the payment details`
+    //   )
+    // }
 
     // Charge customer
-    const paymentIntent = await paymentIntents.create({
-      amount: Math.round(isOfferExist.budget * 100),
-      currency: 'usd',
-      customer: cardDetails,
-      confirm: true,
-      payment_method: 'pm_card_visa',
-      automatic_payment_methods: {
-        enabled: true,
-        allow_redirects: "never"
-      },
-      transfer_group: `order_${isOfferExist._id}`
-    });
+    // const paymentIntent = await paymentIntents.create({
+    //   amount: Math.round(isOfferExist.budget * 100),
+    //   currency: 'usd',
+    //   customer: cardDetails,
+    //   confirm: true,
+    //   payment_method: 'pm_card_visa',
+    //   automatic_payment_methods: {
+    //     enabled: true,
+    //     allow_redirects: "never"
+    //   },
+    //   transfer_group: `order_${isOfferExist._id}`
+    // });
     
-    if (paymentIntent.status !== 'succeeded') {
-      throw new ApiError(
-        StatusCodes.BAD_REQUEST,
-        "Pyment was now successfull so we can't create your order from the offer!"
-      )
-    }
+    // if (paymentIntent.status !== 'succeeded') {
+    //   throw new ApiError(
+    //     StatusCodes.BAD_REQUEST,
+    //     "Pyment was now successfull so we can't create your order from the offer!"
+    //   )
+    // }
     
-    const orderCreationData = {
-      offerID: isOfferExist._id,
-      provider,
-      customer,
-      deliveryDate: isUserExist.role === USER_ROLES.USER? isOfferExist.deadline : isOfferExist.endDate
+    // const orderCreationData = {
+    //   offerID: isOfferExist._id,
+    //   provider,
+    //   customer,
+    //   deliveryDate: isUserExist.role === USER_ROLES.USER? isOfferExist.deadline : isOfferExist.endDate
+    // };
+    
+    // const order = await Order.create(orderCreationData);
+
+
+    
+    if ( acction === "DECLINE" ) {
+      isOfferExist.status = "DECLINE";
+      const newArr = user1.myOffer.filter( (e: any) => e !== data.offerId );
+      user1.myOffer = newArr;
+
+      const notification = await Notification.create({
+        for: isUserExist._id == customer._id ? provider._id : customer._id,
+        content: isUserExist._id == customer._id ? `${customer.fullName} was decline your offer` : `${provider.fullName} was decline your offer!`
+      });
+
+      //@ts-ignore
+      const io = global.io;
+      io.emit(`socket:${notification.for}`, notification)
+       
+      await user1.save();
+      await isOfferExist.save();
+      return "Offer Decline"
     };
-    
-    const order = await Order.create(orderCreationData);
 
     const notification = await Notification.create({
-      for: provider._id,
-      content: `A new order from ${customer.fullName}`
+      for: isUserExist._id == customer._id ? provider._id : customer._id,
+      content: isUserExist._id == customer._id ? `${customer.fullName} was accept your offer` : `${provider.fullName} was accept your offer now you should pay to confirm your order!`
     });
-
-    if (provider.deviceID) {
-        await messageSend({
-          notification: {
-            title: `Got a new Order from ${customer.fullName}!`,
-            body: `${isOfferExist.description}`
-          },
-          token: provider.deviceID
-        });
-    }
 
     //@ts-ignore
     const io = global.io;
-    io.emit(`socket:${isOfferExist.form}`,notification)
+    io.emit(`socket:${notification.for}`, notification)
 
-    const userOne = await User.findById(isOfferExist.to);
-    const userTwo = await User.findById(isOfferExist.form);
+    // const userOne = await User.findById(isOfferExist.to);
+    // const userTwo = await User.findById(isOfferExist.form);
     
-    if (!userOne.orders.includes(order._id)) {
-      userOne.orders.push(order._id);
-      await userOne.save();
+    // if (!userOne.orders.includes(order._id)) {
+    //   userOne.orders.push(order._id);
+    //   await userOne.save();
+    // }
+
+    // if (!userTwo.orders.includes(order._id)) {
+    //   userTwo.orders.push(order._id);
+    //   await userTwo.save();
+    // }
+
+    const pushNotificationFor = await User.findById(notification.for)!
+    if (pushNotificationFor.deviceID) {
+      await messageSend({
+        notification: {
+          title: notification.content,
+          body: `${isOfferExist.description}`
+        },
+        token: pushNotificationFor.deviceID
+      });
     }
 
-    if (!userTwo.orders.includes(order._id)) {
-      userTwo.orders.push(order._id);
-      await userTwo.save();
-    }
-
-    isOfferExist.status = "APPROVE";
+    isOfferExist.status = OFFER_STATUS.APPROVE;
     await isOfferExist.save();
 
-    return true;
+    return "Offer accepted";
 
-}
+};
 
 // delete offer
 const deleteOffer = async(
@@ -1316,7 +1260,7 @@ const deleteOffer = async(
     };
 
     return offer;
-}
+};
 
 // suport request
 const supportRequest = async(
@@ -1383,7 +1327,7 @@ const supportRequest = async(
   })
 
   return support;
-}
+};
 
 const getRequests = async (
   payload: JwtPayload,
@@ -1494,7 +1438,6 @@ const searchPosts = async (
   };
 };
 
-// Recommended post types
 const getRecommendedPosts = async ({
   payload,
   page = 1,

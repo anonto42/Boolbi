@@ -4,14 +4,14 @@ export interface IPost extends Document {
   title: string;
   coverImage: string;
   catagory: string;
-  subCatagory: string;
   companyName: string;
   location: string;
+  offers: Types.ObjectId[];
   latLng: {
     type: "Point";
     coordinates: [number, number];
   };
-  deadline: string;
+  deadline: Date;
   jobDescription: string;
   showcaseImages: string[];
   creatorID: Types.ObjectId;

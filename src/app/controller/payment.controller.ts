@@ -54,8 +54,24 @@ const givesalary = catchAsync(
     }
 )
 
+const successFullSession = catchAsync(
+    async( req: Request, res: Response ) => {
+        const sessionToken = req.query.session_id as string;
+        const result = await PaymentService.confirmSessionOFStripe( sessionToken );
+
+        res.send(result)
+        // sendResponse(res, {
+        //     success: true,
+        //     statusCode: StatusCodes.OK,
+        //     message: "Card add done!",
+        //     data: result
+        // })
+    }
+)
+
 export const PaymentController = {
     createSession,
     chargeUser,
-    givesalary
+    givesalary,
+    successFullSession
 }

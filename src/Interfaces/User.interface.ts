@@ -40,7 +40,6 @@ export interface IUser extends Document {
     };
     isSocialAccount:{
         isSocal: boolean;
-        provider: string;
         socialIdentity: string;
     };
     paymentCartDetails:{

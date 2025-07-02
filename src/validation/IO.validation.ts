@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { USER_ROLES } from '../enums/user.enums';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -10,9 +9,6 @@ const singnUpZodSchema = z.object({
     phone: z.string().optional(),
     password: z.string({ required_error: 'Password is required' }),
     confirmPassword: z.string({ required_error: 'Confirm password is required' }),
-    lat: z.string({required_error:"you must give the lat"}),
-    lng: z.string({required_error: "you must give the lng"}),
-    address: z.string({required_error: "you must give your address"}),
     email: z
       .string({ required_error: 'Email is required' })
       .min(1, "Email is required.")
@@ -56,9 +52,11 @@ const OTPZodSchema =  z.object({
 
 const socalLoginZodSchema = z.object({
   body: z.object({
-    deviceID: z.string({ required_error: "You must give the appID of login." }),
+    uid: z.string({ required_error: "You must give the uid of login." }),
     provider: z.string({required_error: "You must your login provider"}),
-    accountType: z.enum([ USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER],{required_error:"You must give your account type"})
+    email: z.string({required_error: "You must your email"}),
+    displayName: z.string({required_error: "You must your login provider"}),
+    deviceID: z.string({required_error:"You must give the device id!"})
   })
 });
 
@@ -89,7 +87,6 @@ const updateUserLangouageZodSchem =  z.object({
 const jobPostZodSchem =  z.object({
   body: z.object({
     category: z.string({required_error: "You must give the job category"}), 
-    subCatagory: z.string({required_error: "You must give the job catagory"}), 
     companyName: z.string({required_error: "You must give the company name"}), 
     deadline: z.string({required_error: "You must give the job deadline"}),
     description: z.string({required_error: "You must give the job description"}), 

@@ -11,6 +11,10 @@ const offerSchema = new Schema<IOffer>({
     type: Schema.Types.ObjectId,
     ref: "user"
   },
+  projectID:{
+    type: Schema.Types.ObjectId,
+    ref: "post"
+  },
   companyName: {
     type: String,
     trim: true,

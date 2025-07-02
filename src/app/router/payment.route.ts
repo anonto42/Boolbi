@@ -48,9 +48,9 @@ router
 
 router
     .route("/success")
-    .get( (req: Request, res: Response) => {
-        res.send(cardAddedSuccessfull)
-    })
+    .get(
+        PaymentController.successFullSession
+    )
 
 router
     .route("/failed")
