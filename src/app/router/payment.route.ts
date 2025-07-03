@@ -7,20 +7,8 @@ import config from "../../config";
 import { cardAddedSuccessfull, errorOnPayment } from "../../shared/paymentTemplate";
 
 const router = Router();
-// Stripe config for make payment
-export const { checkout, customers, paymentIntents, transfers, accounts } = new Stripe(config.strip_secret_key!);
 
-router
-    .route("/create")
-    .post(
-        auth( 
-            USER_ROLES.USER, 
-            USER_ROLES.SERVICE_PROVIDER, 
-            USER_ROLES.ADMIN, 
-            USER_ROLES.SUPER_ADMIN
-        ),
-        PaymentController.createSession
-    )
+export const { checkout, customers, paymentIntents, transfers, accounts, accountLinks } = new Stripe(config.strip_secret_key!);
 
 router
     .route("/pay")
@@ -31,25 +19,31 @@ router
             USER_ROLES.ADMIN,
             USER_ROLES.USER
         ),
-        PaymentController.chargeUser
+        PaymentController.payForService
     )
 
 router
-    .route("/salary")
+    .route("/verify")
     .post(
         auth(
             USER_ROLES.SERVICE_PROVIDER,
-            USER_ROLES.SUPER_ADMIN,
-            USER_ROLES.ADMIN,
-            USER_ROLES.USER
+            // USER_ROLES.SUPER_ADMIN,
+            // USER_ROLES.ADMIN,
+            // USER_ROLES.USER
         ),
-        PaymentController.givesalary
+        PaymentController.verifyUser
     )
 
 router
     .route("/success")
     .get(
         PaymentController.successFullSession
+    )
+
+router
+    .route("/refresh")
+    .get(
+        PaymentController.refreshSesstion
     )
 
 router
