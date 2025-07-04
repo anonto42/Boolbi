@@ -13,6 +13,7 @@ import Verification from "../../model/verifyRequest.model";
 import Payment from "../../model/payment.model";
 import { PAYMENT_STATUS } from "../../enums/payment.enum";
 import { PaginationParams } from "../../types/user";
+import { OFFER_STATUS } from "../../enums/offer.enum";
 
 const singleOrder = async (
     payload: JwtPayload,
@@ -498,9 +499,14 @@ const reqestAction = async (
             content: `Your delivery request was cancelled by ${order.customer.fullName}`
         });
 
+        order.status = OFFER_STATUS.DECLINE
+        await order.save();
+
         //@ts-ignore
         const io = global.io;
         io.emit(`socket:${ order.provider }`, notification)
+
+        return;
     };
 
     const delivaryRequest = await DeliveryRequest

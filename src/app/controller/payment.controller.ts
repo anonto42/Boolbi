@@ -4,8 +4,15 @@ import sendResponse from "../../shared/sendResponse";
 import { StatusCodes } from "http-status-codes";
 import { PaymentService } from "../service/payment.service";
 import ApiError from "../../errors/ApiError";
-import { accountLinks, accounts } from "../router/payment.route";
+import { accountLinks, accounts, checkout } from "../router/payment.route";
 import { paymentSuccessfull } from "../../shared/paymentTemplate";
+import Offer from "../../model/offer.model";
+import User from "../../model/user.model";
+import Payment from "../../model/payment.model";
+import Order from "../../model/order.model";
+import { ACCOUNT_STATUS, USER_ROLES } from "../../enums/user.enums";
+import { OFFER_STATUS } from "../../enums/offer.enum";
+import { accountBindSuccessfull, reconnectURL } from "../../shared/stripeTemplate";
 
 const payForService = catchAsync(
     async( req: Request, res: Response ) => {
@@ -50,21 +57,6 @@ const verifyUser = catchAsync(
     }
 )
 
-// const givesalary = catchAsync(
-//     async( req: Request, res: Response ) => {
-//         const payload = (req as any).user;
-//         const order = req.query.orderId as string;
-//         const result = await PaymentService.chargeCustomer( payload, order );
-
-//         sendResponse(res, {
-//             success: true,
-//             statusCode: StatusCodes.OK,
-//             message: "Salary goted successfull!",
-//             data: result
-//         })
-//     }
-// )
-
 const successFullSession = catchAsync(
     async( req: Request, res: Response ) => {
         
@@ -103,10 +95,10 @@ const successFullSession = catchAsync(
         account?.requirements?.pending_verification &&
         account?.requirements?.pending_verification?.length > 0
     ) {
-        // return res.redirect(`${req.protocol + '://' + req.get('host')}/payment/refreshAccountConnect/${id}`);
+        return res.redirect(`${req.protocol + '://' + req.get('host')}/payment/refresh/${id}`);
     }
     
-    res.send(paymentSuccessfull)
+    res.send(accountBindSuccessfull)
     }
 )
 
@@ -126,20 +118,100 @@ const refreshSesstion = catchAsync(
             type: "account_onboarding"
         });
 
-        sendResponse(res, {
-            success: true,
-            statusCode: StatusCodes.OK,
-            message: "Re verification url!",
-            data: { url: onboardLInk.url }
-        });
+        res.send(reconnectURL(onboardLInk.url))
     }
 )
 
+const PaymentVerify = catchAsync(
+    async( req: Request, res: Response ) => {
+        
+        const sectionID = req.query.session_id as string;
+
+        const session = await checkout.sessions.retrieve(sectionID);
+        const metadata = session.metadata;
+        if (!session) {
+            throw new ApiError(
+                StatusCodes.NOT_ACCEPTABLE,
+                "Your session was not valid!"
+            )
+        };
+        if (!metadata) {
+            throw new ApiError(
+                StatusCodes.BAD_GATEWAY,
+                "Not found the metadata for verify your payment!"
+            )
+        };
+        
+        const offer = await Offer.findById(metadata.offerID);
+        const user = await User.findById(metadata.userId);
+        if ( !user ) {
+            throw new ApiError(
+                StatusCodes.NOT_FOUND,
+                "User not found!"
+            )
+        };
+        if ( !offer ) {
+            throw new ApiError(
+                StatusCodes.NOT_FOUND,
+                "Offer not found!"
+            )
+        };
+
+        offer.status = OFFER_STATUS.PAID;
+        await offer.save();
+
+        const user1 = await User.findById(offer.to);
+        const user2 = await User.findById(offer.form);
+
+        if (!user1 || !user2) {
+            throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
+        };
+        
+        if ( user.accountStatus === ACCOUNT_STATUS.DELETE || user.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+            throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${user.accountStatus.toLowerCase()}!`)
+        };
+
+        let customer;
+        let provider;
+
+        if (user1.role === USER_ROLES.USER) {
+            customer = user1._id;
+            provider = user2._id;
+        } else if ( user2.role === USER_ROLES.USER ) {
+            customer = user2._id;
+            provider = user1._id;
+        }
+
+        const order = await Order.create(
+            {
+                offerID : offer._id,
+                customer,
+                provider,
+                deliveryDate: offer.deadline? offer.deadline : offer.endDate
+            }
+        );
+
+        const paymentForAdminView = await Payment.create({
+            userId: user._id,
+            orderId: order._id,
+            amount: offer.budget,
+            commission: metadata.commission
+        });
+
+        if (!paymentForAdminView) {
+            throw new ApiError(
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                "Payment was not created during some internal problem!"
+            )
+        };
+
+        res.send(paymentSuccessfull);
+    }
+)
 
 export const PaymentController = {
     payForService,
-    // chargeUser,
-    // givesalary,
+    PaymentVerify,
     verifyUser,
     refreshSesstion,
     successFullSession

@@ -1,11 +1,10 @@
 import { JwtPayload } from "jsonwebtoken"
 import User from "../../model/user.model";
 import { StatusCodes } from "http-status-codes";
-import { ACCOUNT_STATUS, USER_ROLES } from "../../enums/user.enums";
+import { ACCOUNT_STATUS } from "../../enums/user.enums";
 import ApiError from "../../errors/ApiError";
 import { accountLinks, accounts, checkout, customers, paymentIntents, transfers } from "../router/payment.route";
 import Order from "../../model/order.model";
-import { paymentSuccessfull } from "../../shared/paymentTemplate";
 import Offer from "../../model/offer.model";
 
 const createSession = async (
@@ -58,10 +57,11 @@ const createSession = async (
     const session = await checkout.sessions.create({
         payment_method_types: ['card'],
         mode: 'payment',
-        success_url: `${protocol}://${host}/api/v1/payment/success`,
+        success_url: `${protocol}://${host}/api/v1/payment/payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${protocol}://${host}/api/v1/payment/cancel`,
         line_items: lineItems,
         metadata: {
+            commission: offer.budget * 0.05,
             userId: String(userID),
             offerID: String(offer._id.toString()),
         },
@@ -106,13 +106,15 @@ const verifyProvider = async (
         email: user.email,
         country: 'US',
         capabilities: {
-        card_payments: { requested: true },
-        transfers: { requested: true },
+            card_payments: { requested: true },
+            transfers: { requested: true },
         }
     });
 
     user.paymentCartDetails.accountID = account.id;
     await user.save();
+    
+    let url;
 
     const onboardLInk = await accountLinks.create({
         account: account.id,
@@ -120,9 +122,10 @@ const verifyProvider = async (
         return_url: `${protocol}://${host}/api/v1/payment/success/${account.id}`,
         type: "account_onboarding"
     })
+    url = onboardLInk.url;
 
     return {
-        url: onboardLInk.url
+        url
     }
 };
 

@@ -35,13 +35,19 @@ router
     )
 
 router
-    .route("/success")
+    .route("/success/:id")
     .get(
         PaymentController.successFullSession
     )
 
 router
-    .route("/refresh")
+    .route("/payment-success")
+    .get(
+        PaymentController.PaymentVerify
+    )
+
+router
+    .route("/refresh/:id")
     .get(
         PaymentController.refreshSesstion
     )
