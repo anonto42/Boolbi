@@ -448,6 +448,20 @@ const getRequests = catchAsync(
     }
 )
 
+const aProvider = catchAsync(
+    async( req:Request, res:Response ) => {
+        const id = req.params.id;
+        const result = await UserServices.aProvider(id);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully get all the requests!",
+            data: result
+        })
+    }
+)
+
 const deleteNotifications = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
@@ -465,6 +479,7 @@ const deleteNotifications = catchAsync(
 
 export const UserController = {
     searchPosts,
+    aProvider,
     getRequests,
     deleteNotifications,
     notifications,

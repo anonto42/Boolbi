@@ -14,12 +14,16 @@ const userSchema = new Schema<IUser>({
   },
   fullName: {
     type: String,
+    default: "--",
     min: 6,
     max: 100,
     trim: true
   },
   description: {
-    type: String
+    type: String,
+    default: "--",
+    min: 6,
+    trim: true   
   },
   email: { 
     type: String, 
@@ -28,10 +32,12 @@ const userSchema = new Schema<IUser>({
     trim: true
   },
   category:{
-    type: String
+    type: String,
+    default: "--"
   },
   subCatagory:{
-    type: String
+    type: String,
+    default: "--"
   },
   deviceID:{
     type: String
@@ -63,26 +69,33 @@ const userSchema = new Schema<IUser>({
   city:{
     type: String,
     trim: true,
-    min: 3
+    min: 3,
+    default: "--"
   },
   postalCode:{
     type: String,
     trim: true,
-    min: 4
+    min: 4,
+    default: "--"
   },
   address:{
     type: String,
     trim: true,
-    min: 7
+    min: 7,
+    default: "--"
   },
   password: {
     type: String,
     required: true
   },
   phone: {
-    type: String
+    type: String,
+    default: "--"
   },
-  samplePictures: [ { type: String } ],
+  samplePictures: {
+    type: [String],
+    default: []
+  },
   profileImage: {
     type: String,
     default: "https://i.ibb.co/z5YHLV9/profile.png"
@@ -104,9 +117,10 @@ const userSchema = new Schema<IUser>({
   },
   isVerified: { 
     doc: String,
-    images: [{
-      type: String
-    }],
+    images: {
+      type: [String],
+      default: []
+    },
     status: {
       type: String,
       enum: ACCOUNT_VERIFICATION_STATUS,
@@ -182,5 +196,5 @@ const userSchema = new Schema<IUser>({
 
 userSchema.index({ latLng: "2dsphere" });
 
-const User = models.User || model('user', userSchema);
+const User = models.User || model<IUser>('user', userSchema);
 export default User;

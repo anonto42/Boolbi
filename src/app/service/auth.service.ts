@@ -34,11 +34,10 @@ const signIn = async (
 
     isUser.deviceID = deviceID;
     await isUser.save()
-    const user = await User.findById( isUser._id ).select("-password -latLng -isVerified -isSocialAccount")
 
     const token = jwtHelper.createToken({language: isUser.language, role: isUser.role, userID: isUser._id});
     
-    return { token, user }
+    return { token }
 }
 
 const emailSend = async (

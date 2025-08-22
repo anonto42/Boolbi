@@ -46,9 +46,9 @@ export interface IUser extends Document {
         customerID: string;
         cardID: string;
     };
-    ratings?: {
+    ratings: {
         stars: number;
-        feedback?: string;
+        feedback: string;
         from: Types.ObjectId;
     }[];
     latLng: {

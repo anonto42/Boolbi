@@ -1721,8 +1721,31 @@ const deleteNotification = async (
   }
 }
 
+const aProvider = async ( id: string ) => {
+
+  const objID = new mongoose.Types.ObjectId(id);
+  const result = await User.findById(objID)
+  .select("-otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -password -__v").lean().exec();
+
+  if (!result) {
+    throw new ApiError(
+      StatusCodes.NOT_FOUND,
+      "Provider not founded!"
+    )
+  }
+
+  return {
+    ...result,
+    totalReviews: (result as IUser).ratings.length,
+    agvRating: (result as IUser).ratings.reduce((a: any, b:any) => a + b.stars, 0) / (result as IUser).ratings.length,
+    totalServices: 0
+  }
+
+}
+
 export const UserServices = {
     filteredData,
+    aProvider,
     deleteNotification,
     addRating,
     getRequests,
