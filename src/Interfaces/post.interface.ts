@@ -1,10 +1,10 @@
 import { Document, Types } from "mongoose";
 
 export interface IPost extends Document {
-  title: string;
+  projectName: string;
   coverImage: string;
   catagory: string;
-  companyName: string;
+  subCategory: string;
   location: string;
   offers: Types.ObjectId[];
   latLng: {

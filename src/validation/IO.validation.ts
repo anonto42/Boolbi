@@ -87,11 +87,11 @@ const updateUserLangouageZodSchem =  z.object({
 const jobPostZodSchem =  z.object({
   body: z.object({
     category: z.string({required_error: "You must give the job category"}), 
-    companyName: z.string({required_error: "You must give the company name"}), 
+    subCategory: z.string({required_error: "You must give the company name"}), 
     deadline: z.string({required_error: "You must give the job deadline"}),
     description: z.string({required_error: "You must give the job description"}), 
     location: z.string({required_error: "You must give the job location"}), 
-    title: z.string({required_error: "You must give the job title"}),
+    projectName: z.string({required_error: "You must give the project name"}),
     lng: z.string({required_error:"You must give the lng number for the location Matrix"}), 
     lat: z.string({required_error:"You must give the lat number for the location Matrix"})
   })
@@ -101,7 +101,6 @@ const UpdatejobPostZodSchem =  z.object({
   body: z.object({
     category: z.string().optional(), 
     subCatagory: z.string().optional(), 
-    companyName: z.string().optional(), 
     deadline: z.string().optional(),
     description:z.string().optional(), 
     location:z.string().optional(), 
@@ -113,7 +112,6 @@ const UpdatejobPostZodSchem =  z.object({
 const offerCreateValidation = z.object({
   body: z.object({
     to: z.string().optional(),
-    companyName: z.string().optional(),
     projectName: z.string().optional(),
     category: z.string().optional(), 
     myBudget: z.string().optional(),
@@ -137,8 +135,8 @@ const offerDeletaionValidationZod = z.object({
 })
 
 const searchValidationZod = z.object({
-  query: z.object({
-    string: z.string({ required_error: "you must give a name or other thing to search"})
+  body: z.object({
+    searchQuery: z.string({ required_error: "you must give a name or other thing to search"})
   })
 })
 

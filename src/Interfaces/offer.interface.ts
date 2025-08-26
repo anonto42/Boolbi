@@ -5,7 +5,6 @@ export interface IOffer extends Document {
     form: Types.ObjectId;
     projectID: Types.ObjectId;
     status: "DECLINE" | "APPROVE" | "WATING";
-    companyName: string;
     projectName: string;
     category: string;
     budget: number;

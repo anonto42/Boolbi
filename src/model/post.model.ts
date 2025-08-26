@@ -2,13 +2,13 @@ import { model, models, Schema } from "mongoose";
 import { IPost } from "../Interfaces/post.interface";
 
 const jobPostSchema = new Schema<IPost>({
-  title: {
+  projectName: {
     type: String,
     required: true,
   },
   offers: [{
     type: Schema.Types.ObjectId,
-    ref: "post"
+    ref: "offerForPost"
   }],
   coverImage: {
     type: String,
@@ -18,7 +18,7 @@ const jobPostSchema = new Schema<IPost>({
     type: String,
     required: true,
   },
-  companyName: {
+  subCategory: {
     type: String,
     required: true,
     trim: true,

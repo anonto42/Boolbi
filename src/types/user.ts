@@ -19,9 +19,9 @@ export type SignInData = {
 }
 
 export type JobPost = {
-    title: string;
+    projectName: string;
     category: string;
-    companyName: string;
+    subCategory: string;
     location: string;
     deadline: Date;
     description: string;

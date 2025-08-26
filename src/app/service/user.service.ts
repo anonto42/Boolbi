@@ -20,6 +20,8 @@ import generateOTP from "../../util/generateOTP";
 import { emailTemplate } from "../../shared/emailTemplate";
 import { emailHelper } from "../../helpers/emailHelper";
 import { OFFER_STATUS } from "../../enums/offer.enum";
+import { SDK_VERSION } from "firebase-admin";
+import OfferForPost from "../../model/offerForPost";
 
 //User signUp
 const signUp = async ( 
@@ -418,11 +420,11 @@ const createPost = async (
     const { userID } = payload;
     const {
       category,
-      companyName,
+      subCategory,
       deadline,
       description,
       location,
-      title,
+      projectName,
       lng,
       lat,
     } = data;
@@ -450,11 +452,11 @@ const createPost = async (
       );
     }
   
-    const isJobExistWithTitle = await Post.findOne({ title });
+    const isJobExistWithTitle = await Post.findOne({ projectName });
     if (isJobExistWithTitle) {
       throw new ApiError(
         StatusCodes.NOT_ACCEPTABLE,
-        `A job already exists with the title ${title}`
+        `A job already exists with the title ${projectName}`
       );
     }
   
@@ -466,9 +468,9 @@ const createPost = async (
     }
   
     const jobData = {
-      title,
+      projectName,
       catagory: category,
-      companyName,
+      subCategory,
       location,
       deadline,
       coverImage,
@@ -524,6 +526,7 @@ const post = async (
     const skip = (page - 1) * limit;
 
     const posts = await Post.find({ creatorID: isUserExist._id })
+                            .populate("offers", '-__v')
                             .skip(skip)
                             .limit(limit)
                             .sort({ createdAt: -1 })
@@ -716,7 +719,14 @@ const singlePost = async (
     }
   
     const post = await Post.findById(Data.postID)
-                           .populate("offers")
+                            .populate({
+                                path: 'offers',
+                                select: 'myBudget description image',
+                                populate: {
+                                    path: 'by',
+                                    select: '-password -otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v'
+                                }
+                            })
 
     const postData: any = post;
     let isSaved = false;
@@ -975,7 +985,6 @@ const cOffer = async (
     try {
       const { userID } = payload;
       const {
-        companyName,
         projectName,
         myBudget,
         category,
@@ -1003,13 +1012,6 @@ const cOffer = async (
         );
       };
 
-      // if ( !isUserExist.paymentCartDetails.customerID || !isUserExist.paymentCartDetails ) {
-      //   throw new ApiError(
-      //     StatusCodes.NOT_ACCEPTABLE,
-      //     "You don't have the payment details at first inshoure the payment details!"
-      //   )  
-      // };
-
       if (
         isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
         isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
@@ -1032,7 +1034,6 @@ const cOffer = async (
       const offerData = {
         to: ifCustomerExist._id,
         form: isUserExist._id,
-        companyName,
         projectName,
         category,
         budget: Number(myBudget),
@@ -1064,7 +1065,7 @@ const cOffer = async (
         if (ifCustomerExist.deviceID) {
           await messageSend({
             notification: {
-              title: `${companyName} send you a offer!`,
+              title: `${isUserExist.fullName} send you a offer!`,
               body: `${description}`
             },
             token: ifCustomerExist.deviceID
@@ -1400,7 +1401,7 @@ const searchPosts = async (
   if (serchType === "POST") {
     const searchConditions = {
       $or: [
-        { title: { $regex: searchQuery, $options: "i" } },
+        { projectName: { $regex: searchQuery, $options: "i" } },
         { catagory: { $regex: searchQuery, $options: "i" } },
         { subCatagory: { $regex: searchQuery, $options: "i" } },
         { companyName: { $regex: searchQuery, $options: "i" } },
@@ -1411,6 +1412,10 @@ const searchPosts = async (
     [results, total] = await Promise.all([
       Post.find(searchConditions)
         .sort({ createdAt: -1 })
+        .populate({
+          path: "creatorID",
+          select: "name"
+        })
         .skip(skip)
         .limit(limit),
       Post.countDocuments(searchConditions)
@@ -1446,7 +1451,7 @@ const searchPosts = async (
 const getRecommendedPosts = async ({
   payload,
   page = 1,
-  limit = 20, // Default limit
+  limit = 20, 
 }: GetRecommendedPostsOptions ) => {
   const { userID } = payload;
 
@@ -1472,7 +1477,7 @@ const getRecommendedPosts = async ({
   // ========== No Search Category ==========
   if (!user.searchedCatagory || user.searchedCatagory.length === 0) {
     if (postType === "POST") {
-      const allPosts = await Post.find().select("-latLng");
+      const allPosts = await Post.find().populate("offers").select("-latLng");
       const shuffledPosts = shuffleArray(allPosts);
       return shuffledPosts.slice(skip, skip + limit);
     } else if (postType === "PROVIDER") {
@@ -1512,6 +1517,7 @@ const getRecommendedPosts = async ({
 
   if (postType === "POST") {
     const posts = await Post.find({ $or: regexQueries })
+      .populate("offers")
       .sort({ createdAt: -1 })
       .select("-latLng")
       .skip(skip)
@@ -1519,6 +1525,14 @@ const getRecommendedPosts = async ({
 
     if (posts.length === 0) {
       return await Post.find()
+         .populate({
+              path: 'offers',
+              select: 'myBudget description image',
+              populate: {
+                  path: 'by',
+                  select: 'fullName email phone address profileImage'
+              }
+          })
         .sort({ createdAt: -1 })
         .select("-latLng")
         .skip(skip)
@@ -1743,8 +1757,75 @@ const aProvider = async ( id: string ) => {
 
 }
 
+const allPost = async (
+  payload: JwtPayload,
+  pagination: any
+) => {
+  const user = await User.findById(payload.userID).select("-otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -password -__v").lean().exec();
+
+  const { page = 1, limit = 10 } = pagination;
+  const skip = (page - 1) * limit;
+  const total = await Post.countDocuments({});
+  const results = await Post.find()
+    .select("-latLng")
+    .limit(limit)
+    .skip(skip)
+    .lean()
+    .exec();
+
+  return {
+    data: results,
+    total,
+    currentPage: page,
+    totalPages: Math.ceil(total / limit),
+  };
+}
+
+const offerOnPost = async(
+  payload: JwtPayload,
+  data: any
+) => {
+
+  const { post_id: postID } = data;
+  const { userID } = payload;
+  
+  const post: any = await Post.findById(postID)
+  if (!post) {
+    throw new ApiError(
+      StatusCodes.NOT_FOUND,
+      "Post not founded!"
+    )
+  }
+
+  const user = await User.findById(userID).select("-otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -password -__v").lean().exec();
+  if (!user) {
+    throw new ApiError(
+      StatusCodes.NOT_FOUND,
+      "User not founded!"
+    )
+  }
+
+  const offer = await OfferForPost.create({
+    by: userID,
+    postId: postID,
+    startDate: data.startDate,
+    endDate: data.endDate,
+    validFor: data.validFor,
+    myBudget: data.myBudget,
+    description: data.description,
+    image: data.image
+  })
+
+  post.offers.push(offer._id);
+  await post.save();
+
+  return offer;
+}
+
 export const UserServices = {
     filteredData,
+    allPost,
+    offerOnPost,
     aProvider,
     deleteNotification,
     addRating,

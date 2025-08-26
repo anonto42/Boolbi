@@ -86,6 +86,13 @@ router
     )
 
 router
+    .route("/post/all")
+    .get(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        UserController.allPost
+    )
+
+router
     .route("/favorite")
     .get(
         auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
@@ -121,6 +128,17 @@ router
         auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
         validateRequest( Validation.offerDeletaionValidationZod ),
         UserController.DOffer
+    )
+
+router 
+    .route("/offer-on-post")
+    .get(
+        
+    )
+    .post(
+        auth( USER_ROLES.SERVICE_PROVIDER ),
+        fileUploadHandler(),
+        UserController.offerOnPost
     )
 
 router 
@@ -161,6 +179,15 @@ router
     .get(
         auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
         UserController.recommendedPosts
+    )
+
+router
+    .route("/provider-offer")
+    .get()
+    .post(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        fileUploadHandler(),
+        UserController.offerOnPost
     )
 
 router

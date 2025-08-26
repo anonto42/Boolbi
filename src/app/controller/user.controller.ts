@@ -136,6 +136,21 @@ const condition = catchAsync(
     }
 )
 
+const allPost = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const { ...pagication } = req.body;
+        const result = await UserServices.allPost(payload,pagication)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully got the terms & conditions",
+            data: result
+        })
+    }
+)
+
 const createPost = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
@@ -477,8 +492,28 @@ const deleteNotifications = catchAsync(
     }
 )
 
+const offerOnPost = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        
+        const photos = getMultipleFilesPath((req as any).files,"image")
+        const {...data} = req.body;
+        data.image = photos   
+        
+        const result = await UserServices.offerOnPost(payload,data);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully deleted notificaitons!",
+            data: result
+        })
+    }
+)
+
 export const UserController = {
     searchPosts,
+    offerOnPost,
     aProvider,
     getRequests,
     deleteNotifications,
@@ -496,6 +531,7 @@ export const UserController = {
     status,
     privacy,
     condition,
+    allPost,
     post,
     favorite,
     getFavorite,
