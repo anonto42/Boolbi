@@ -164,7 +164,7 @@ const ratingZodSchema = z.object({
   body: z.object({
     star: z.number({required_error: "You must give the number that you want to give!"}), 
     feedback: z.string({required_error: "You must give the feedback"}), 
-    providerID: z.string({required_error: "You must give the id of the provider that you want to give rating!"})
+    orderID: z.string({required_error: "You must give the id of the provider that you want to give rating!"})
   })
 })
 
