@@ -8,7 +8,7 @@ const jobPostSchema = new Schema<IPost>({
   },
   offers: [{
     type: Schema.Types.ObjectId,
-    ref: "offerForPost"
+    ref: "offer"
   }],
   coverImage: {
     type: String,

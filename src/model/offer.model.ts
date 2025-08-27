@@ -38,7 +38,7 @@ const offerSchema = new Schema<IOffer>({
     type: Date
   },
   endDate: {
-    endDate: Date
+    type: Date
   },
   description:{
     type: String,

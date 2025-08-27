@@ -253,7 +253,7 @@ const deliveryRequest = async (
     const io = global.io;
     io.emit(`socket:${ isOrderExist.customer }`,notification)
 
-    return true;
+    return delivaryRequest;
 
 }
 
@@ -413,7 +413,7 @@ const getDeliveryReqests = async (
   const deliveryRequests = await DeliveryRequest.find({ for: isExist._id })
     .skip(skip)
     .limit(limit)
-    .sort({ createdAt: -1 }); // optional sort by newest first
+    .sort({ createdAt: -1 });
 
   return {
     data: deliveryRequests,

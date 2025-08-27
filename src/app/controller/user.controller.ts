@@ -498,7 +498,7 @@ const offerOnPost = catchAsync(
         
         const photos = getMultipleFilesPath((req as any).files,"image")
         const {...data} = req.body;
-        data.image = photos   
+        data.companyImages = photos   
         
         const result = await UserServices.offerOnPost(payload,data);
 

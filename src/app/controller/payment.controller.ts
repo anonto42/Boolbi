@@ -191,6 +191,11 @@ const PaymentVerify = catchAsync(
             }
         );
 
+        user1.orders.push(order._id);
+        user2.orders.push(order._id);
+        await user1.save();
+        await user2.save();
+
         const paymentForAdminView = await Payment.create({
             userId: user._id,
             orderId: order._id,
