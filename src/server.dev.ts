@@ -5,7 +5,6 @@ import config from './config';
 import { socketHelper } from './helpers/socketHelper';
 import { errorLogger, logger } from './shared/logger';
 import DBConnection from './DB/ConnentDB';
-import chalk from 'chalk';
 import { superUserCreate } from './DB/SuperUserCreate';
 
 //uncaught exception
@@ -20,9 +19,9 @@ async function main() {
     
     await DBConnection()
         .then( response =>(
-            console.log(chalk.green("✅ Your Database was hosted on: ") + chalk.cyan(response.connection.host)),
-            console.log(chalk.green("✅ Your Database is running on port: ") + chalk.yellow(response.connection.port)),
-            console.log(chalk.green("✅ Your Database name is: ") + chalk.magenta(response.connection.name))
+            console.log(colors.green("✅ Your Database was hosted on: ") + colors.cyan(response.connection.host)),
+            console.log(colors.green("✅ Your Database is running on port: ") + colors.yellow(response.connection.port.toString())),
+            console.log(colors.green("✅ Your Database name is: ") + colors.magenta(response.connection.name))
         ));
 
     // Seed Super Admin after database connection is successful
