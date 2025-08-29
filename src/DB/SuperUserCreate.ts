@@ -19,7 +19,8 @@ export const superUserCreate = async () => {
             role: USER_ROLES.SUPER_ADMIN,
             latLng: {
                 coordinates: [ 11, 11 ]
-            }
+            },
+            userVerification: true
         }
 
         await User.create(superUserCreateData);

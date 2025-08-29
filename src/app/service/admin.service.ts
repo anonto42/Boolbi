@@ -977,7 +977,8 @@ const addNewAdmin = async (
       role: admin.role,
       name: admin.fullName,
       email: admin.email,
-      language: admin.language
+      language: admin.language,
+      userVerification: true
     }
 };
 

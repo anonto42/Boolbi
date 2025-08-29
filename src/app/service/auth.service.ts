@@ -23,6 +23,12 @@ const signIn = async (
     if (isUser.isSocialAccount.isSocal) {
         throw new ApiError(StatusCodes.BAD_REQUEST,"Your account is a socal account you must login with the "+isUser.isSocialAccount.provider)
     }
+    if (!isUser.userVerification) {
+        throw new ApiError(
+            StatusCodes.NOT_ACCEPTABLE,
+            "Your account is not verifyed! Please verify your account!"
+        )
+    }
     if ( isUser.accountStatus === ACCOUNT_STATUS.DELETE || isUser.accountStatus === ACCOUNT_STATUS.BLOCK ) {
         throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUser.accountStatus.toLowerCase()}!`)
     };
