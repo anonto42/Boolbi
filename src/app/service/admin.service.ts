@@ -387,14 +387,72 @@ const APayments = async (
     return allPayments;
 }
 
+// const allCatagorys = async (
+//     payload: JwtPayload,
+//     pagination: {
+//       page: number,
+//       limit: number,
+//       queary?: string
+//     }
+// ) => {
+//     const { page= 1, limit= 10 } = pagination;
+//     const { userID } = payload;
+//     const objID = new mongoose.Types.ObjectId(userID);
+    
+//     const isUserExist = await User.findById(objID);
+    
+//     if (!isUserExist) {
+//       throw new ApiError(
+//         StatusCodes.NOT_FOUND,
+//         "User not found!"
+//       )
+//     }
+//     if (
+//       isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
+//       isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
+//     ) {
+//       throw new ApiError(
+//         StatusCodes.FORBIDDEN,
+//         `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
+//       );
+//     }
+
+//     const skip = ( page - 1 ) * limit;
+    
+//     const categories = await Catagroy.aggregate([
+//       {
+//         $lookup: {
+//           from: "subcatagories",
+//           localField: "subCatagroys",
+//           foreignField: "_id",
+//           as: "subCategories"
+//         }
+//       },
+//       {
+//         $project:{
+//           subCatagroys: 0
+//         }
+//       },
+//       {
+//         $skip: skip
+//       },
+//       {
+//         $limit: limit
+//       }
+//     ]);
+    
+//     return categories
+// }
+
 const allCatagorys = async (
     payload: JwtPayload,
     pagination: {
       page: number,
-      limit: number
+      limit: number,
+      query?: string
     }
 ) => {
-    const { page= 1, limit= 10 } = pagination;
+    const { page = 1, limit = 10, query } = pagination;
     const { userID } = payload;
     const objID = new mongoose.Types.ObjectId(userID);
     
@@ -404,7 +462,7 @@ const allCatagorys = async (
       throw new ApiError(
         StatusCodes.NOT_FOUND,
         "User not found!"
-      )
+      );
     }
     if (
       isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
@@ -416,32 +474,41 @@ const allCatagorys = async (
       );
     }
 
-    const skip = ( page - 1 ) * limit;
-    
-    const categories = await Catagroy.aggregate([
-      {
-        $lookup: {
-          from: "subcatagories",
-          localField: "subCatagroys",
-          foreignField: "_id",
-          as: "subCategories"
+    const skip = (page - 1) * limit;
+
+    const pipeline: any[] = [];
+
+    if (query && query.trim() !== "") {
+      pipeline.push({
+        $match: {
+          name: { $regex: query, $options: "i" }
         }
-      },
-      {
-        $project:{
-          subCatagroys: 0
-        }
-      },
-      {
-        $skip: skip
-      },
-      {
-        $limit: limit
+      });
+    }
+
+    pipeline.push({
+      $lookup: {
+        from: "subcatagories",
+        localField: "subCatagroys",
+        foreignField: "_id",
+        as: "subCategories"
       }
-    ]);
-    
-    return categories
+    });
+
+    pipeline.push({
+      $project: {
+        subCatagroys: 0
+      }
+    });
+
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
+
+    const categories = await Catagroy.aggregate(pipeline);
+
+    return categories;
 }
+
 
 const addNewCatagory = async (
   payload: JwtPayload,
@@ -1197,7 +1264,9 @@ const intractVerificationRequest = async (
   } else if ( acction === "DECLINE" ) {
     await User.findByIdAndUpdate( request.user , {
       $set: {
-        "isVerified.status": ACCOUNT_VERIFICATION_STATUS.UNVERIFIED
+        "isVerified.status": ACCOUNT_VERIFICATION_STATUS.REJECTED,
+        "isUser.isVerified.images": [],
+        "isUser.isVerified.doc": ""
       }
     })
     const notification = await Notification.create({

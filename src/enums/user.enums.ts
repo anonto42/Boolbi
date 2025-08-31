@@ -27,5 +27,6 @@ export enum SELECTED_LANGUAGE {
 export enum ACCOUNT_VERIFICATION_STATUS {
   VERIFIED = 'verified',
   UNVERIFIED = 'unverified',
-  WAITING = 'waiting'
+  WAITING = 'waiting',
+  REJECTED = 'rejected'
 }

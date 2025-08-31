@@ -19,6 +19,7 @@ import generateOTP from "../../util/generateOTP";
 import { emailTemplate } from "../../shared/emailTemplate";
 import { emailHelper } from "../../helpers/emailHelper";
 import { OFFER_STATUS } from "../../enums/offer.enum";
+import { el } from "date-fns/locale";
 
 //User signUp
 const signUp = async ( 
@@ -738,29 +739,43 @@ const singlePost = async (
 //Add to the favorite list 
 const favorite = async (
     payload: JwtPayload,
-    data: { postID: string }
+    data: { id: string }
 ) => {
     const { userID } = payload;
-    const { postID } = data;
+    const { id } = data;
 
     const isUserExist = await User.findById(userID);
     if (!isUserExist) {
-        throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
+      throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
     };
     
     if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
+      throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
     };
 
-    if (!postID) {
-        throw new ApiError(StatusCodes.BAD_REQUEST,"You must give the service _id")
+    if (!id) {
+      throw new ApiError(StatusCodes.BAD_REQUEST,"You must give the service _id")
     };
 
-    if (isUserExist.favouriteServices.some((e: any) => e.toString() === postID)) {
-        throw new ApiError(StatusCodes.NOT_ACCEPTABLE, "You have already added this service to your favorite list");
+    if (isUserExist.favouriteServices.some((e: any) => e.toString() === id)) {
+      throw new ApiError(StatusCodes.NOT_ACCEPTABLE, "You have already added this service to your favorite list");
     }
 
-    isUserExist.favouriteServices.push(postID);
+    if ( isUserExist.role == USER_ROLES.SERVICE_PROVIDER) {
+      
+      if (isUserExist.favouriteServices.some((e: any) => e.toString() === id)) {
+        throw new ApiError(StatusCodes.NOT_ACCEPTABLE, "You have already added this service to your favorite list");
+      }
+      isUserExist.favouriteServices.push(id);
+    } else if (isUserExist.role == USER_ROLES.USER) {
+
+      
+      if (isUserExist.favouriteProvider.some((e: any) => e.toString() === id)) {
+        throw new ApiError(StatusCodes.NOT_ACCEPTABLE, "You have already added this to your favorite list");
+      }
+
+      isUserExist.favouriteProvider.push(id);
+    }
 
     await isUserExist.save()
 
@@ -790,22 +805,40 @@ const getFavorite = async (
     );
   }
 
+  let userWithFavorites;
+
   const skip = (page - 1) * limit;
 
   // Get total count of favorites
   const total = isUserExist.favouriteServices?.length || 0;
 
-  // Populate with pagination
-  const userWithFavorites = await User.findById(userID)
-    .populate({
-      path: "favouriteServices",
-      options: {
-        skip,
-        limit,
-      }
-    })
-    .select("-latLng")
-    .lean();
+  if (isUserExist.role === USER_ROLES.SERVICE_PROVIDER) {
+
+    // Populate with pagination
+    userWithFavorites = await User.findById(userID)
+      .populate({
+        path: "favouriteServices",
+        options: {
+          skip,
+          limit,
+        }
+      })
+      .select("-latLng")
+      .lean();
+  } else if (isUserExist.role === USER_ROLES.USER) {
+
+    userWithFavorites = await User.findById(userID)
+      .populate({
+        path: "favouriteProvider",
+        options: {
+          skip,
+          limit,
+        }
+      })
+      .select("-latLng")
+      .lean();
+  }
+
 
   return {
     favorites: (userWithFavorites as any).favouriteServices || [],

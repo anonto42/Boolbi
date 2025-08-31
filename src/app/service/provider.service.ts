@@ -674,6 +674,29 @@ const providerAccountVerification = async (
     }
 
     if (
+        isUser.isVerified.status == ACCOUNT_VERIFICATION_STATUS.WAITING
+    ) {
+        throw new ApiError(
+            StatusCodes.NOT_ACCEPTABLE,
+            "You have already sended a verification request please wait for the response!"
+        )
+    }
+
+    if (
+        isUser.isVerified.status == ACCOUNT_VERIFICATION_STATUS.REJECTED
+    ) {
+        isUser.isVerified.images= [];
+        isUser.isVerified.doc= "";
+    }
+
+    if (
+        isUser.isVerified.status == ACCOUNT_VERIFICATION_STATUS.UNVERIFIED
+    ) {
+        isUser.isVerified.images= [];
+        isUser.isVerified.doc= "";
+    }
+    
+    if (
         isUser.accountStatus === ACCOUNT_STATUS.DELETE ||
         isUser.accountStatus === ACCOUNT_STATUS.BLOCK
     ) {

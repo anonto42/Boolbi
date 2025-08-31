@@ -93,4 +93,11 @@ router
         ProviderController.providerAccountVerification
     )
 
+router
+    .route("/sample-images")
+    .get()
+    .patch(
+        auth( USER_ROLES.SERVICE_PROVIDER ),
+    )
+
 export const ProviderRoter = router;

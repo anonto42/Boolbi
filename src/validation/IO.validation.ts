@@ -71,7 +71,7 @@ const userUpdateProfileZodSchem = z.object({
     language: z.string().optional(), 
     category: z.string().optional(), 
     subCatagory: z.string().optional(), 
-    samplePictures: z.string().optional(),
+    image: z.string().optional(),
     profileImage: z.string().optional(), 
     description: z.string().optional() 
   })

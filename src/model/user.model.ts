@@ -50,6 +50,10 @@ const userSchema = new Schema<IUser>({
     type: Schema.Types.ObjectId,
     ref: "post"
   }],
+  favouriteProvider:[{
+    type: Schema.Types.ObjectId,
+    ref: "user"
+  }],
   iOffered:[{
     type: Schema.Types.ObjectId,
     ref: "offer"

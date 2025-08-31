@@ -36,7 +36,9 @@ const profile = catchAsync(
 const update = catchAsync(
     async( req, res ) => {
         const user = (req as any)?.user;
+        const images = getMultipleFilesPath(req.files,"image")
         const {...Data} = req.body;
+        Data.samplePictures = images;
         const result = await UserServices.UP(user,Data)
 
         sendResponse(res, {

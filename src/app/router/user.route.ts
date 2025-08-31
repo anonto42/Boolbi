@@ -20,6 +20,7 @@ router
     )
     .put(
         auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        fileUploadHandler(),
         validateRequest(Validation.userUpdateProfileZodSchem),
         UserController.update
     )
