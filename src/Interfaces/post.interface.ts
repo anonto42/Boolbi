@@ -3,7 +3,7 @@ import { Document, Types } from "mongoose";
 export interface IPost extends Document {
   projectName: string;
   coverImage: string;
-  catagory: string;
+  category: string;
   subCategory: string;
   location: string;
   offers: Types.ObjectId[];

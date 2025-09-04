@@ -393,8 +393,8 @@ const searchPosts = catchAsync(
 const recommendedPosts = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
-        const { limit, page } = req.body;
-        const result = await UserServices.getRecommendedPosts({payload,limit,page});
+        const { limit, page, query } = req.body;
+        const result = await UserServices.getRecommendedPosts({payload,limit,page,query});
 
         sendResponse(res, {
             success: true,
@@ -408,8 +408,19 @@ const recommendedPosts = catchAsync(
 const filterPosts = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
-        const {...data} = req.body;
-        const result = await UserServices.filteredData(payload,data);
+
+        const data = {  
+            payload,
+            page: Number(req.query.page),
+            limit: Number(req.query.limit),
+            query: req.query.searchQuery as string,
+            category: req.query.category as string,
+            subCategory: req.query.subCategory as string,
+            lat: Number(req.query.lat),
+            lng: Number(req.query.lng),
+            distance: Number(req.query.distance),
+        }   
+        const result = await UserServices.getPostsOrProviders(data);
 
         sendResponse(res, {
             success: true,
@@ -468,7 +479,8 @@ const getRequests = catchAsync(
 const aProvider = catchAsync(
     async( req:Request, res:Response ) => {
         const id = req.params.id;
-        const result = await UserServices.aProvider(id);
+        const user = (req as any)?.user;
+        const result = await UserServices.aProvider(user,id);
 
         sendResponse(res, {
             success: true,
@@ -532,6 +544,7 @@ export const UserController = {
     profileDelete,
     status,
     privacy,
+    recommendedPosts,
     condition,
     allPost,
     post,
@@ -545,6 +558,5 @@ export const UserController = {
     IOffer,
     DOffer,
     supportRequest,
-    recommendedPosts,
     aOffer
 }

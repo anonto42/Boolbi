@@ -16,7 +16,7 @@ export interface IUser extends Document {
     password: string;
     phone: string;
     category: string;
-    subCatagory: string;
+    subCategory: string;
     searchedCatagory: string[];
     city: string;
     postalCode: string;

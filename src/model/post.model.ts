@@ -14,7 +14,7 @@ const jobPostSchema = new Schema<IPost>({
     type: String,
     required: true,
   },
-  catagory: {
+  category: {
     type: String,
     required: true,
   },
@@ -59,7 +59,7 @@ const jobPostSchema = new Schema<IPost>({
   },
 }, { timestamps: true });
 
-jobPostSchema.index({ latLng: "2dsphere" });
+jobPostSchema.index({ latLng: '2dsphere' });
 
 const Post = models.Post || model<IPost>("post", jobPostSchema);
 export default Post;

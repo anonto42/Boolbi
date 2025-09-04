@@ -5,6 +5,7 @@ import { Validation } from '../../validation/IO.validation';
 import { USER_ROLES } from '../../enums/user.enums';
 import auth from '../../middlewares/Auth.middleware';
 import fileUploadHandler from '../../middlewares/fileUploadHandler';
+import { UserServices } from '../service/user.service';
 
 const router = Router();
 
@@ -32,6 +33,12 @@ router
     .delete(
         auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
         UserController.profileDelete
+    )
+
+router
+    .route("/rating/:id")
+    .get(
+        UserServices.getReatings
     )
 
 router
@@ -195,7 +202,7 @@ router
     .route("/filter")
     .get(
         auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
-        validateRequest( Validation.filterData ),
+        // validateRequest( Validation.filterData ),
         UserController.filterPosts
     )
 

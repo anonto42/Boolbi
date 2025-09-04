@@ -65,6 +65,7 @@ export interface GetRecommendedPostsOptions {
   payload: JwtPayload;
   page?: number;
   limit?: number;
+  query?: string;
 }
 
 export interface NotificationQuery {

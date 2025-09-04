@@ -142,8 +142,8 @@ const searchValidationZod = z.object({
 
 const filterData = z.object({
   body: z.object({
-    category: z.string({ required_error: "you must give the category to filer"}),
-    subCategory: z.string({ required_error: "you must give the category to filer"}),
+    category: z.string().optional(),
+    subCategory: z.string().optional(),
     serviceRating: z.number().optional(),
     distance: z.number({ required_error: "You must give the distance like 5km or 6km"}),
     lat: z.number({ required_error: "you must give the lat to filer"}),

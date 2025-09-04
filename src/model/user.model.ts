@@ -35,7 +35,7 @@ const userSchema = new Schema<IUser>({
     type: String,
     default: "--"
   },
-  subCatagory:{
+  subCategory:{
     type: String,
     default: "--"
   },
@@ -102,7 +102,7 @@ const userSchema = new Schema<IUser>({
   },
   profileImage: {
     type: String,
-    default: "https://i.ibb.co/z5YHLV9/profile.png"
+    default: ""
   },
   accountActivityStatus: { 
     type: String, 
@@ -181,6 +181,10 @@ const userSchema = new Schema<IUser>({
         type: Schema.Types.ObjectId,
         ref: "user",
       },
+      date: {
+        type: Date,
+        default: Date.now
+      }
     },
   ],
   latLng: {
@@ -198,7 +202,7 @@ const userSchema = new Schema<IUser>({
   timestamps: true
 });
 
-userSchema.index({ latLng: "2dsphere" });
+userSchema.index({ latLng: '2dsphere' });
 
 const User = models.User || model<IUser>('user', userSchema);
 export default User;

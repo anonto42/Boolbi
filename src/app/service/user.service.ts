@@ -19,7 +19,9 @@ import generateOTP from "../../util/generateOTP";
 import { emailTemplate } from "../../shared/emailTemplate";
 import { emailHelper } from "../../helpers/emailHelper";
 import { OFFER_STATUS } from "../../enums/offer.enum";
-import { el } from "date-fns/locale";
+import { Request, Response } from "express";
+import { get } from "http";
+import { RatingModel } from "../../model/Rating.model";
 
 //User signUp
 const signUp = async ( 
@@ -138,7 +140,7 @@ const UP = async (
     "postalCode",
     "language",
     "category",
-    "subCatagory",
+    "subCategory",
     "samplePictures",
     "description",
     "latLng"
@@ -467,7 +469,7 @@ const createPost = async (
   
     const jobData = {
       projectName,
-      catagory: category,
+      category,
       subCategory,
       location,
       deadline,
@@ -757,19 +759,18 @@ const favorite = async (
       throw new ApiError(StatusCodes.BAD_REQUEST,"You must give the service _id")
     };
 
-    if (isUserExist.favouriteServices.some((e: any) => e.toString() === id)) {
-      throw new ApiError(StatusCodes.NOT_ACCEPTABLE, "You have already added this service to your favorite list");
-    }
+    // if (isUserExist.favouriteServices.some((e: any) => e.toString() === id)) {
+    //   throw new ApiError(StatusCodes.NOT_ACCEPTABLE, "You have already added this service to your favorite list");
+    // }
 
     if ( isUserExist.role == USER_ROLES.SERVICE_PROVIDER) {
-      
-      if (isUserExist.favouriteServices.some((e: any) => e.toString() === id)) {
+
+      if (isUserExist.favouriteServices.some((e: any) => e._id.toString() === id)) {
         throw new ApiError(StatusCodes.NOT_ACCEPTABLE, "You have already added this service to your favorite list");
       }
       isUserExist.favouriteServices.push(id);
     } else if (isUserExist.role == USER_ROLES.USER) {
 
-      
       if (isUserExist.favouriteProvider.some((e: any) => e.toString() === id)) {
         throw new ApiError(StatusCodes.NOT_ACCEPTABLE, "You have already added this to your favorite list");
       }
@@ -805,16 +806,12 @@ const getFavorite = async (
     );
   }
 
-  let userWithFavorites;
+  let userWithFavorites : IUser | null = null;
 
   const skip = (page - 1) * limit;
 
-  // Get total count of favorites
-  const total = isUserExist.favouriteServices?.length || 0;
-
   if (isUserExist.role === USER_ROLES.SERVICE_PROVIDER) {
-
-    // Populate with pagination
+    console.log("Hit on the SERVICE_PROVIDER")
     userWithFavorites = await User.findById(userID)
       .populate({
         path: "favouriteServices",
@@ -826,10 +823,11 @@ const getFavorite = async (
       .select("-latLng")
       .lean();
   } else if (isUserExist.role === USER_ROLES.USER) {
-
+    console.log("Hit on the User")
     userWithFavorites = await User.findById(userID)
-      .populate({
+    .populate({
         path: "favouriteProvider",
+        select: "-creatorID -jobDescription -showcaseImages -latLng -offers -__v -favouriteProvider -otpVerification -latLng -iOffered -myOffer -orders -searchedCatagory -password -accountBalance -isSocialAccount -createdAt -updatedAt -deviceID -favouriteServices -job -role",
         options: {
           skip,
           limit,
@@ -841,34 +839,40 @@ const getFavorite = async (
 
 
   return {
-    favorites: (userWithFavorites as any).favouriteServices || [],
-    total,
-    totalPages: Math.ceil(total / limit),
-    currentPage: page,
+    favorites: isUserExist.role === USER_ROLES.SERVICE_PROVIDER ? userWithFavorites?.favouriteServices : userWithFavorites?.favouriteProvider,
   };
 };
 
 //remove favorite 
 const removeFavorite = async (
     payload: JwtPayload,
-    Data: { postID: string }
+    Data: { id: string }
 ) => {
     const { userID } = payload;
-    const { postID } = Data;
+    const { id } = Data;
     const isUserExist = await User.findById(userID);
     if (!isUserExist) {
         throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
     };
     
     if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
+      throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
     };
-    const hasJob = isUserExist.favouriteServices.includes(postID);
-    if (!hasJob) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "This post is not linked to your favorite");
+
+    if (isUserExist.role === USER_ROLES.SERVICE_PROVIDER) {
+      const hasJob = isUserExist.favouriteServices.some((e: any) => e.toString() === id);
+      if (!hasJob) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "This post is not linked to your favorite");
+      }
+      isUserExist.favouriteServices = isUserExist.favouriteServices.filter((e: any) => e.toString() !== id);
+    } else if (isUserExist.role === USER_ROLES.USER) {
+      const hasProvider = isUserExist.favouriteProvider.some((e: any) => e.toString() === id);
+      if (!hasProvider) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "This provider is not linked to your favorite");
+      }
+      isUserExist.favouriteProvider = isUserExist.favouriteProvider.filter((e: any) => e.toString() !== id);
     }
 
-    isUserExist.favouriteServices = isUserExist.favouriteServices.filter((e: any) => e.toString() !== postID);
     await isUserExist.save();
 
     return true;
@@ -1290,7 +1294,7 @@ const supportRequest = async(
 
   const support = await Support.create({
     for: isUserExist._id,
-    catagory: category,
+    category: category,
     message,
   });
 
@@ -1340,102 +1344,133 @@ const getRequests = async (
   };
 };
 
-const searchPosts = async (
+export const searchPosts = async (
   payload: JwtPayload,
   data: SearchData
-) => {
+): Promise<any> => {
   const { userID } = payload;
-  const { searchQuery, page = 1, limit = 20 } = data;
+  const { searchQuery = "", page = 1, limit = 20 } = data;
 
-  if (!searchQuery) {
+  if (!searchQuery.trim()) {
     throw new ApiError(StatusCodes.NOT_ACCEPTABLE, "Search query is required.");
   }
 
   const user = await User.findById(userID);
-  if (!user) throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
 
-  if (
-    user.accountStatus === ACCOUNT_STATUS.DELETE ||
-    user.accountStatus === ACCOUNT_STATUS.BLOCK
-  ) {
+  if ([ACCOUNT_STATUS.BLOCK, ACCOUNT_STATUS.DELETE].includes(user.accountStatus)) {
     throw new ApiError(
       StatusCodes.FORBIDDEN,
       `Your account was ${user.accountStatus.toLowerCase()}!`
     );
   }
 
-  const serchType = user.role === USER_ROLES.SERVICE_PROVIDER ? "POST" : "PROVIDER";
+  const searchType = user.role === USER_ROLES.SERVICE_PROVIDER ? "POST" : "PROVIDER";
 
-  // Update searched history
-  const updatedKeywords = user.searchedCatagory.filter(
-    (term: string) => term.toLowerCase() !== searchQuery.toLowerCase()
-  );
-  updatedKeywords.unshift(searchQuery);
-  user.searchedCatagory = updatedKeywords.slice(0, 5);
+  const updatedKeywords = [
+    searchQuery,
+    ...user.searchedCatagory.filter(
+      (term: string) => term.toLowerCase() !== searchQuery.toLowerCase()
+    ),
+  ].slice(0, 5);
+  user.searchedCatagory = updatedKeywords;
   await user.save();
 
   const skip = (page - 1) * limit;
 
-  let results, total;
-
-  if (serchType === "POST") {
-    const searchConditions = {
-      $or: [
-        { projectName: { $regex: searchQuery, $options: "i" } },
-        { catagory: { $regex: searchQuery, $options: "i" } },
-        { subCatagory: { $regex: searchQuery, $options: "i" } },
-        { companyName: { $regex: searchQuery, $options: "i" } },
-        { jobDescription: { $regex: searchQuery, $options: "i" } },
-      ]
-    };
-
-    [results, total] = await Promise.all([
-      Post.find(searchConditions)
-        .sort({ createdAt: -1 })
-        .populate({
-          path: "creatorID",
-          select: "name"
-        })
-        .skip(skip)
-        .limit(limit),
-      Post.countDocuments(searchConditions)
-    ]);
-  } else if (serchType === "PROVIDER") {
-    const searchConditions = {
-      $or: [
-        { fullName: { $regex: searchQuery, $options: "i" } },
-        { category: { $regex: searchQuery, $options: "i" } },
-        { subCatagory: { $regex: searchQuery, $options: "i" } },
-        { serviceDescription: { $regex: searchQuery, $options: "i" } },
-      ]
-    };
-
-    [results, total] = await Promise.all([
-      User.find(searchConditions)
-        .select("-password -latLng -favouriteServices -iOffered -myOffer -orders -searchedCatagory -accountStatus -isSocialAccount -otpVerification")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit),
-      User.countDocuments(searchConditions)
-    ]);
+  if (searchType === "POST") {
+    return await searchPostsByQuery(searchQuery, skip, limit, page);
+  } else {
+    return await searchProvidersByQuery(searchQuery, skip, limit, page);
   }
+};
+
+const searchPostsByQuery = async (
+  query: string,
+  skip: number,
+  limit: number,
+  page: number
+): Promise<any> => {
+  const conditions = {
+    $or: [
+      { projectName: { $regex: query, $options: "i" } },
+      { category: { $regex: query, $options: "i" } },
+      { subCategory: { $regex: query, $options: "i" } },
+      { companyName: { $regex: query, $options: "i" } },
+      { jobDescription: { $regex: query, $options: "i" } },
+    ],
+  };
+
+  const [results, total] = await Promise.all([
+    Post.find(conditions)
+      .sort({ createdAt: -1 })
+      .populate({
+        path: "creatorID",
+        select: "name",
+      })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Post.countDocuments(conditions),
+  ]);
 
   return {
     data: results,
     total,
     currentPage: page,
-    totalPages: Math.ceil(total! / limit)
+    totalPages: Math.ceil(total / limit),
+  };
+};
+
+const searchProvidersByQuery = async (
+  query: string,
+  skip: number,
+  limit: number,
+  page: number
+): Promise<any> => {
+
+  const conditions = {
+    role: USER_ROLES.SERVICE_PROVIDER,
+    $or: [
+      { fullName: { $regex: query, $options: "i" } },
+      { category: { $regex: query, $options: "i" } },
+      { subCategory: { $regex: query, $options: "i" } },
+      { serviceDescription: { $regex: query, $options: "i" } },
+    ],
+  };
+
+  const [results, total] = await Promise.all([
+    User.find(conditions)
+      .select(
+        "-password -latLng -favouriteServices -iOffered -myOffer -orders -searchedCatagory -accountStatus -isSocialAccount -otpVerification"
+      )
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    User.countDocuments(conditions),
+  ]);
+
+  return {
+    data: results,
+    total,
+    currentPage: page,
+    totalPages: Math.ceil(total / limit),
   };
 };
 
 const getRecommendedPosts = async ({
   payload,
   page = 1,
-  limit = 20, 
-}: GetRecommendedPostsOptions ) => {
+  limit = 20,
+  query = "",
+}: GetRecommendedPostsOptions) => {
   const { userID } = payload;
+  const skip = (page - 1) * limit;
 
-  const user = await User.findById(userID);
+  const user = (await User.findById(userID).lean()) as IUser;
   if (!user) throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
 
   if (
@@ -1448,187 +1483,310 @@ const getRecommendedPosts = async ({
     );
   }
 
-  const postType = user.role === USER_ROLES.SERVICE_PROVIDER ? "POST" : "PROVIDER";
-  const skip = (page - 1) * limit;
+  const postType =
+    user.role === USER_ROLES.SERVICE_PROVIDER ? "POST" : "PROVIDER";
 
   const shuffleArray = (arr: any[]) => arr.sort(() => Math.random() - 0.5);
 
-  if (!user.searchedCatagory || user.searchedCatagory.length === 0) {
+  // ----------------------------------------
+  // Escape regex to avoid special char issues
+  // ----------------------------------------
+  const escapeRegex = (str: string) =>
+    str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  // ----------------------------------------
+  // If query is empty → return random
+  // ----------------------------------------
+  if (!query.trim()) {
     if (postType === "POST") {
-      const allPosts = await Post.find().populate("offers").select("-latLng");
-      const shuffledPosts = shuffleArray(allPosts);
-      return shuffledPosts.slice(skip, skip + limit);
-    } else if (postType === "PROVIDER") {
+      const allPosts = await Post.find()
+        .populate("offers")
+        .select("-latLng")
+        .lean();
+
+      return shuffleArray(allPosts).slice(skip, skip + limit);
+    } else {
       const allProviders = await User.find({
         role: USER_ROLES.SERVICE_PROVIDER,
         accountStatus: ACCOUNT_STATUS.ACTIVE,
-      }).select(
-        "-password -latLng -isSocialAccount -otpVerification -__v -searchedCatagory -orders -myOffer -iOffered -favouriteServices -job -accountBalance -accountStatus"
-      );
+      })
+        .select(
+          "-password -latLng -isSocialAccount -otpVerification -__v -searchedCatagory -orders -myOffer -iOffered -favouriteServices -job -accountBalance -accountStatus"
+        )
+        .lean();
 
-      const shuffledProviders = shuffleArray(allProviders);
-      return shuffledProviders.slice(skip, skip + limit);
+      return shuffleArray(allProviders).slice(skip, skip + limit);
     }
   }
 
-  const keywords = user.searchedCatagory;
-  const regexQueries: any[] = [];
+  // ----------------------------------------
+  // Case-insensitive search conditions
+  // ----------------------------------------
+  const searchKeywords = query.trim().split(/\s+/);
 
-  keywords.forEach((keyword: string) => {
+  const andConditions: any[] = searchKeywords.map((kw) => {
+    const regex = { $regex: escapeRegex(kw), $options: "i" }; // "i" → ignore case
+
     if (postType === "POST") {
-      regexQueries.push(
-        { title: { $regex: keyword, $options: "i" } },
-        { catagory: { $regex: keyword, $options: "i" } },
-        { subCatagory: { $regex: keyword, $options: "i" } },
-        { jobDescription: { $regex: keyword, $options: "i" } }
-      );
+      return {
+        $or: [
+          { projectName: regex },
+          { catagory: regex },
+          { subCategory: regex },
+          { jobDescription: regex },
+        ],
+      };
     } else {
-      regexQueries.push(
-        { fullName: { $regex: keyword, $options: "i" } },
-        { category: { $regex: keyword, $options: "i" } },
-        { subCatagory: { $regex: keyword, $options: "i" } },
-        { description: { $regex: keyword, $options: "i" } }
-      );
+      return {
+        $or: [
+          { fullName: regex },
+          { category: regex },
+          { subCategory: regex },
+          { description: regex },
+        ],
+      };
     }
   });
 
+  // ----------------------------------------
+  // Main Search Query
+  // ----------------------------------------
   if (postType === "POST") {
-    const posts = await Post.find({ $or: regexQueries })
-      .populate("offers")
+    const posts = await Post.find({ $and: andConditions })
+      .populate({
+        path: "offers",
+        populate: {
+          path: "form",
+          select: "fullName email phone address profileImage",
+        },
+      })
       .sort({ createdAt: -1 })
       .select("-latLng")
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
-    if (posts.length === 0) {
-      return await Post.find()
-         .populate({
-              path: 'offers',
-              // select: 'myBudget description image',
-              populate: {
-                  path: 'form',
-                  select: 'fullName email phone address profileImage'
-              }
-          })
-        .sort({ createdAt: -1 })
-        .select("-latLng")
-        .skip(skip)
-        .limit(limit);
+    return posts; // if empty → just []
+  }
+
+  // ----------------------------------------
+  // Provider Search
+  // ----------------------------------------
+  const providers = await User.find({
+    $and: andConditions,
+    role: USER_ROLES.SERVICE_PROVIDER,
+    accountStatus: ACCOUNT_STATUS.ACTIVE,
+  })
+    .select(
+      "-otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -password -__v"
+    )
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean();
+
+  return providers; // if empty → just []
+};
+
+// const filteredData = async (
+//   payload: JwtPayload,
+//   data: FilterPost
+// ) => {
+//   const { userID } = payload;
+//   const {
+//     category,
+//     subCategory,
+//     lat,
+//     lng,
+//     distance = 50,
+//     page = 1,
+//     limit = 20,
+//   } = data;
+
+//   const user = await User.findById(userID);
+//   if (!user) {
+//     throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+//   }
+
+//   if (
+//     user.accountStatus === ACCOUNT_STATUS.DELETE ||
+//     user.accountStatus === ACCOUNT_STATUS.BLOCK
+//   ) {
+//     throw new ApiError(
+//       StatusCodes.FORBIDDEN,
+//       `Your account was ${user.accountStatus.toLowerCase()}!`
+//     );
+//   }
+
+//   const isServiceProvider = user.role === USER_ROLES.SERVICE_PROVIDER;
+//   const skip = (page - 1) * limit;
+
+//   if (
+//     typeof lat !== 'number' ||
+//     typeof lng !== 'number' ||
+//     Number.isNaN(lat) ||
+//     Number.isNaN(lng)
+//   ) {
+//     throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid latitude or longitude");
+//   }
+
+//   const geoQuery = {
+//     latLng: {
+//       $geoWithin: {
+//         $centerSphere: [[lng, lat], distance / 6378.1], // distance in km
+//       },
+//     },
+//   };
+
+//   // ----------------------------------------
+//   // Build category filter only if provided
+//   // ----------------------------------------
+//   const categoryQuery: any = {};
+//   if (category) categoryQuery.category = category;
+//   if (subCategory) categoryQuery.subCategory = subCategory;
+
+//   if (!isServiceProvider) {
+//     // Provider search
+//     const providerQuery = {
+//       ...geoQuery,
+//       ...categoryQuery, // will only include if provided
+//     };
+
+//     const [results, total] = await Promise.all([
+//       User.find(providerQuery)
+//         .select(
+//           "-password -otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v"
+//         )
+//         .skip(skip)
+//         .limit(limit),
+//       User.countDocuments(providerQuery),
+//     ]);
+
+//     return results;
+//   }
+
+//   // Service Provider → Post search
+//   const postQuery = {
+//     ...geoQuery,
+//     ...(category ? { catagory: category } : {}),
+//     ...(subCategory ? { subCategory: subCategory } : {}),
+//   };
+
+//   const results = await Post.find(postQuery)
+//     .select("-latLng")
+//     .skip(skip)
+//     .limit(limit);
+
+//   return results;
+// };
+
+const getPostsOrProviders = async ({
+  payload,
+  page = 1,
+  limit = 20,
+  query = "",
+  category,
+  subCategory,
+  lat,
+  lng,
+  distance = 50,
+}: GetRecommendedPostsOptions & FilterPost) => {
+  const { userID } = payload;
+  const skip = (page - 1) * limit;
+
+  // Fetch user
+  const user = await User.findById(userID).lean() as IUser;
+  if (!user) throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+
+  if (
+    user.accountStatus === ACCOUNT_STATUS.DELETE ||
+    user.accountStatus === ACCOUNT_STATUS.BLOCK
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `Your account was ${user.accountStatus.toLowerCase()}!`
+    );
+  }
+
+  const isServiceProvider = user.role === USER_ROLES.SERVICE_PROVIDER;
+
+  // Utility: shuffle array
+  const shuffleArray = (arr: any[]) => arr.sort(() => Math.random() - 0.5);
+
+  // Escape regex for search
+  const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  // Build search keywords
+  const searchKeywords = query.trim() ? query.trim().split(/\s+/) : [];
+
+  // Build AND conditions for search (case-insensitive)
+  const andConditions: any[] = searchKeywords.map((kw) => {
+    const regex = { $regex: escapeRegex(kw), $options: "i" };
+    if (isServiceProvider) {
+      // Post search
+      return { $or: [{ projectName: regex }, { category: regex }, { subCategory: regex }, { jobDescription: regex }] };
+    } else {
+      // Provider search
+      return { $or: [{ fullName: regex }, { category: regex }, { subCategory: regex }, { description: regex }] };
+    }
+  });
+
+  // Build category/subCategory filters
+  const categoryFilter: any = {};
+  if (category) categoryFilter.category = category;
+  if (subCategory) categoryFilter.subCategory = subCategory;
+
+  // Build geo filter if lat/lng provided
+  let geoFilter: any = {};
+  if (typeof lat === "number" && typeof lng === "number" && !Number.isNaN(lat) && !Number.isNaN(lng)) {
+    geoFilter.latLng = { $geoWithin: { $centerSphere: [[lng, lat], distance / 6378.1] } };
+  }
+
+  if (isServiceProvider) {
+    // Posts
+    const queryObj: any = { ...categoryFilter, ...geoFilter };
+    if (andConditions.length) queryObj.$and = andConditions;
+
+    let posts = await Post.find(queryObj)
+      .populate({
+        path: "offers",
+        populate: { path: "form", select: "fullName email phone address profileImage" },
+      })
+      .sort({ createdAt: -1 })
+      .select("-latLng")
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    // Fallback to random if empty and no query/category/subCategory
+    if (!posts.length && !query && !category && !subCategory) {
+      const allPosts = await Post.find().populate("offers").select("-latLng").lean();
+      posts = shuffleArray(allPosts).slice(skip, skip + limit);
     }
 
     return posts;
-  } else if (postType === "PROVIDER") {
-    const providers = await User.find({ $or: regexQueries })
-      .select(
-        "-otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -password -__v"
-      )
+  } else {
+    // Providers
+    const queryObj: any = { role: USER_ROLES.SERVICE_PROVIDER, accountStatus: ACCOUNT_STATUS.ACTIVE, ...categoryFilter, ...geoFilter };
+    if (andConditions.length) queryObj.$and = andConditions;
+
+    let providers = await User.find(queryObj)
+      .select("-password -otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v")
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
-    if (providers.length === 0) {
-      return await User.find({ role: USER_ROLES.SERVICE_PROVIDER })
-        .select(
-          "-otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -password -__v"
-        )
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit);
+    // Fallback to random if empty and no query/category/subCategory
+    if (!providers.length && !query && !category && !subCategory) {
+      const allProviders = await User.find({ role: USER_ROLES.SERVICE_PROVIDER, accountStatus: ACCOUNT_STATUS.ACTIVE })
+        .select("-password -otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v")
+        .lean();
+      providers = shuffleArray(allProviders).slice(skip, skip + limit);
     }
 
     return providers;
   }
-
-  return [];
-};
-
-const filteredData = async (
-  payload: JwtPayload,
-  data: FilterPost
-) => {
-  const { userID } = payload;
-  const { category, subCategory, lat, lng, distance, page = 1, limit = 20 } = data;
-
-  const user = await User.findById(userID);
-  if (!user) throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
-
-  if (
-    user.accountStatus === ACCOUNT_STATUS.DELETE ||
-    user.accountStatus === ACCOUNT_STATUS.BLOCK
-  ) {
-    throw new ApiError(
-      StatusCodes.FORBIDDEN,
-      `Your account was ${user.accountStatus.toLowerCase()}!`
-    );
-  }
-
-  const postType = user.role === USER_ROLES.SERVICE_PROVIDER ? "POST" : "PROVIDER";
-  const skip = (page - 1) * limit;
-
-  const geoQuery = {
-    latLng: {
-      $nearSphere: {
-        $geometry: {
-          type: "Point",
-          coordinates: [lng, lat],
-        },
-        $maxDistance: distance ? distance * 1000 : 50000, // default 50km
-      },
-    },
-  };
-
-  const categoryQuery: any = {};
-  if (category) categoryQuery.category = category;
-  if (subCategory) categoryQuery.subCatagory = subCategory;
-
-  let query = { ...categoryQuery, ...geoQuery };
-
-  if (postType === "PROVIDER") {
-    const [results, total] = await Promise.all([
-      User.find(query)
-        .select(
-          "-otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -password -__v"
-        )
-        .skip(skip)
-        .limit(limit),
-      User.countDocuments(query),
-    ]);
-
-    return {
-      data: results,
-      total,
-      currentPage: page,
-      totalPages: Math.ceil(total / limit),
-    };
-  }
-
-  if (postType === "POST") {
-    // Adjust category field for Post model
-    const postQuery = {
-      ...(category ? { catagory: category } : {}),
-      ...(subCategory ? { subCatagory: subCategory } : {}),
-      ...geoQuery,
-    };
-
-    const [results, total] = await Promise.all([
-      Post.find(postQuery).select("-latLng").skip(skip).limit(limit),
-      Post.countDocuments(postQuery),
-    ]);
-
-    return {
-      data: results,
-      total,
-      currentPage: page,
-      totalPages: Math.ceil(total / limit),
-    };
-  }
-
-  return {
-    data: [],
-    total: 0,
-    currentPage: page,
-    totalPages: 0,
-  };
 };
 
 const allNotifications = async (
@@ -1683,17 +1841,16 @@ const addRating = async (
     );
   };
   
-  const feedBack = {
-      stars: star,
-      feedback,
-      from: userID,
-    };
-
-  provider.ratings.push(feedBack);
-  await provider.save();
+  await RatingModel.create({
+    customer: userID,
+    provider: order.provider,
+    post: order.post,
+    rating: star,
+    comment: feedback
+  });
 
   return true;
-}
+};
 
 const deleteNotification = async (
   ids: string[] 
@@ -1710,29 +1867,65 @@ const deleteNotification = async (
       "You must give notification id to delete!"
     )
   }
-}
+};
 
-const aProvider = async ( id: string ) => {
-
+const aProvider = async (payload: JwtPayload, id: string) => {
   const objID = new mongoose.Types.ObjectId(id);
-  const result = await User.findById(objID)
-  .select("-otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -password -__v").lean().exec();
 
-  if (!result) {
-    throw new ApiError(
-      StatusCodes.NOT_FOUND,
-      "Provider not founded!"
+  const provider = await User.findById(objID)
+    .select(
+      "-otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -password -__v -favouriteProvider -deviceID -createdAt -updatedAt"
     )
+    .lean()
+    .exec() as IUser;
+
+  if (!provider) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Provider not found!");
   }
+
+  const user = await User.findById(payload.userID)
+    .select("favouriteProvider")
+    .lean() as IUser;
+
+    //@ts-ignore
+  const isFavorite = user?.favouriteProvider?.filter(
+    (favId: any) => favId.toString() == provider._id.toString()
+  ) || false;
+
+  const enrichedRatings = await Promise.all(
+    (provider.ratings || []).map(async (rating: any) => {
+      try {
+        if (!rating.from) return rating;
+
+        const order = await User.findById(rating.from)
+          .select("fullName profileImage email")
+          .lean();
+
+        return {
+          ...rating,
+          customer: order || null
+        };
+      } catch (err) {
+        console.error("Failed to fetch order/customer for rating:", err);
+        return rating;
+      }
+    })
+  );
+
+  const totalServices = await Order.countDocuments({ provider: provider._id });
+  const totalReviews = enrichedRatings.length;
+  const totalStars = enrichedRatings.reduce((acc, cur) => acc + (cur.star || 0), 0);
+  const agvRating = totalReviews > 0 ? totalStars / totalReviews : null;
 
   return {
-    ...result,
-    totalReviews: (result as IUser).ratings.length,
-    agvRating: (result as IUser).ratings.reduce((a: any, b:any) => a + b.stars, 0) / (result as IUser).ratings.length,
-    totalServices: 0
-  }
-
-}
+    ...provider,
+    ratings: enrichedRatings,
+    totalReviews,
+    agvRating,
+    totalServices,
+    isFavorite: isFavorite.length > 0 ? true : false
+  };
+};
 
 const allPost = async (
   payload: JwtPayload,
@@ -1756,7 +1949,7 @@ const allPost = async (
     currentPage: page,
     totalPages: Math.ceil(total / limit),
   };
-}
+};
 
 const offerOnPost = async(
   payload: JwtPayload,
@@ -1875,10 +2068,32 @@ const offerOnPost = async(
         error.message
       )
     }
+};
+
+const getReatings = async ( req: Request, res: Response ) => {
+  try {
+    const id = req.params.id;
+    const objID = new mongoose.Types.ObjectId(id);
+    const { page=1, limit=10 }: { page?: number; limit?: number } = req.query;
+
+    const ratings = await RatingModel.find({ provider: objID })
+      .populate("customer", "fullName email profileImage")
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean()
+      .exec();
+
+    return res.status(StatusCodes.OK).json({
+      data: ratings
+    });
+  } catch (error) {
+    console.log(error)
+  }
 }
 
 export const UserServices = {
-    filteredData,
+    getPostsOrProviders,
+    getReatings,
     allPost,
     offerOnPost,
     aProvider,
@@ -1910,6 +2125,6 @@ export const UserServices = {
     intracatOffer,
     deleteOffer,
     supportRequest,
-    getRecommendedPosts,
-    iOfferd
-}
+    iOfferd,
+    getRecommendedPosts
+};

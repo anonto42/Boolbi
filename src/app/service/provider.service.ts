@@ -128,7 +128,7 @@ const AllCompletedOrders = async (
 
   // Filter completed orders
   const completedOrders = isExist.orders.filter(
-    (order: any) => order?.trackStatus?.isComplited?.status === true
+    (order: any) => order?.trackStatus?.isComplited == "true"
   );
 
   const total = completedOrders.length;
