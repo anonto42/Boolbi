@@ -273,7 +273,17 @@ const offers = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
         const { page, limit } = req.body;
-        const result = await UserServices.offers(payload,page,limit)
+        const params = req.query.postID as string;
+
+        let result;
+        
+        if (params) {
+            result = await UserServices.totalOffersOnPost(payload,params)
+        } else {
+            result = await UserServices.offers(payload,page,limit)
+        }
+
+        
 
         sendResponse(res, {
             success: true,

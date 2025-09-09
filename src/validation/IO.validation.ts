@@ -117,7 +117,9 @@ const offerCreateValidation = z.object({
     myBudget: z.string().optional(),
     location: z.string().optional(),
     deadline: z.string().optional(),
-    description: z.string().optional()
+    description: z.string().optional(),
+    startDate: z.date().optional(),
+    endDate: z.date().optional()
   })
 })
 

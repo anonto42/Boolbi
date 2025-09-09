@@ -9,6 +9,7 @@ export interface IOffer extends Document {
     category: string;
     budget: number;
     jobLocation: string;
+    validFor: string,
     deadline: Date;
     startDate: Date;
     endDate: Date;

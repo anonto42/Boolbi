@@ -24,8 +24,13 @@ const createChat = catchAsync(
 const chatRooms = catchAsync(
     async( req: Request, res: Response ) => {
         const payload = (req as any).user;
-        const { page, limit} = req.body;
-        const result = await chatService.allChats(payload.userID,page,limit);
+        const { page, limit, search } = req.body;
+        let result;
+        if (search != "") {
+            result = await chatService.searchChat(payload ,search, page, limit)
+        }else{
+            result = await chatService.allChats(payload.userID,page,limit);
+        }
 
         sendResponse(res, {
             success: true,

@@ -14,6 +14,7 @@ export type socketMessage = {
     message: string;
     offer?: string;
     messageType: MESSAGE_TYPE;
+    image: string;
 }
 
 /**{

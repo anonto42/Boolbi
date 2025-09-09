@@ -20,8 +20,9 @@ import { emailTemplate } from "../../shared/emailTemplate";
 import { emailHelper } from "../../helpers/emailHelper";
 import { OFFER_STATUS } from "../../enums/offer.enum";
 import { Request, Response } from "express";
-import { get } from "http";
 import { RatingModel } from "../../model/Rating.model";
+import Chat from "../../model/chat.model";
+import { IOffer } from "../../Interfaces/offer.interface";
 
 //User signUp
 const signUp = async ( 
@@ -526,10 +527,17 @@ const post = async (
     const skip = (page - 1) * limit;
 
     const posts = await Post.find({ creatorID: isUserExist._id })
-                            .populate("offers", '-__v')
+                            // .populate("offers", '-__v')
+                            .select("-__v")
                             .skip(skip)
                             .limit(limit)
                             .sort({ createdAt: -1 })
+                            .lean();
+
+    posts.forEach((element:any) => {
+      element.totalOffers = element.offers.length;
+      delete element.offers
+    });
 
     return posts
 };
@@ -550,7 +558,7 @@ const UPost = async (
         coordinates: []
       };
     }
-   body.latLng.coordinates = [ Number(body.lat), Number(body.lng) ];
+   body.latLng.coordinates = [Number(body.lng), Number(body.lat)];
    const { postID, ...updateFields } = body;
  
    const isUserExist = await User.findById(userID);
@@ -627,10 +635,12 @@ const UPost = async (
      post,
    };
  } catch (error: any) {
-  for (const img of body.image) {
-    unlinkFile(img);
+  if (body.image) {
+    for (const img of body.image) {
+      unlinkFile(img);
+    }
+    unlinkFile(body.coverImage);
   }
-  unlinkFile(body.coverImage);
   throw new ApiError(
     StatusCodes.NOT_ACCEPTABLE,
     error.message
@@ -892,8 +902,10 @@ const offers = async (
       path: "myOffer",
       options: { skip, limit },
       populate: [
-        { path: "to", select: "-password -otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v" },
-        { path: "form", select: "-password -otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v" }
+        {
+          path: "projectID",
+          select: "coverImage showcaseImages projectName"
+        }
       ]
     });
 
@@ -911,15 +923,44 @@ const offers = async (
     );
   }
 
-  // Total count of offers (not paginated) to calculate totalPages
-  const total = isUserExist.myOffer?.length || 0;
+  const allOffers = await Offer
+    .find({
+      to: isUserExist._id
+    })
+    .populate("projectID", "coverImage showcaseImages projectName")
+    .populate("form", "fullName profileImage")
+    .lean();
 
-  return {
-    data: isUserExist.myOffer || [],
-    total,
-    totalPages: Math.ceil(total / limit),
-    currentPage: page,
-  };
+  const ratings = await Promise.all(
+    allOffers.map(async (e: any) => {
+      const ratings = await RatingModel.find({ provider: e.form._id });
+
+      // Calculate average
+      let average = 0;
+      if (ratings.length > 0) {
+        const total = ratings.reduce((sum, r) => sum + r.rating, 0);
+        average = total / ratings.length;
+      }
+
+      return {
+        _id: e._id,
+        project: e.projectID,
+        offerBy: {
+          id: e.form._id,
+          name: e.form.fullName,
+          image: e.form.profileImage,
+          averageRating: average,
+          totalRatings: ratings.length
+        },
+        budget: e.budget,
+        location: e.jobLocation,
+        description: e.description,
+      };
+    })
+  );
+
+  return ratings || []
+  
 };
 
 //I Offered
@@ -937,8 +978,8 @@ const iOfferd = async (
       path: "iOffered",
       options: { skip, limit },
       populate: [
-        { path: "to", select: "-password -otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v" },
-        { path: "form", select: "-password -otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v" }
+        // { path: "to", select: "-password -otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v" },
+        // { path: "form", select: "-password -otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v" }
       ]
     });
 
@@ -985,13 +1026,18 @@ const getAOffer = async (
     );
   };
 
-  const offer = await Offer.findById(offerId).populate("to","fullName").populate("form","fullName email");
+  const offer = await Offer
+    .findById(offerId)
+    .populate("to","fullName profileImage")
+    .populate("form","fullName email")
+    .lean() as IOffer;
   if (!offer) {
     throw new ApiError(
       StatusCodes.NOT_FOUND,
       "This offer was not exist!"
     );
   };
+
 
   if (!isUserExist) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
@@ -1007,7 +1053,39 @@ const getAOffer = async (
     );
   };
 
-  return offer;
+  const chatFrom = 
+    payload.userID.toString() === offer.to._id.toString()?
+    offer.form._id.toString() 
+    : offer.to._id.toString();
+
+  let isFavorite: boolean = false;
+
+    if ( isUserExist.role == USER_ROLES.SERVICE_PROVIDER) {
+
+      if (isUserExist.favouriteServices.some((e: any) => e._id.toString() === offer.projectID.toString())) {
+        isFavorite = true;
+      }
+
+    } else if (isUserExist.role == USER_ROLES.USER) {
+
+      if (isUserExist.favouriteProvider.some((e: any) => e.toString() === offer.form._id.toString())) {
+        isFavorite = true;
+      }
+
+    }
+
+  const chat = await Chat.findOne({
+    users:[
+      new mongoose.Types.ObjectId(payload.userID),
+      new mongoose.Types.ObjectId(chatFrom)
+    ]
+  });
+
+  return {
+    ...offer,
+    isFavorite,
+    chatID: chat?._id ? chat._id : ""
+  };
 };
 
 // Create offer
@@ -1024,6 +1102,7 @@ const cOffer = async (
         category,
         location,
         deadline,
+        validFor,
         description,
         to,
         endDate,
@@ -1076,10 +1155,13 @@ const cOffer = async (
         description,
         startDate,
         endDate,
+        validFor:validFor,
         companyImages: images,
       }
   
       const offer = await Offer.create(offerData);
+
+      console.log(offer)
   
       isUserExist.iOffered.push(offer._id);
       ifCustomerExist.myOffer.push(offer._id);
@@ -1190,7 +1272,6 @@ const intracatOffer = async(
       content: isUserExist._id != customer._id ? `${customer.fullName} was accept your offer` : `${provider.fullName} was accept your offer now you should pay to confirm your order!`
     });
 
-    console.log(notification)
 
     //@ts-ignore
     const io = global.io;
@@ -1588,98 +1669,6 @@ const getRecommendedPosts = async ({
   return providers; // if empty → just []
 };
 
-// const filteredData = async (
-//   payload: JwtPayload,
-//   data: FilterPost
-// ) => {
-//   const { userID } = payload;
-//   const {
-//     category,
-//     subCategory,
-//     lat,
-//     lng,
-//     distance = 50,
-//     page = 1,
-//     limit = 20,
-//   } = data;
-
-//   const user = await User.findById(userID);
-//   if (!user) {
-//     throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
-//   }
-
-//   if (
-//     user.accountStatus === ACCOUNT_STATUS.DELETE ||
-//     user.accountStatus === ACCOUNT_STATUS.BLOCK
-//   ) {
-//     throw new ApiError(
-//       StatusCodes.FORBIDDEN,
-//       `Your account was ${user.accountStatus.toLowerCase()}!`
-//     );
-//   }
-
-//   const isServiceProvider = user.role === USER_ROLES.SERVICE_PROVIDER;
-//   const skip = (page - 1) * limit;
-
-//   if (
-//     typeof lat !== 'number' ||
-//     typeof lng !== 'number' ||
-//     Number.isNaN(lat) ||
-//     Number.isNaN(lng)
-//   ) {
-//     throw new ApiError(StatusCodes.BAD_REQUEST, "Invalid latitude or longitude");
-//   }
-
-//   const geoQuery = {
-//     latLng: {
-//       $geoWithin: {
-//         $centerSphere: [[lng, lat], distance / 6378.1], // distance in km
-//       },
-//     },
-//   };
-
-//   // ----------------------------------------
-//   // Build category filter only if provided
-//   // ----------------------------------------
-//   const categoryQuery: any = {};
-//   if (category) categoryQuery.category = category;
-//   if (subCategory) categoryQuery.subCategory = subCategory;
-
-//   if (!isServiceProvider) {
-//     // Provider search
-//     const providerQuery = {
-//       ...geoQuery,
-//       ...categoryQuery, // will only include if provided
-//     };
-
-//     const [results, total] = await Promise.all([
-//       User.find(providerQuery)
-//         .select(
-//           "-password -otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v"
-//         )
-//         .skip(skip)
-//         .limit(limit),
-//       User.countDocuments(providerQuery),
-//     ]);
-
-//     return results;
-//   }
-
-//   // Service Provider → Post search
-//   const postQuery = {
-//     ...geoQuery,
-//     ...(category ? { catagory: category } : {}),
-//     ...(subCategory ? { subCategory: subCategory } : {}),
-//   };
-
-//   const results = await Post.find(postQuery)
-//     .select("-latLng")
-//     .skip(skip)
-//     .limit(limit);
-
-//   return results;
-// };
-
 const getPostsOrProviders = async ({
   payload,
   page = 1,
@@ -1912,6 +1901,13 @@ const aProvider = async (payload: JwtPayload, id: string) => {
     })
   );
 
+  const chat = await Chat.findOne({
+    users:[
+      new mongoose.Types.ObjectId(payload.userID),
+      new mongoose.Types.ObjectId(id)
+    ]
+  })
+
   const totalServices = await Order.countDocuments({ provider: provider._id });
   const totalReviews = enrichedRatings.length;
   const totalStars = enrichedRatings.reduce((acc, cur) => acc + (cur.star || 0), 0);
@@ -1922,6 +1918,7 @@ const aProvider = async (payload: JwtPayload, id: string) => {
     ratings: enrichedRatings,
     totalReviews,
     agvRating,
+    chatID: chat._id,
     totalServices,
     isFavorite: isFavorite.length > 0 ? true : false
   };
@@ -1965,14 +1962,15 @@ const offerOnPost = async(
       "Post not founded!"
     )
   }
+
     try {
       const { userID } = payload;
       const {
-        projectID,
         endDate,
         startDate,
         myBudget,
         deadline,
+        validFor,
         description,
         companyImages
       } = data;
@@ -2016,11 +2014,12 @@ const offerOnPost = async(
         form: isUserExist._id,
         budget: Number(myBudget),
         jobLocation: post.location,
-        deadline,
+        deadline: post.deadline,
         description,
         startDate,
         endDate,
-        projectID,
+        validFor,
+        projectID: post._id,
         companyImages
       }
   
@@ -2039,7 +2038,6 @@ const offerOnPost = async(
       //@ts-ignore
       const io = global.io;
       io.emit(`socket:${ifCustomerExist._id.toString()}`,notification)
-      console.log(ifCustomerExist._id.toString())
 
       try {
         if (ifCustomerExist.deviceID) {
@@ -2089,10 +2087,54 @@ const getReatings = async ( req: Request, res: Response ) => {
   } catch (error) {
     console.log(error)
   }
+};
+
+const totalOffersOnPost = async (
+  payload: JwtPayload,
+  postID: string
+) => {
+  const postObjId = new mongoose.Types.ObjectId( postID );
+
+  const allOffers = await Offer
+    .find({ projectID: postObjId })
+    .populate("projectID", "coverImage showcaseImages projectName")
+    .populate("form", "fullName profileImage")
+    .lean()
+
+  const ratings = await Promise.all(
+    allOffers.map(async (e: any) => {
+      const ratings = await RatingModel.find({ provider: e.form._id });
+
+      // Calculate average
+      let average = 0;
+      if (ratings.length > 0) {
+        const total = ratings.reduce((sum, r) => sum + r.rating, 0);
+        average = total / ratings.length;
+      }
+
+      return {
+        _id: e._id,
+        project: e.projectID,
+        offerBy: {
+          id: e.form._id,
+          name: e.form.fullName,
+          image: e.form.profileImage,
+          averageRating: average,
+          totalRatings: ratings.length
+        },
+        budget: e.budget,
+        location: e.jobLocation,
+        description: e.description,
+      };
+    })
+  );
+
+  return ratings
 }
 
 export const UserServices = {
     getPostsOrProviders,
+    totalOffersOnPost,
     getReatings,
     allPost,
     offerOnPost,

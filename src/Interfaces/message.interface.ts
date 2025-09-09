@@ -5,5 +5,6 @@ export interface IMessage extends Document {
   chatID: Types.ObjectId;
   message: string;
   messageType: string;
+  isSeen: boolean
   image?: string;
 }

@@ -16,6 +16,10 @@ const messageSchema = new Schema<IMessage>({
     enum: MESSAGE_TYPE,
     default: MESSAGE_TYPE.MESSAGE
   },
+  isSeen:{
+    type: Boolean,
+    default: false
+  },
   message:{
     type: String
   },

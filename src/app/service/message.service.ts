@@ -48,6 +48,9 @@ const addMessage = async (
     messageType: messageBody.messageType
   });
 
+  chat.lastMessage = message._id
+  await chat.save()
+
   const populatedMessage = await message.populate("sender", "fullName email");
 
   //@ts-ignore
@@ -57,7 +60,8 @@ const addMessage = async (
     message: message.message,
     messageType: MESSAGE_TYPE.MESSAGE,
     chatId: message.chatID,
-    sender: message.sender
+    sender: message.sender,
+    image: user.profileImage
   }
 
   // Emit the message to all users in the chat except the sender
@@ -134,12 +138,18 @@ const getMessages = async (
             email: 1
           },
           createdAt: 1,
-          updatedAt: 1,
+          isSeen: 1,
         },
       },
     ]);
  
- 
+    const ids = messages.map(m => m._id);
+
+    await Message.updateMany(
+      { _id: { $in: ids } },
+      { $set: { isSeen: true } }
+    );
+
     return { 
       messages, 
       pagination 

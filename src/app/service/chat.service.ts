@@ -3,6 +3,8 @@ import User from "../../model/user.model";
 import { StatusCodes } from "http-status-codes";
 import { ACCOUNT_STATUS } from "../../enums/user.enums";
 import ApiError from "../../errors/ApiError";
+import { JwtPayload } from "jsonwebtoken";
+import mongoose from "mongoose";
 
 const createChat = async (
   sender: any, 
@@ -94,7 +96,8 @@ const allChats = async (id: string, page = 1, limit = 10) => {
   const chats = await Chat.find({
     users: { $in: [id] }
   })
-    .populate("users", "email fullName")
+    .populate("users", "email fullName profileImage")
+    .populate("lastMessage","message isSeen sender -_id")
     .skip(skip)
     .limit(limit);
 
@@ -150,9 +153,82 @@ const deleteChat = async ( userID: string, id: string ) => {
 
 };
 
+const searchChat = async (
+  payload: JwtPayload,
+  query: string,
+  page: number = 1,
+  limit: number = 10
+) => {
+  const { userID } = payload;
+  const myId = new mongoose.Types.ObjectId(userID);
+
+  const chats = await Chat.aggregate([
+    // Step 1: only chats where I'm included
+    {
+      $match: {
+        users: new mongoose.Types.ObjectId(myId)
+      }
+    },
+
+    // Step 2: lookup users
+    {
+      $lookup: {
+        from: "users",
+        localField: "users",
+        foreignField: "_id",
+        as: "users"
+      }
+    },
+
+    // // Step 3: lookup last message
+    {
+      $lookup: {
+        from: "messages",
+        localField: "lastMessage",
+        foreignField: "_id",
+        as: "lastMessage"
+      }
+    },
+    { $unwind: { path: "$lastMessage", preserveNullAndEmptyArrays: true } },
+
+    // // Step 4: match chats where at least one OTHER user matches the name query
+    {
+      $match: {
+        users: {
+          $elemMatch: {
+            _id: { $ne: myId },
+            fullName: { $regex: query, $options: "i" }
+          }
+        }
+      }
+    },
+
+    // // Step 5: pagination
+    { $skip: (page - 1) * limit },
+    { $limit: limit },
+
+    // // Step 6: projection
+    {
+      $project: {
+        // chatName: 1,
+        users: {
+          _id: 1,
+          email: 1,
+          fullName: 1,
+          profileImage: 1
+        },
+        lastMessage: { message: 1, isSeen: 1, sender: 1 }
+      }
+    }
+  ]);
+
+  return { chats };
+};
+
 export const chatService = {
   createChat,
   getChatById,
   allChats,
-  deleteChat
+  deleteChat,
+  searchChat
 };

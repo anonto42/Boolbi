@@ -50,6 +50,7 @@ export type TOffer = {
     location: string;
     deadline: Date;
     description: string;
+    validFor: string;
     postID: string;
     endDate: Date;
     startDate: Date;
