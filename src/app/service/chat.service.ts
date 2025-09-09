@@ -96,6 +96,7 @@ const allChats = async (id: string, page = 1, limit = 10) => {
   const chats = await Chat.find({
     users: { $in: [id] }
   })
+    .sort({ updatedAt: -1 })
     .populate("users", "email fullName profileImage")
     .populate("lastMessage","message isSeen sender -_id")
     .skip(skip)
