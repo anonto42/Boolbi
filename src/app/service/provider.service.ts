@@ -60,7 +60,7 @@ const singleOrder = async (
 
 const AllOrders = async (
   payload: JwtPayload,
-  params: PaginationParams = {}
+  params: PaginationParams
 ) => {
   const { userID } = payload;
   const { page = 1, limit = 10 } = params;
@@ -101,7 +101,7 @@ const AllOrders = async (
 
 const AllCompletedOrders = async (
   payload: JwtPayload,
-  params: PaginationParams = {}
+  params: PaginationParams
 ) => {
   const { userID } = payload;
   const { page = 1, limit = 10 } = params;
@@ -316,7 +316,7 @@ const deliveryTimeExtendsRequest = async (
 
 const getDeliveryTimeExtendsRequest = async (
   payload: JwtPayload,
-  params: PaginationParams = {}
+  params: PaginationParams
 ) => {
   const { userID } = payload;
   const { page = 1, limit = 10 } = params;
@@ -387,7 +387,7 @@ const getADeliveryTimeExtendsRequest = async (
 
 const getDeliveryReqests = async (
   payload: JwtPayload,
-  params: PaginationParams = {}
+  params: PaginationParams
 ) => {
   const { userID } = payload;
   const { page = 1, limit = 10 } = params;

@@ -1,10 +1,19 @@
-import { model, models, Schema } from "mongoose";
+import { model, models, Schema, Types } from "mongoose";
 import { IPost } from "../Interfaces/post.interface";
 
 const jobPostSchema = new Schema<IPost>({
   projectName: {
     type: String,
     required: true,
+  },
+  acceptedOffer:{
+    type: Schema.Types.ObjectId,
+    ref: "offer",
+    default: null
+  },
+  isOnProject:{
+    type: Boolean,
+    default: false
   },
   offers: [{
     type: Schema.Types.ObjectId,
@@ -61,5 +70,5 @@ const jobPostSchema = new Schema<IPost>({
 
 jobPostSchema.index({ latLng: '2dsphere' });
 
-const Post = models.Post || model<IPost>("post", jobPostSchema);
+const Post = model<IPost>("post", jobPostSchema);
 export default Post;

@@ -4,6 +4,8 @@ export interface IPost extends Document {
   projectName: string;
   coverImage: string;
   category: string;
+  isOnProject: boolean;
+  acceptedOffer: Types.ObjectId,
   subCategory: string;
   location: string;
   offers: Types.ObjectId[];

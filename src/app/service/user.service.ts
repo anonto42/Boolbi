@@ -526,8 +526,19 @@ const post = async (
 
     const skip = (page - 1) * limit;
 
-    const posts = await Post.find({ creatorID: isUserExist._id })
-                            // .populate("offers", '-__v')
+    const posts = await Post.find({ 
+        creatorID: isUserExist._id, 
+        // isOnProject: false
+      })
+                            // .populate("acceptedOffer", '-__v')
+                            .populate({
+                              path:"acceptedOffer",
+                              select: "-to -projectID -updatedAt -createdAt -jobLocation -deadline -validFor -startDate -endDate -__v -status -companyImages",
+                              populate: {
+                                path: "form",
+                                select: "fullName profileImage"
+                              }
+                            })
                             .select("-__v")
                             .skip(skip)
                             .limit(limit)
@@ -576,7 +587,7 @@ const UPost = async (
      );
    }
  
-   const post = await Post.findById(postID);
+   const post: any = await Post.findById(postID);
    if (!post) {
      throw new ApiError(StatusCodes.NOT_FOUND, "Post not found");
    }
@@ -1221,7 +1232,13 @@ const intracatOffer = async(
     if (!isOfferExist) {
       throw new ApiError(StatusCodes.NOT_FOUND,"Offer not founded");
     };
-
+    const project = await Post.findById(isOfferExist.projectID);
+    if (!project) {
+      throw new ApiError(
+        StatusCodes.NOT_FOUND,
+        "Project not founded!"
+      )
+    };
     if ( isOfferExist.status === "APPROVE" ) {
       throw new ApiError(StatusCodes.NOT_FOUND,"Offer already accepted!");
     };
@@ -1279,6 +1296,9 @@ const intracatOffer = async(
     io.emit(`socket:${notification.for.toString()}`, notification)
 
     isOfferExist.status = OFFER_STATUS.APPROVE;
+    project.acceptedOffer = isOfferExist._id;
+    project.deadline = isOfferExist.endDate;
+    await project.save();
     await isOfferExist.save();
 
     try {
@@ -1296,7 +1316,6 @@ const intracatOffer = async(
     } catch (error) {
       console.log(error)
     }
-
     return "Offer accepted";
 
 };
@@ -1960,7 +1979,7 @@ const offerOnPost = async(
 
   const { post_id: postID } = data;
   
-  const post: any = await Post.findById(postID)
+  const post = await Post.findById(postID)
   if (!post) {
     throw new ApiError(
       StatusCodes.NOT_FOUND,
@@ -1979,6 +1998,13 @@ const offerOnPost = async(
         companyImages
       } = data;
       const isUserExist = await User.findById(userID);
+      
+      if (post.creatorID == isUserExist._id) {
+        throw new ApiError(
+          StatusCodes.NOT_ACCEPTABLE,
+          "You can't offer on wone page"
+        )
+      }
 
       if (!isUserExist) {
         throw new ApiError(
@@ -2013,6 +2039,17 @@ const offerOnPost = async(
           `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
         );
       };
+
+      const isOfferExist = await Offer.find({
+        projectID: post._id,
+        form: isUserExist._id
+      });
+      if (isOfferExist.length) {
+        throw new ApiError(
+          409,
+          "You have already maked a offer!"
+        )
+      }
 
       const offerData = {
         to: ifCustomerExist._id,
@@ -2066,8 +2103,9 @@ const offerOnPost = async(
       for (const img of data.companyImages) {
         unlinkFile(img);
       }
+      
       throw new ApiError(
-        StatusCodes.INTERNAL_SERVER_ERROR,
+        error.statusCode,
         error.message
       )
     }
@@ -2098,6 +2136,7 @@ const totalOffersOnPost = async (
   payload: JwtPayload,
   postID: string
 ) => {
+
   const postObjId = new mongoose.Types.ObjectId( postID );
 
   const allOffers = await Offer

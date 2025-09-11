@@ -525,15 +525,8 @@ const offerOnPost = catchAsync(
         const photos = getMultipleFilesPath((req as any).files,"image") as string[];
         const {...data} = req.body;
         data.companyImages = photos 
-        let result;  
-
-        if (data.providerId !== '' || data.providerId) {
-            result = await UserServices.doCounter( payload, data, photos)
-        }else{
-            result = await UserServices.offerOnPost(payload,data);
-        }
-        
-
+        const result = await UserServices.offerOnPost(payload,data);
+    
         sendResponse(res, {
             success: true,
             statusCode: StatusCodes.OK,
