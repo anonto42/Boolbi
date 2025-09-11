@@ -164,9 +164,9 @@ router
         auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
         AdminController.supportReques
     )
-    .patch(
+    .post(
         auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
-        validateRequest( AdminValidation.supportRequestAdminSchema ),
+        fileUploadHandler(),
         AdminController.giveSupport
     )
 

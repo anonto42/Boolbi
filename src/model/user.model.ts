@@ -100,6 +100,10 @@ const userSchema = new Schema<IUser>({
     type: [String],
     default: []
   },
+  counterOffers:{
+    type: [Schema.Types.ObjectId],
+    ref: "offer"
+  },
   profileImage: {
     type: String,
     default: ""

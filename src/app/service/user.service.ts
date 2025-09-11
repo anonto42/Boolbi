@@ -927,6 +927,7 @@ const offers = async (
     .find({
       to: isUserExist._id
     })
+    .sort({ updatedAt: -1})
     .populate("projectID", "coverImage showcaseImages projectName")
     .populate("form", "fullName profileImage")
     .lean();
@@ -1338,11 +1339,12 @@ const supportRequest = async(
   payload: JwtPayload,
   {
     message,
-    category
+    category,
+    image
   }:{
-    from: string,
     message: string,
     category: string,
+    image: string
   }
 )=>{
   const { userID } = payload;
@@ -1377,6 +1379,8 @@ const supportRequest = async(
     for: isUserExist._id,
     category: category,
     message,
+    isImage: image? true : false,
+    image: image? image : ""
   });
 
   if (!support) {
@@ -1402,7 +1406,7 @@ const supportRequest = async(
 
 const getRequests = async (
   payload: JwtPayload,
-  params: PaginationParams = {}
+  params: PaginationParams
 ) => {
   const { userID } = payload;
   const { page = 1, limit = 20 } = params;
@@ -1410,8 +1414,9 @@ const getRequests = async (
   const skip = (page - 1) * limit;
 
   const [requests, total] = await Promise.all([
-    Support.find({ for: userID })
+    Support.find({ for: userID, category: params.category })
       .sort({ createdAt: -1 })
+      .select("message isAdmin updatedAt image")
       .skip(skip)
       .limit(limit),
     Support.countDocuments({ for: userID })
@@ -1969,7 +1974,6 @@ const offerOnPost = async(
         endDate,
         startDate,
         myBudget,
-        deadline,
         validFor,
         description,
         companyImages
@@ -2009,6 +2013,7 @@ const offerOnPost = async(
           `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
         );
       };
+
       const offerData = {
         to: ifCustomerExist._id,
         form: isUserExist._id,
@@ -2099,6 +2104,7 @@ const totalOffersOnPost = async (
     .find({ projectID: postObjId })
     .populate("projectID", "coverImage showcaseImages projectName")
     .populate("form", "fullName profileImage")
+    .sort({ updatedAt: -1 })
     .lean()
 
   const ratings = await Promise.all(
@@ -2130,10 +2136,125 @@ const totalOffersOnPost = async (
   );
 
   return ratings
+};
+
+const doCounter = async (
+  payload: JwtPayload,
+  data: TOffer & { providerId: string },
+  images: string[]
+) => {
+   try {
+      const { userID } = payload;
+      const {
+        
+        projectName,
+        myBudget,
+        category,
+        location,
+        deadline,
+        validFor,
+        description,
+        to,
+        endDate,
+        startDate
+      } = data;
+      const isUserExist = await User.findById(userID);
+
+      if (!isUserExist) {
+        throw new ApiError(
+          StatusCodes.NOT_FOUND, 
+          "User not found"
+        );
+      };
+
+      const ifCustomerExist = await User.findById(to);
+      if (!ifCustomerExist) {
+        throw new ApiError(
+          StatusCodes.NOT_FOUND, 
+          "User not found"
+        );
+      };
+
+      if (
+        isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
+        isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
+      ) {
+        throw new ApiError(
+          StatusCodes.FORBIDDEN,
+          `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
+        );
+      };
+      if (
+        ifCustomerExist.accountStatus === ifCustomerExist.DELETE ||
+        ifCustomerExist.accountStatus === ifCustomerExist.BLOCK
+      ) {
+        throw new ApiError(
+          StatusCodes.FORBIDDEN,
+          `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
+        );
+      };
+  
+      const offerData = {
+        to: ifCustomerExist._id,
+        form: isUserExist._id,
+        projectName,
+        category,
+        budget: Number(myBudget),
+        jobLocation: location,
+        deadline,
+        description,
+        startDate,
+        endDate,
+        validFor:validFor,
+        companyImages: images,
+      }
+  
+      const offer = await Offer.create(offerData);
+  
+      isUserExist.iOffered.push(offer._id);
+      ifCustomerExist.myOffer.push(offer._id);
+      await ifCustomerExist.save();
+      await isUserExist.save();
+  
+      const notification = await Notification.create({
+        for:ifCustomerExist._id,
+        content: `You get a offer from ${isUserExist.fullName}`
+      })
+  
+      //@ts-ignore
+      const io = global.io;
+      io.emit(`socket:${to}`,notification)
+
+      try {
+        if (ifCustomerExist.deviceID) {
+          await messageSend({
+            notification: {
+              title: `${isUserExist.fullName} send you a offer!`,
+              body: `${description}`
+            },
+            token: ifCustomerExist.deviceID
+          });
+        }
+      } catch (error) {
+        console.log(error)
+      }
+
+     
+      return offer;
+    } catch (error: any) {
+      for (const img of images) {
+        unlinkFile(img);
+      }
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        error.message
+      )
+    }
 }
 
 export const UserServices = {
     getPostsOrProviders,
+    doCounter,
     totalOffersOnPost,
     getReatings,
     allPost,

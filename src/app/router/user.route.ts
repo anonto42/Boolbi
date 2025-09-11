@@ -118,22 +118,22 @@ router
 router
     .route("/offer")
     .get(
-        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER),
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
         UserController.offers
     )
     .post(
-        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ,USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
         fileUploadHandler(),
         validateRequest(Validation.offerCreateValidation),
         UserController.cOffer
     )
     .patch(
-        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER , USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
         validateRequest( Validation.offerValidation ),
         UserController.IOffer
     )
     .delete(
-        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
         validateRequest( Validation.offerDeletaionValidationZod ),
         UserController.DOffer
     )
@@ -171,6 +171,7 @@ router
     )
     .post(
         auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+        fileUploadHandler(),
         UserController.supportRequest
     )
 
@@ -235,6 +236,26 @@ router
         ),
         UserController.aProvider
     )
+
+router
+    .route("/counter-offer")
+    .get(
+        auth( 
+            USER_ROLES.USER, 
+            USER_ROLES.SERVICE_PROVIDER, 
+            USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN 
+        ),
+        UserController.aProvider
+    )
+    .post(
+        auth(
+            USER_ROLES.USER,
+            USER_ROLES.SERVICE_PROVIDER,
+            USER_ROLES.ADMIN,
+            USER_ROLES.SUPER_ADMIN
+        ),
+    )
+
 
 
 export const UserRouter = router;

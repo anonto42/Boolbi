@@ -1,4 +1,4 @@
-import { model, models, Schema } from "mongoose";
+import { model, Schema } from "mongoose";
 import { ISupport } from "../Interfaces/support.interface";
 
 const supportSchema = new Schema<ISupport>({
@@ -6,13 +6,21 @@ const supportSchema = new Schema<ISupport>({
     type: Schema.Types.ObjectId,
     ref: "user"
   },
-  catagory:{
+  isAdmin:{
+    type: Boolean,
+  },
+  category:{
     type: String,
-    required: true
   },
   message:{
     type: String,
-    required: true
+  },
+  isImage:{
+    type: Boolean,
+    default: true
+  },
+  image:{
+    type: String,
   },
   status:{
     type: String,
@@ -26,5 +34,5 @@ const supportSchema = new Schema<ISupport>({
   timestamps: true
 });
 
-const Support = models.Support || model('support', supportSchema);
+const Support = model<ISupport>('support', supportSchema);
 export default Support;

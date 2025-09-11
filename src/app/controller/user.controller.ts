@@ -374,12 +374,14 @@ const supportRequest = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
         const { ...data } = req.body;
+        const image = getSingleFilePath(req.files, "image")
+        data.image = image;
         const result = await UserServices.supportRequest(payload,data);
 
         sendResponse(res, {
             success: true,
             statusCode: StatusCodes.OK,
-            message: "Successfully delete the offer",
+            message: "Successfully send the support request!",
             data: result
         })
     }
@@ -520,6 +522,50 @@ const offerOnPost = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
         
+        const photos = getMultipleFilesPath((req as any).files,"image") as string[];
+        const {...data} = req.body;
+        data.companyImages = photos 
+        let result;  
+
+        if (data.providerId !== '' || data.providerId) {
+            result = await UserServices.doCounter( payload, data, photos)
+        }else{
+            result = await UserServices.offerOnPost(payload,data);
+        }
+        
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully Offer Sended!",
+            data: result
+        })
+    }
+)
+
+const counterOffer = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        
+        const photos = getMultipleFilesPath((req as any).files,"image")
+        const {...data} = req.body;
+        data.companyImages = photos   
+        
+        const result = await UserServices.offerOnPost(payload,data);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully deleted notificaitons!",
+            data: result
+        })
+    }
+)
+
+const getCounterOffer = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        
         const photos = getMultipleFilesPath((req as any).files,"image")
         const {...data} = req.body;
         data.companyImages = photos   
@@ -537,6 +583,8 @@ const offerOnPost = catchAsync(
 
 export const UserController = {
     searchPosts,
+    counterOffer,
+    getCounterOffer,
     offerOnPost,
     aProvider,
     getRequests,

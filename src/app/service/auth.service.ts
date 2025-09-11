@@ -17,8 +17,7 @@ const signIn = async (
 ) => {
     const { email, password, deviceID } = payload;
     const isUser = await User.findOne({email});
-    console.log(payload)
-    console.log(isUser)
+    
     if (!isUser) {
         throw new ApiError(StatusCodes.NOT_FOUND,"Your account is not exist!")
     };

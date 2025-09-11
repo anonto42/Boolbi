@@ -223,7 +223,7 @@ const engagementData = async (
 
 const allCustomers = async (
   payload: JwtPayload,
-  params: PaginationParams = {}
+  params: PaginationParams 
 ) => {
   const { userID } = payload;
   const { page = 1, limit = 10 } = params;
@@ -302,7 +302,7 @@ const updateUserAccountStatus = async (
 
 const allProvider = async (
   payload: JwtPayload,
-  params: PaginationParams = {}
+  params: PaginationParams
 ) => {
   const { userID } = payload;
   const { page = 1, limit = 10 } = params;
@@ -344,7 +344,7 @@ const allProvider = async (
 
 const allPayments = async (
   payload: JwtPayload,
-  params: PaginationParams = {}
+  params: PaginationParams
 ) => {
   const { userID } = payload;
   const { page = 1, limit = 10 } = params;
@@ -386,63 +386,6 @@ const APayments = async (
 
     return allPayments;
 }
-
-// const allCatagorys = async (
-//     payload: JwtPayload,
-//     pagination: {
-//       page: number,
-//       limit: number,
-//       queary?: string
-//     }
-// ) => {
-//     const { page= 1, limit= 10 } = pagination;
-//     const { userID } = payload;
-//     const objID = new mongoose.Types.ObjectId(userID);
-    
-//     const isUserExist = await User.findById(objID);
-    
-//     if (!isUserExist) {
-//       throw new ApiError(
-//         StatusCodes.NOT_FOUND,
-//         "User not found!"
-//       )
-//     }
-//     if (
-//       isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
-//       isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
-//     ) {
-//       throw new ApiError(
-//         StatusCodes.FORBIDDEN,
-//         `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
-//       );
-//     }
-
-//     const skip = ( page - 1 ) * limit;
-    
-//     const categories = await Catagroy.aggregate([
-//       {
-//         $lookup: {
-//           from: "subcatagories",
-//           localField: "subCatagroys",
-//           foreignField: "_id",
-//           as: "subCategories"
-//         }
-//       },
-//       {
-//         $project:{
-//           subCatagroys: 0
-//         }
-//       },
-//       {
-//         $skip: skip
-//       },
-//       {
-//         $limit: limit
-//       }
-//     ]);
-    
-//     return categories
-// }
 
 const allCatagorys = async (
     payload: JwtPayload,
@@ -962,7 +905,7 @@ const editeConditions = async (
 
 const allAdmins = async (
   payload: JwtPayload,
-  params: PaginationParams = {}
+  params: PaginationParams
 ) => {
   const { userID } = payload;
   const { page = 1, limit = 10 } = params;
@@ -1068,7 +1011,7 @@ const deleteAdmin = async (
 
 const allSupportRequests = async (
   payload: JwtPayload,
-  params: PaginationParams = {}
+  params: PaginationParams
 ) => {
   const { userID } = payload;
   const { page = 1, limit = 10 } = params;
@@ -1109,10 +1052,12 @@ const giveSupport = async (
     payload: JwtPayload,
     {
       supportID,
-      reply
+      message,
+      image
     }:{
       supportID: string,
-      reply: string
+      message: string
+      image: string
     }
 ) => {
     const { userID } = payload;
@@ -1133,34 +1078,51 @@ const giveSupport = async (
     const supportUpdated = await Support.findByIdAndUpdate(
       supportID,
       {
-        adminReply: reply, 
+        adminReply: message, 
         status: "SOLVED"
-      },{ new: true }
+      },
+      { new: true }
     );
 
-    
+    const support = await Support.create({
+      category: supportUpdated?.category,
+      for: supportUpdated?.for,
+      message,
+      isAdmin: true,
+      isImage: image? true : false,
+      image: image? image : ""
+    });
+
     //@ts-ignore
     const io = global.io;
     const notification = await Notification.create({
-      for: supportUpdated.for,
+      for: support.for,
       content: `You got a replay from the support request!`
     });
         
-    io.emit(`socket:${ supportUpdated.for }`, notification);
+    io.emit(`socket:${ support.for }`, {
+      image: support.image,
+      isAdmin: support.isAdmin,
+      message: support.message,
+      isImage: support.isAdmin,
+      category: support.category,
+    });
 
-    if (!supportUpdated) {
+    if (!support) {
       throw new ApiError(
         StatusCodes.NOT_FOUND,
         "Not founded the support, something was wrong"
       )
     };
     
-    return supportUpdated
+    return {
+      
+    }
 }
 
 const allVericifationRequestes = async (
   payload: JwtPayload,
-  params: PaginationParams = {}
+  params: PaginationParams
 ) => {
   const { userID } = payload;
   const { page = 1, limit = 10 } = params;

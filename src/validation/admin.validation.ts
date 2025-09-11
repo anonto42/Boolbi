@@ -70,7 +70,7 @@ const deleteAdminSchema = z.object({
 
 const supportRequestAdminSchema = z.object({
     body: z.object({
-        reply: z.string({ required_error:"You must give a message to send the support" }),
+        message: z.string({ required_error:"You must give a message to send the support" }),
         supportID: z.string({ required_error: "You must give the supportID to give the support"})
     })
 })

@@ -13,6 +13,7 @@ export interface IUser extends Document {
     fullName: string;
     email: string;
     role: string;
+    counterOffers: Types.ObjectId[],
     password: string;
     phone: string;
     category: string;

@@ -83,4 +83,5 @@ export interface SearchData {
 export interface PaginationParams {
   page?: number;
   limit?: number;
+  category: string
 }

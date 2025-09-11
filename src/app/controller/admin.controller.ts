@@ -423,6 +423,8 @@ const giveSupport = catchAsync(
     async( req: Request, res: Response ) => {
         const Payload = (req as any).user;
         const {...data} = req.body;
+        const image = getSingleFilePath(req.files, "image")
+        data.image = image;
         const result = await AdminService.giveSupport(Payload,data)
 
         sendResponse(res, {
