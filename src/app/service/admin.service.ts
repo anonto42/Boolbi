@@ -1100,7 +1100,7 @@ const giveSupport = async (
       content: `You got a replay from the support request!`
     });
         
-    io.emit(`socket:${ support.for }`, {
+    io.emit(`socket:support:${ support.for }`, {
       image: support.image,
       isAdmin: support.isAdmin,
       message: support.message,

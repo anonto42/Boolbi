@@ -1419,7 +1419,7 @@ const supportRequest = async(
   
       //@ts-ignore
     const io = global.io;
-    io.emit(`socket:${e._id}`,notification)
+    io.emit(`socket:support:${e._id}`,notification)
   })
 
   return support;
@@ -2046,7 +2046,7 @@ const offerOnPost = async(
         projectID: post._id,
         form: isUserExist._id
       });
-      if (isOfferExist.length) {
+      if (isOfferExist.length > 0) {
         throw new ApiError(
           409,
           "You have already maked a offer!"
@@ -2075,6 +2075,12 @@ const offerOnPost = async(
       await isUserExist.save();
   
       const notification = await Notification.create({
+        notiticationType: "OFFER",
+        data: {
+          title: post.projectName,
+          offerId: offer._id,
+          image: isUserExist.profileImage
+        },
         for:ifCustomerExist._id,
         content: `You get a offer from ${isUserExist.fullName}`
       })
@@ -2113,9 +2119,9 @@ const offerOnPost = async(
       for (const img of data.companyImages) {
         unlinkFile(img);
       }
-      
+      console.log(error)
       throw new ApiError(
-        error.statusCode,
+        500,
         error.message
       )
     }
