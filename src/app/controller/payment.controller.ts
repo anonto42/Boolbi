@@ -13,6 +13,7 @@ import Order from "../../model/order.model";
 import { ACCOUNT_STATUS, USER_ROLES } from "../../enums/user.enums";
 import { OFFER_STATUS } from "../../enums/offer.enum";
 import { accountBindSuccessfull, reconnectURL } from "../../shared/stripeTemplate";
+import Post from "../../model/post.model";
 
 const payForService = catchAsync(
     async( req: Request, res: Response ) => {
@@ -143,6 +144,7 @@ const PaymentVerify = catchAsync(
         };
         
         const offer = await Offer.findById(metadata.offerID);
+        
         const user = await User.findById(metadata.userId);
         if ( !user ) {
             throw new ApiError(
@@ -156,6 +158,9 @@ const PaymentVerify = catchAsync(
                 "Offer not found!"
             )
         };
+        const post = await Post.findById(offer.projectID);
+        if(post){post.isOnProject = true;
+        await post?.save()}
 
         offer.status = OFFER_STATUS.PAID;
         await offer.save();

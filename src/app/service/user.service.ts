@@ -521,14 +521,14 @@ const post = async (
     };
     
     if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
+      throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
     };
 
     const skip = (page - 1) * limit;
 
     const posts = await Post.find({ 
         creatorID: isUserExist._id, 
-        // isOnProject: false
+        isOnProject: false
       })
                             // .populate("acceptedOffer", '-__v')
                             .populate({
@@ -743,10 +743,10 @@ const singlePost = async (
                             .populate({
                                 path: 'offers',
                                 select: 'myBudget description image',
-                                populate: {
-                                    path: 'by',
-                                    select: '-password -otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v'
-                                }
+                                // populate: {
+                                //     // path: 'by',
+                                //     // select: '-password -otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v'
+                                // }
                             })
 
     const postData: any = post;
@@ -1274,15 +1274,17 @@ const intracatOffer = async(
         content: isUserExist._id != customer._id ? `${customer.fullName} was decline your offer` : `${provider.fullName} was decline your offer!`
       });
 
-      console.log(notification)
-
       //@ts-ignore
       const io = global.io;
       io.emit(`socket:${notification.for.toString()}`, notification)
+
+      project.offers = project.offers.filter( e => e.toString() == isOfferExist._id.toString() )
+      console.log(project.offers)
+      await project.save();
        
       await user1.save();
-      await isOfferExist.save();
-      return "Offer Decline"
+      await isOfferExist.deleteOne();
+      return { message: "Offer Decline", isDecline: true}
     };
 
     const notification = await Notification.create({
@@ -1449,7 +1451,7 @@ const getRequests = async (
   };
 };
 
-export const searchPosts = async (
+const searchPosts = async (
   payload: JwtPayload,
   data: SearchData
 ): Promise<any> => {
@@ -2095,8 +2097,16 @@ const offerOnPost = async(
         console.log(error)
       }
 
-      post.offers.push(offer._id);
+      
       await post.save();
+
+      await Post.findByIdAndUpdate(
+        post._id,
+        {
+          $addToSet: { offers: offer._id }
+        },
+        { new: true }
+      );
      
       return offer;
     } catch (error: any) {

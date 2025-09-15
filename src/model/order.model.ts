@@ -29,21 +29,30 @@ const orderSchema = new Schema<IOrder>({
   },
   trackStatus: {
     orderCreated: {
-      date: Date,
+      date: {
+        type: Date,
+        default: new Date( Date.now() )
+      },
       status: {
         type: Boolean,
         default: true
       }
     },
     paymentProcessed: {
-      date: Date,
+      date: {
+        type: Date,
+        default: new Date( Date.now() )
+      },
       status: {
         type: Boolean,
         default: true
       }
     },
     isComplited: {
-      date: Date,
+      date: {
+        type: Date,
+        default: null
+      },
       status: {
         type: Boolean,
         default: false
@@ -54,5 +63,5 @@ const orderSchema = new Schema<IOrder>({
   timestamps: true
 });
 
-const Order = models.Order || model('order', orderSchema);
+const Order = models.order || model<IOrder>('order', orderSchema);
 export default Order;

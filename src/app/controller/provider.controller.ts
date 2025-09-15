@@ -45,7 +45,16 @@ const completedOrders = catchAsync(
     async( req, res ) => {
         const user = (req as any)?.user;
         const {...data} = req.body;
-        const result = await ProviderService.AllCompletedOrders(user,data)
+        const id = req.query.id as string;
+        
+        let result;
+        if (!id || id == "") {
+            console.log("Heat on the multipull hear")
+            result = await ProviderService.AllCompletedOrders(user,data);
+        } else {
+            console.log("Heat on the single one")
+            result = await ProviderService.ACompletedOrder(id);
+        }
 
         sendResponse(res, {
             success: true,

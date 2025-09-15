@@ -35,18 +35,20 @@ const singleOrder = async (
     };
 
     const order = await Order.findById(orderID)
-                                .populate("offerID");
+                                .populate({
+                                    path:"offerID",
+                                    populate: "projectID"
+                                }) 
+                                .populate({
+                                    path:"provider",
+                                    
+                                })as any;
     if (!order) {
         throw new ApiError(
             StatusCodes.NOT_FOUND,
             "Order not exist!"
         )
     };
-
-    console.log(
-        order.offerID.to,
-        order.offerID.form,isExist._id
-    )
     
     if(
         order.offerID.to === isExist._id && 
@@ -55,7 +57,19 @@ const singleOrder = async (
         throw new ApiError(StatusCodes.BAD_GATEWAY,"You are not authorize to access this order")
     };
 
-    return order
+    return {
+        deliveryRequest: order.deliveryRequest,
+        status: order.trackStatus,
+        totalPrice: order.offerID.budget,
+        projectName: order.offerID.projectID.projectName,
+        projectDescription: order.offerID.projectID.jobDescription,
+        projectImage: order.offerID.projectID.coverImage,
+        projectID: order.offerID.projectID._id,
+        startDate: order.offerID.startDate,
+        deliveryDate: order.deliveryDate,
+        providerName: order.provider.fullName, 
+        providerID: order.provider._id
+    }
 }
 
 const AllOrders = async (
@@ -85,14 +99,30 @@ const AllOrders = async (
   const totalOrders = await Order.countDocuments({ _id: { $in: user.orders } });
 
   // Fetch paginated orders and populate
-  const paginatedOrders = await Order.find({ _id: { $in: user.orders } })
+  const paginatedOrders = await Order.find({ 
+        _id: { $in: user.orders }, 
+        'trackStatus.isComplited.status': false
+    })
     .skip(skip)
     .limit(limit)
-    .populate("offerID")
+    .populate({
+        path:"offerID",
+        select: "projectID",
+        populate: {
+            path:"projectID",
+            select:"projectName jobDescription coverImage"
+        }
+    })
+    .select("offerID")
     .sort({ createdAt: -1 });
 
+    const formetedData = paginatedOrders.map( ( e:any )=> ({
+        project:e.offerID.projectID,
+        id: e._id
+    }))
+
   return {
-    data: paginatedOrders,
+    data: formetedData,
     total: totalOrders,
     currentPage: page,
     totalPages: Math.ceil(totalOrders / limit),
@@ -107,10 +137,7 @@ const AllCompletedOrders = async (
   const { page = 1, limit = 10 } = params;
   const skip = (page - 1) * limit;
 
-  const isExist = await User.findOne({ _id: userID }).populate({
-    path: "orders",
-    populate: { path: "offerID" }
-  });
+  const isExist = await User.findOne({ _id: userID })
 
   if (!isExist) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not exist!");
@@ -126,20 +153,72 @@ const AllCompletedOrders = async (
     );
   }
 
-  // Filter completed orders
-  const completedOrders = isExist.orders.filter(
-    (order: any) => order?.trackStatus?.isComplited == "true"
-  );
+  const orders = await Order.find({
+    $or: [
+        { customer: userID },
+        { provider: userID }
+    ],
+    'trackStatus.isComplited': true
+    }).populate({
+        path:"offerID",
+        select: "projectID",
+        populate: {
+            path:"projectID",
+            select:"projectName jobDescription coverImage"
+        }
+    })
+    .select("offerID")
+    .skip(skip)
+    .limit(limit)
+    .lean();
 
-  const total = completedOrders.length;
-  const paginatedOrders = completedOrders.slice(skip, skip + limit);
+    const formetedData = orders.map( ( e:any )=> ({
+        project:e.offerID.projectID,
+        id: e._id
+    }))
+  
+  return { data: formetedData }
+};
 
-  return {
-    data: paginatedOrders,
-    total,
-    currentPage: page,
-    totalPages: Math.ceil(total / limit),
-  };
+const ACompletedOrder = async (
+  payload: string
+) => {
+
+  const order = await Order
+    .findById( new mongoose.Types.ObjectId(payload) )
+                                  .populate({
+                                    path:"offerID",
+                                    populate: "projectID"
+                                }) 
+                                .populate({
+                                    path:"provider",
+                                }).lean() as any;
+    if (!order) {
+        throw new ApiError(
+            StatusCodes.NOT_FOUND,
+            "Order not exist!"
+        )
+    };
+
+    const delivaryRequest = await DeliveryRequest.findOne({
+        orderID: order._id
+    });
+
+    return {
+        totalPrice: order.offerID.budget,
+        projectName: order.offerID.projectID.projectName,
+        projectDescription: order.offerID.projectID.jobDescription,
+        projectImage: order.offerID.projectID.coverImage,
+        projectID: order.offerID.projectID._id,
+        startDate: order.offerID.startDate,
+        deliveryDate: order.deliveryDate,
+        providerName: order.provider.fullName, 
+        providerID: order.provider._id,
+        projectDoc: delivaryRequest.projectDoc,
+        projectLink: delivaryRequest.uploatedProject,
+        pdf: delivaryRequest.uploatedProject,
+        images: delivaryRequest.images
+    }
 };
 
 const dOrder = async (
@@ -383,44 +462,64 @@ const getADeliveryTimeExtendsRequest = async (
     const requests = await DeliveryRequest.findById(requestId)
 
     return requests;
-}
+};
 
 const getDeliveryReqests = async (
   payload: JwtPayload,
-  params: PaginationParams
+  params: PaginationParams & { orderID: string }
 ) => {
-  const { userID } = payload;
-  const { page = 1, limit = 10 } = params;
-  const skip = (page - 1) * limit;
+    const { userID } = payload;
+    const { page = 1, limit = 10 } = params;
+    const skip = (page - 1) * limit;
 
-  const isExist = await User.findOne({ _id: userID });
-  if (!isExist) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User not exist!");
-  }
+    const isExist = await User.findOne({ _id: userID });
+    if (!isExist) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "User not exist!");
+    }
 
-  if (
-    isExist.accountStatus === ACCOUNT_STATUS.DELETE ||
-    isExist.accountStatus === ACCOUNT_STATUS.BLOCK
-  ) {
-    throw new ApiError(
-      StatusCodes.FORBIDDEN,
-      `Your account was ${isExist.accountStatus.toLowerCase()}!`
-    );
-  }
+    if (
+        isExist.accountStatus === ACCOUNT_STATUS.DELETE ||
+        isExist.accountStatus === ACCOUNT_STATUS.BLOCK
+    ) {
+        throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        `Your account was ${isExist.accountStatus.toLowerCase()}!`
+        );
+    }
 
-  const totalRequests = await DeliveryRequest.countDocuments({ for: isExist._id });
+    const totalRequests = await DeliveryRequest.countDocuments({ for: isExist._id, orderID: params.orderID });
 
-  const deliveryRequests = await DeliveryRequest.find({ for: isExist._id })
+    const deliveryRequests = await DeliveryRequest.find({
+            for: isExist._id, 
+            orderID: params.orderID,
+            requestStatus: { $ne: DELIVERY_STATUS.DECLINE }
+        })
+    .populate({
+        path: "orderID",
+        select: "orderID",
+        populate:{
+            path: "provider",
+            select: "fullName profileImage address"
+        }
+    })
+    .select("orderID")
     .skip(skip)
     .limit(limit)
     .sort({ createdAt: -1 });
 
-  return {
-    data: deliveryRequests,
-    total: totalRequests,
-    currentPage: page,
-    totalPages: Math.ceil(totalRequests / limit),
-  };
+    const dataDetails = deliveryRequests.map( (e:any)=> ({
+        _id: e._id,
+        providerName: e.orderID.provider.fullName,
+        providerAddress: e.orderID.provider.address,
+        providerImage: e.orderID.provider.profileImage,
+    }))
+
+    return {
+        data: dataDetails,
+        total: totalRequests,
+        currentPage: page,
+        totalPages: Math.ceil(totalRequests / limit),
+    };
 };
 
 const ADeliveryReqest = async (
@@ -451,7 +550,14 @@ const ADeliveryReqest = async (
         )
     };
 
-    const deliveryRequest = await DeliveryRequest.findById(requestId);
+    const deliveryRequest = await DeliveryRequest.findById(requestId)
+        .populate({
+            path: "orderID",
+            populate: {
+                path: "offerID",
+                populate: "projectID"
+            }
+        });
     if (!deliveryRequest) {
         throw new ApiError(
             StatusCodes.NOT_FOUND,
@@ -459,8 +565,20 @@ const ADeliveryReqest = async (
         )
     }
 
-    return deliveryRequest;
-}
+    const formatedData = {
+        projectName: deliveryRequest.orderID.offerID.projectID.projectName,
+        projectID: deliveryRequest.orderID.offerID.projectID._id,
+        projectDecription: deliveryRequest.orderID.offerID.projectID.jobDescription,
+        projectImage: deliveryRequest.orderID.offerID.projectID.coverImage,
+        _id: deliveryRequest._id,
+        additionalInfo: deliveryRequest.projectDoc,
+        projectLink: deliveryRequest.uploatedProject,
+        pdf: deliveryRequest.pdf,
+        images: deliveryRequest.images
+    }
+
+    return formatedData;
+};
 
 const reqestAction = async (
     user: JwtPayload,
@@ -471,6 +589,7 @@ const reqestAction = async (
 ) => {
     const { userID } = user;
     const { acction, requestID } = requestData;
+    
     const isUser = await User.findOne({_id: userID});
     if (!isUser) {
         throw new ApiError(StatusCodes.NOT_FOUND,"User not exist!")
@@ -509,14 +628,7 @@ const reqestAction = async (
         return;
     };
 
-    const delivaryRequest = await DeliveryRequest
-                                .findByIdAndUpdate(
-                                    requestID,
-                                    { 
-                                        requestStatus: acction 
-                                    },{
-                                        new: true
-                                    });
+    const delivaryRequest = await DeliveryRequest.findById(requestID);
 
     const order = await Order
                 .findByIdAndUpdate(delivaryRequest.orderID)
@@ -526,12 +638,37 @@ const reqestAction = async (
     const budget = order.offerID.budget;
     const amountAfterFee = Math.round(budget * 0.95 * 100);
 
-    await transfers.create({
-        amount: amountAfterFee,
-        currency: 'usd',
-        destination: order.provider.paymentCartDetails.accountID,
-        transfer_group: `order_${order._id}`
-    });
+
+    if (!order.provider.paymentCartDetails.accountID) {
+        throw new ApiError(
+            StatusCodes.CONFLICT,
+            "You provider was not added the payment methord!"
+        )
+    }
+    // return order.provider.paymentCartDetails.accountID
+
+    delivaryRequest.requestStatus = acction
+    await delivaryRequest.save();
+
+    await Order.findByIdAndUpdate(
+        order._id,
+        {
+            trackStatus:{
+                isComplited:{
+                    date: new Date(),
+                    status: true
+                }
+            }
+        },
+        { new: true }
+    )
+
+    // await transfers.create({
+    //     amount: amountAfterFee,
+    //     currency: 'usd',
+    //     destination: order.provider.paymentCartDetails.accountID,
+    //     transfer_group: `order_${order._id}`
+    // });
 
     if (!delivaryRequest) {
         throw new ApiError(
@@ -789,5 +926,6 @@ export const ProviderService = {
     ADeliveryReqest,
     deliveryTimeExtendsRequest,
     getDeliveryTimeExtendsRequest,
-    getADeliveryTimeExtendsRequest
+    getADeliveryTimeExtendsRequest,
+    ACompletedOrder
 }

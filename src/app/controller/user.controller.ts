@@ -344,12 +344,13 @@ const IOffer = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
         const {...Data} = await req.body;
-        const result = await UserServices.intracatOffer(payload,Data)
+        const result = await UserServices.intracatOffer(payload,Data);
 
         sendResponse(res, {
             success: true,
             statusCode: StatusCodes.OK,
-            message: "Successfully order placed",
+            //@ts-ignore
+            message: result?.isDecline? result.message : "Successfully order placed",
             data: result
         })
     }

@@ -5,7 +5,7 @@ import { DELIVERY_STATUS, REQUEST_TYPE } from "../enums/delivery.enum";
 const deliveryRequestSchema = new Schema<IDR>({
   orderID:{
     type: Schema.Types.ObjectId,
-    ref: "orders"
+    ref: "order"
   },
   for:{
     type: Schema.Types.ObjectId,
