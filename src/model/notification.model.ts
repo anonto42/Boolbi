@@ -9,6 +9,30 @@ const notificationSchema = new Schema<INotification>({
   content: {
     type: String,
     required: true
+  },
+  notiticationType: {
+    type: String,
+    default: "NOTIFICATION"
+  },
+  data: {
+    title: {
+      type: String,
+    },// offer
+    offerId: {
+      type: Schema.Types.ObjectId,
+      ref: "offer"
+    }, // offer
+    image: {
+      type: String
+    },// offer
+    orderId:{ 
+      type: Schema.Types.ObjectId,
+      ref: "order"
+    }, // request
+    requestId: {
+      type: Schema.Types.ObjectId,
+      ref: "deliveryRequest"
+    } // request
   }
 },{
   timestamps: true

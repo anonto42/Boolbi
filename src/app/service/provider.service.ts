@@ -324,8 +324,13 @@ const deliveryRequest = async (
     await isOrderExist.save();
 
     const notification = await Notification.create({
-      for: isOrderExist.customer,
-      content: `Got a new delivery request from ${isUserExist.fullName}`
+        for: isOrderExist.customer,
+        notiticationType: "DELIVERY_REQUEST",
+        content: `Got a new delivery request from ${isUserExist.fullName}`,
+        data:{
+            orderId: isOrderExist._id,
+            requestId: delivaryRequest._id
+        }
     });
 
     //@ts-ignore
