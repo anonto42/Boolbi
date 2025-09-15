@@ -3,6 +3,7 @@ import { Document, Types } from "mongoose";
 export interface IPost extends Document {
   projectName: string;
   coverImage: string;
+  isDeleted: boolean
   category: string;
   isOnProject: boolean;
   acceptedOffer: Types.ObjectId,

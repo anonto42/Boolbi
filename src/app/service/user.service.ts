@@ -528,7 +528,8 @@ const post = async (
 
     const posts = await Post.find({ 
         creatorID: isUserExist._id, 
-        isOnProject: false
+        isOnProject: false,
+        isDeleted: false
       })
                             // .populate("acceptedOffer", '-__v')
                             .populate({
@@ -696,10 +697,6 @@ const deleteJob = async (
     throw new ApiError(StatusCodes.NOT_FOUND, "Post not found");
   }
 
-  if (post.coverImage) {
-    unlinkFile(post.coverImage);
-  }
-
   if (post.showcaseImages && Array.isArray(post.showcaseImages)) {
     post.showcaseImages.forEach((img: string) => unlinkFile(img));
   }
@@ -707,7 +704,8 @@ const deleteJob = async (
   isUserExist.job = isUserExist.job.filter((e: any) => e.toString() !== postID);
   await isUserExist.save();
 
-  await Post.findByIdAndDelete(postID);
+  post.isDeleted = true;
+  await post.save();
 
   return true;
 };
@@ -1885,15 +1883,15 @@ const deleteNotification = async (
 };
 
 const aProvider = async (payload: JwtPayload, id: string) => {
+
   const objID = new mongoose.Types.ObjectId(id);
-
+  
   const provider = await User.findById(objID)
-    .select(
-      "-otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -password -__v -favouriteProvider -deviceID -createdAt -updatedAt"
-    )
-    .lean()
-    .exec() as IUser;
-
+  .select(
+    "-otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -password -__v -favouriteProvider -deviceID -createdAt -updatedAt"
+  )
+  .lean()
+  .exec() as IUser;
   if (!provider) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Provider not found!");
   }
@@ -1911,11 +1909,11 @@ const aProvider = async (payload: JwtPayload, id: string) => {
     (provider.ratings || []).map(async (rating: any) => {
       try {
         if (!rating.from) return rating;
-
+        
         const order = await User.findById(rating.from)
-          .select("fullName profileImage email")
-          .lean();
-
+        .select("fullName profileImage email")
+        .lean();
+        
         return {
           ...rating,
           customer: order || null
@@ -1926,13 +1924,14 @@ const aProvider = async (payload: JwtPayload, id: string) => {
       }
     })
   );
-
+  
   const chat = await Chat.findOne({
     users:[
       new mongoose.Types.ObjectId(payload.userID),
       new mongoose.Types.ObjectId(id)
     ]
   })
+  const chats = chat ? chat._id : ""
 
   const totalServices = await Order.countDocuments({ provider: provider._id });
   const totalReviews = enrichedRatings.length;
@@ -1944,7 +1943,7 @@ const aProvider = async (payload: JwtPayload, id: string) => {
     ratings: enrichedRatings,
     totalReviews,
     agvRating,
-    chatID: chat._id,
+    chatID: chats ,
     totalServices,
     isFavorite: isFavorite.length > 0 ? true : false
   };
@@ -2305,7 +2304,7 @@ const doCounter = async (
         error.message
       )
     }
-}
+};
 
 export const UserServices = {
     getPostsOrProviders,
