@@ -7,8 +7,7 @@ const jobPostSchema = new Schema<IPost>({
     required: true,
   },
   isDeleted: {
-    type: Boolean,
-    deflat: false
+    type: Boolean
   },
   acceptedOffer:{
     type: Schema.Types.ObjectId,

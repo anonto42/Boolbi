@@ -272,7 +272,7 @@ const removeFavorite = catchAsync(
 const offers = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
-        const { page, limit } = req.body;
+        const { page, limit, sort } = req.body;
         const params = req.query.postID as string;
 
         let result;
@@ -280,7 +280,7 @@ const offers = catchAsync(
         if (params) {
             result = await UserServices.totalOffersOnPost(payload,params)
         } else {
-            result = await UserServices.offers(payload,page,limit)
+            result = await UserServices.offers(payload,page,limit,sort)
         }
 
         
@@ -297,8 +297,8 @@ const offers = catchAsync(
 const iOfferd = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
-        const { page, limit } = req.body;
-        const result = await UserServices.iOfferd(payload,page,limit);
+        const { page, limit, sort } = req.body;
+        const result = await UserServices.iOfferd(payload,page,limit, sort );
 
         sendResponse(res, {
             success: true,
@@ -459,6 +459,21 @@ const notifications = catchAsync(
     }
 )
 
+const updateNotifications = catchAsync(
+    async( req:Request, res:Response ) => {
+        const payload = (req as any)?.user;
+        const {...data} = req.body;
+        const result = await UserServices.updateNotifications(payload,data);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully update all notifications",
+            data: result
+        })
+    }
+)
+
 const giveReting = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
@@ -585,6 +600,7 @@ export const UserController = {
     deleteNotifications,
     notifications,
     giveReting,
+    updateNotifications,
     iOfferd,
     filterPosts,
     signupUser,

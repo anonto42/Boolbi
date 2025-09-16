@@ -5,6 +5,10 @@ export interface IOrder extends Document{
     offerID: Types.ObjectId,
     customer: Types.ObjectId,
     provider: Types.ObjectId,
+    isExtends: {
+        date: Date,
+        message: string
+    },
     deliveryRequest: {
         isRequested: boolean,
         requestID: Types.ObjectId

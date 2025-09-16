@@ -58,6 +58,14 @@ const orderSchema = new Schema<IOrder>({
         default: false
       }
     },
+  },
+  isExtends: {
+    date:{
+      type: Date
+    },
+    message:{
+      type: String
+    }
   }
 },{
   timestamps: true

@@ -23,6 +23,7 @@ import { Request, Response } from "express";
 import { RatingModel } from "../../model/Rating.model";
 import Chat from "../../model/chat.model";
 import { IOffer } from "../../Interfaces/offer.interface";
+import Message from "../../model/message.model";
 
 //User signUp
 const signUp = async ( 
@@ -97,8 +98,8 @@ const profle = async (
     const { userID } = payload;
     const objID = new mongoose.Types.ObjectId(userID);
 
-    const isExist = await User.findById(objID).select("-password -otpVerification -isSocialAccount -latLng -__v -searchedCatagory");
-    // .lean().exec();
+    const isExist = await User.findById(objID).select("-password -otpVerification -isSocialAccount -latLng -__v -searchedCatagory -job -favouriteServices -iOffered -myOffer -orders -ratings -favouriteProvider -counterOffers")
+    .lean() as any;
     if (!isExist) {
       throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
     };
@@ -107,7 +108,22 @@ const profle = async (
       throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
     };
 
-    return { user: isExist }
+    const unreated = await Notification.countDocuments({ for: objID, isRead: false });
+
+    const chats = await Chat.find({ users: { $in: objID } }).select("_id").lean();
+
+    const chatIDs = chats.map(c => c._id);
+
+    const unseenCount = await Message.countDocuments({
+      chatID: { $in: chatIDs },  
+      isSeen: false
+    });
+
+    return { 
+      ...isExist, 
+      unReadNotifications: unreated,
+      unReadMessages: unseenCount
+    }
 }
 
 //Update profile data
@@ -453,20 +469,20 @@ const createPost = async (
       );
     }
   
-    const isJobExistWithTitle = await Post.findOne({ projectName });
-    if (isJobExistWithTitle) {
-      throw new ApiError(
-        StatusCodes.NOT_ACCEPTABLE,
-        `A job already exists with the title ${projectName}`
-      );
-    }
+    // const isJobExistWithTitle = await Post.findOne({ projectName });
+    // if (isJobExistWithTitle) {
+    //   throw new ApiError(
+    //     StatusCodes.NOT_ACCEPTABLE,
+    //     `A job already exists with the title ${projectName}`
+    //   );
+    // }
   
-    if (images?.length < 1) {
-      throw new ApiError(
-        StatusCodes.NOT_ACCEPTABLE,
-        "You must provide at least one image to publish the job post"
-      );
-    }
+    // if (images?.length < 1) {
+    //   throw new ApiError(
+    //     StatusCodes.NOT_ACCEPTABLE,
+    //     "You must provide at least one image to publish the job post"
+    //   );
+    // }
   
     const jobData = {
       projectName,
@@ -474,6 +490,7 @@ const createPost = async (
       subCategory,
       location,
       deadline,
+      isDeleted: false,
       coverImage,
       jobDescription: description,
       showcaseImages: images,
@@ -531,20 +548,20 @@ const post = async (
         isOnProject: false,
         isDeleted: false
       })
-                            // .populate("acceptedOffer", '-__v')
-                            .populate({
-                              path:"acceptedOffer",
-                              select: "-to -projectID -updatedAt -createdAt -jobLocation -deadline -validFor -startDate -endDate -__v -status -companyImages",
-                              populate: {
-                                path: "form",
-                                select: "fullName profileImage"
-                              }
-                            })
-                            .select("-__v")
-                            .skip(skip)
-                            .limit(limit)
-                            .sort({ createdAt: -1 })
-                            .lean();
+      // .populate("acceptedOffer", '-__v')
+      .populate({
+        path:"acceptedOffer",
+        select: "-to -projectID -updatedAt -createdAt -jobLocation -deadline -validFor -startDate -endDate -__v -status -companyImages",
+        populate: {
+          path: "form",
+          select: "fullName profileImage"
+        }
+      })
+      .select("-__v")
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+      .lean();
 
     posts.forEach((element:any) => {
       element.totalOffers = element.offers.length;
@@ -722,7 +739,7 @@ const singlePost = async (
       throw new ApiError(StatusCodes.BAD_REQUEST, "You must provide the post ID to remove");
     };
   
-    const isUserExist = await User.findById(userID);
+    const isUserExist = await User.findById(userID).lean() as any;
     if (!isUserExist) {
       throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
     };
@@ -745,7 +762,13 @@ const singlePost = async (
                                 //     // path: 'by',
                                 //     // select: '-password -otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v'
                                 // }
-                            })
+                            }).populate("creatorID","fullName profileImage address city postalCode").lean();
+    if (!post) {
+      throw new ApiError(
+        StatusCodes.NOT_FOUND,
+        "Post Not Founded!"
+      )
+    }
 
     const postData: any = post;
     let isSaved = false;
@@ -753,8 +776,22 @@ const singlePost = async (
       if (e.toString() === postID.toString()) isSaved = true;
     });
     postData.isFavourite = isSaved;
-  
-    return postData;
+
+    const chat = await Chat.findOne({
+      users: { $in: [ post.creatorID, isUserExist._id ]}
+    })    
+    
+    if (isUserExist.role != USER_ROLES.USER) {
+      //@ts-ignore
+      postData.createdBy = post.creatorID
+    }
+    
+    //@ts-ignore
+    delete postData?.creatorID
+    return {
+      ...postData,
+      chatID: chat? chat._id : ""
+    };
 };
   
 //Add to the favorite list 
@@ -901,7 +938,8 @@ const removeFavorite = async (
 const offers = async (
   payload: JwtPayload,
   page = 1,
-  limit = 10
+  limit = 10,
+  sort = 0
 ) => {
   const { userID } = payload;
   const skip = (page - 1) * limit;
@@ -936,7 +974,7 @@ const offers = async (
     .find({
       to: isUserExist._id
     })
-    .sort({ updatedAt: -1})
+    .sort({ updatedAt: sort == 0 ? 1 : -1})
     .populate("projectID", "coverImage showcaseImages projectName")
     .populate("form", "fullName profileImage")
     .lean();
@@ -969,53 +1007,104 @@ const offers = async (
     })
   );
 
-  return ratings || []
-  
+  return isUserExist.role == USER_ROLES.USER?  ratings : allOffers 
 };
 
 //I Offered
+// const iOfferd = async (
+//   payload: JwtPayload,
+//   page = 1,
+//   limit = 10,
+//   sort = 0
+// ) => {
+//   const { userID } = payload;
+
+//   console.log(sort)
+
+//   const skip = (page - 1) * limit;
+
+//   const isUserExist = await User.findById(userID)
+//     .populate({
+//       path: "iOffered",
+//       options: { skip, limit },
+//       populate: [
+//         {
+//           path: "projectID",
+//           options: {
+//             skip: ( page -1 )* limit,
+//             limit,
+//             sort: { createdAt: sort === 0 ? 1 : -1 }
+//           },
+//           select: "coverImage projectName category"
+//         }
+//       ]
+//     }).lean() as any;
+
+//   if (!isUserExist) {
+//     throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+//   }
+
+//   if (
+//     isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
+//     isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
+//   ) {
+//     throw new ApiError(
+//       StatusCodes.FORBIDDEN,
+//       `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
+//     );
+//   }
+
+
+//   const total = isUserExist.iOffered?.length || 0;
+
+//   return {
+//     data: isUserExist.iOffered || [],
+//     total,
+//     totalPages: Math.ceil(total / limit),
+//     currentPage: page,
+//   };
+// };
+
+// I Offered - fixed populate sort
 const iOfferd = async (
   payload: JwtPayload,
   page = 1,
-  limit = 10
+  limit = 10,
+  sort = 0
 ) => {
   const { userID } = payload;
-
   const skip = (page - 1) * limit;
+  const sortDir = Number(sort) === 0 ? 1 : -1; // 0 -> asc, 1 -> desc
 
+  // First load just the iOffered ids (no populate) to get total count
+  const userWithIds = await User.findById(userID).select("iOffered").lean();
+  if (!userWithIds) throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+
+  //@ts-ignore
+  const total = (userWithIds.iOffered || []).length;
+
+  // Now populate iOffered but apply sort on iOffered itself
   const isUserExist = await User.findById(userID)
     .populate({
       path: "iOffered",
-      options: { skip, limit },
-      populate: [
-        // { path: "to", select: "-password -otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v" },
-        // { path: "form", select: "-password -otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v" }
-      ]
-    });
+      options: { skip, limit, sort: { createdAt: sortDir } },
+      populate: {
+        path: "projectID",
+        select: "coverImage projectName category"
+      }
+    })
+    .lean() as any;
 
-  if (!isUserExist) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
-  }
-
-  if (
-    isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
-    isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
-  ) {
-    throw new ApiError(
-      StatusCodes.FORBIDDEN,
-      `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
-    );
-  }
-
-  const total = isUserExist.iOffered?.length || 0;
+  const data = isUserExist?.iOffered || [];
 
   return {
-    data: isUserExist.iOffered || [],
+    data,
     total,
     totalPages: Math.ceil(total / limit),
     currentPage: page,
   };
 };
+
 
 //get a Offer
 const getAOffer = async (
@@ -1593,15 +1682,9 @@ const getRecommendedPosts = async ({
 
   const shuffleArray = (arr: any[]) => arr.sort(() => Math.random() - 0.5);
 
-  // ----------------------------------------
-  // Escape regex to avoid special char issues
-  // ----------------------------------------
   const escapeRegex = (str: string) =>
     str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-  // ----------------------------------------
-  // If query is empty → return random
-  // ----------------------------------------
   if (!query.trim()) {
     if (postType === "POST") {
       const allPosts = await Post.find()
@@ -1624,13 +1707,10 @@ const getRecommendedPosts = async ({
     }
   }
 
-  // ----------------------------------------
-  // Case-insensitive search conditions
-  // ----------------------------------------
   const searchKeywords = query.trim().split(/\s+/);
 
   const andConditions: any[] = searchKeywords.map((kw) => {
-    const regex = { $regex: escapeRegex(kw), $options: "i" }; // "i" → ignore case
+    const regex = { $regex: escapeRegex(kw), $options: "i" };
 
     if (postType === "POST") {
       return {
@@ -1652,31 +1732,51 @@ const getRecommendedPosts = async ({
       };
     }
   });
-
-  // ----------------------------------------
-  // Main Search Query
-  // ----------------------------------------
+  
   if (postType === "POST") {
-    const posts = await Post.find({ $and: andConditions })
-      .populate({
-        path: "offers",
-        populate: {
-          path: "form",
-          select: "fullName email phone address profileImage",
-        },
-      })
-      .sort({ createdAt: -1 })
-      .select("-latLng")
-      .skip(skip)
-      .limit(limit)
-      .lean();
 
-    return posts; // if empty → just []
+    
+    const posts = await Post.find({ $and: andConditions })
+    .populate({
+      path: "offers",
+      populate: {
+        path: "form",
+        select: "fullName email phone address profileImage",
+      },
+    })
+    .sort({ createdAt: -1 })
+    .select("-latLng")
+    .skip(skip)
+    .limit(limit)
+    .lean();
+
+    
+    const postsWithOfferFlag = await Promise.all(
+      posts.map(async (post) => {
+        const existingOffer = await Offer.findOne({
+          projectID: post._id,
+          $or: [{ to: user._id }, { form: user._id }],
+        });
+
+        const data = new Date(post.deadline);
+        const compe = new Date( Date.now());
+
+        return {
+          isValid: data > compe,
+          projectName: post.projectName,
+          category: post.category,
+          location: post.location,
+          deadline: post.deadline,
+          coverImage: post.coverImage,
+          _id: post._id,
+          isOfferSend: !!existingOffer, 
+        };
+      })
+    );
+
+    return postsWithOfferFlag;
   }
 
-  // ----------------------------------------
-  // Provider Search
-  // ----------------------------------------
   const providers = await User.find({
     $and: andConditions,
     role: USER_ROLES.SERVICE_PROVIDER,
@@ -1690,7 +1790,7 @@ const getRecommendedPosts = async ({
     .limit(limit)
     .lean();
 
-  return providers; // if empty → just []
+  return providers;
 };
 
 const getPostsOrProviders = async ({
@@ -1825,6 +1925,29 @@ const allNotifications = async (
     currentPage: page,
     totalPages: Math.ceil(total / limit)
   };
+};
+
+const updateNotifications = async (
+  payload: JwtPayload,
+  data: { ids: string[] }
+) => {
+ //Convert the ids to mongoodb ObjectID
+  const objIds = data.ids?.map( e => new mongoose.Types.ObjectId(e));
+
+  //Update the notifications status to isRead = true
+  const result = await Notification.updateMany({
+    _id:{
+      $in: objIds
+    }
+    }, 
+    {
+      $set: { isRead: true },
+    }
+  );
+
+  //Response the count of updated document
+  return { totalUpdated: result.modifiedCount };
+  
 };
 
 const addRating = async ( 
@@ -2317,6 +2440,7 @@ export const UserServices = {
     deleteNotification,
     addRating,
     getRequests,
+    updateNotifications,
     getAOffer,
     signUp,
     allNotifications,

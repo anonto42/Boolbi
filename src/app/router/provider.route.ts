@@ -62,12 +62,12 @@ router
         ProviderController.deliveryRequests
     )
     .post(
-        auth( USER_ROLES.SERVICE_PROVIDER ),
+        auth( USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER ),
         validateRequest( DelivaryValidation.timeExtendDelivaryRequestZodSchema ),
         ProviderController.extendsDeliveryRequest
     )
     .patch(
-        auth( USER_ROLES.USER ),
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
         validateRequest( DelivaryValidation.timeExtendDelivaryRequestIntraction ),
         ProviderController.delivaryTimeExtendsRequest
     )

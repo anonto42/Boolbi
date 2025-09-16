@@ -67,7 +67,9 @@ const singleOrder = async (
         startDate: order.offerID.startDate,
         deliveryDate: order.deliveryDate,
         providerName: order.provider.fullName, 
-        providerID: order.provider._id
+        providerID: order.provider._id,
+        extendedDate: order.isExtends.date,
+        extendedMessage: order.isExtends.message
     }
 }
 

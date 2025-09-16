@@ -14,6 +14,10 @@ const notificationSchema = new Schema<INotification>({
     type: String,
     default: "NOTIFICATION"
   },
+  isRead:{
+    type: Boolean,
+    default: false
+  },
   data: {
     title: {
       type: String,
