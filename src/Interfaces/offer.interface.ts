@@ -8,6 +8,10 @@ export interface IOffer extends Document {
     projectName: string;
     category: string;
     budget: number;
+    latLng: {
+        type: string,
+        coordinates: number[]
+    },
     jobLocation: string;
     validFor: string,
     deadline: Date;

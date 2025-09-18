@@ -9,6 +9,7 @@ export interface IPost extends Document {
   acceptedOffer: Types.ObjectId,
   subCategory: string;
   location: string;
+  autoCreated: boolean
   offers: Types.ObjectId[];
   latLng: {
     type: "Point";

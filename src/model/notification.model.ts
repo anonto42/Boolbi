@@ -26,6 +26,10 @@ const notificationSchema = new Schema<INotification>({
       type: Schema.Types.ObjectId,
       ref: "offer"
     }, // offer
+    postId: {
+      type: Schema.Types.ObjectId,
+      ref: "offer"
+    }, // offer
     image: {
       type: String
     },// offer

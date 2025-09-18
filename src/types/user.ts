@@ -43,6 +43,8 @@ export interface FilterPost {
 
 export type TOffer = {
     to: string;
+    lng: any;
+    lat: any;
     companyName: string;
     projectName: string;
     category: string;

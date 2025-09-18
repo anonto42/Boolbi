@@ -50,6 +50,7 @@ const jobPostSchema = new Schema<IPost>({
     coordinates: {
       type: [Number], // [lng, lat]
       required: true,
+      default: [0.0,0.0]
     },
   },
   deadline: {
@@ -65,6 +66,10 @@ const jobPostSchema = new Schema<IPost>({
       type: String,
     },
   ],
+  autoCreated:{
+    type: Boolean,
+    defalult: false
+  },
   creatorID: {
     type: Schema.Types.ObjectId,
     ref: "user",

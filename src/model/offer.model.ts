@@ -31,6 +31,19 @@ const offerSchema = new Schema<IOffer>({
     type: String,
     trim: true
   },
+  latLng: {
+    type: {
+      type: String,
+      enum: ["Point"],
+      required: true,
+      default: "Point",
+    },
+    coordinates: {
+      type: [Number], // [lng, lat]
+      required: true,
+      default: [0.0,0.0]
+    },
+  },
   deadline:{
     type: Date,
   },

@@ -1,7 +1,7 @@
 import { StatusCodes } from "http-status-codes";
 import ApiError from "../../errors/ApiError";
 import User from "../../model/user.model";
-import { FilterPost, GetRecommendedPostsOptions, ISignUpData, JobPost, NotificationQuery, PaginationParams, SearchData, TOffer, TRating } from "../../types/user"
+import { FilterPost, GetRecommendedPostsOptions, ISignUpData, JobPost, NotificationQuery, PaginationParams, SearchData, TOffer, TRating } from "../../types/user";
 import { bcryptjs } from "../../helpers/bcryptHelper";
 import { IUser } from "../../Interfaces/User.interface";
 import { JwtPayload } from "jsonwebtoken";
@@ -548,7 +548,6 @@ const post = async (
         isOnProject: false,
         isDeleted: false
       })
-      // .populate("acceptedOffer", '-__v')
       .populate({
         path:"acceptedOffer",
         select: "-to -projectID -updatedAt -createdAt -jobLocation -deadline -validFor -startDate -endDate -__v -status -companyImages",
@@ -755,20 +754,33 @@ const singlePost = async (
     }
   
     const post = await Post.findById(Data.postID)
-                            .populate({
-                                path: 'offers',
-                                select: 'myBudget description image',
-                                // populate: {
-                                //     // path: 'by',
-                                //     // select: '-password -otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v'
-                                // }
-                            }).populate("creatorID","fullName profileImage address city postalCode").lean();
+    .populate({
+        path:"acceptedOffer",
+        select: "-to -projectID -updatedAt -createdAt -jobLocation -deadline -validFor -startDate -endDate -__v -status -companyImages",
+        populate: {
+          path: "form",
+          select: "fullName profileImage"
+        }
+      })
+                            // .populate({
+                            //     path: 'offers',
+                            //     select: 'myBudget description image',
+                            //     // populate: {
+                            //     //     // path: 'by',
+                            //     //     // select: '-password -otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v'
+                            //     // }
+                            // })
+                            .populate("creatorID","fullName profileImage address city postalCode").lean();
     if (!post) {
       throw new ApiError(
         StatusCodes.NOT_FOUND,
         "Post Not Founded!"
       )
     }
+    const totalOffer = await Offer.countDocuments({projectID: post._id});
+
+    //@ts-ignore
+    post.offers = totalOffer;
 
     const postData: any = post;
     let isSaved = false;
@@ -972,9 +984,12 @@ const offers = async (
 
   const allOffers = await Offer
     .find({
-      to: isUserExist._id
+      to: isUserExist._id,
+      status: OFFER_STATUS.WATING
     })
     .sort({ updatedAt: sort == 0 ? 1 : -1})
+    .limit(limit)
+    .skip(skip)
     .populate("projectID", "coverImage showcaseImages projectName")
     .populate("form", "fullName profileImage")
     .lean();
@@ -1010,62 +1025,7 @@ const offers = async (
   return isUserExist.role == USER_ROLES.USER?  ratings : allOffers 
 };
 
-//I Offered
-// const iOfferd = async (
-//   payload: JwtPayload,
-//   page = 1,
-//   limit = 10,
-//   sort = 0
-// ) => {
-//   const { userID } = payload;
-
-//   console.log(sort)
-
-//   const skip = (page - 1) * limit;
-
-//   const isUserExist = await User.findById(userID)
-//     .populate({
-//       path: "iOffered",
-//       options: { skip, limit },
-//       populate: [
-//         {
-//           path: "projectID",
-//           options: {
-//             skip: ( page -1 )* limit,
-//             limit,
-//             sort: { createdAt: sort === 0 ? 1 : -1 }
-//           },
-//           select: "coverImage projectName category"
-//         }
-//       ]
-//     }).lean() as any;
-
-//   if (!isUserExist) {
-//     throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
-//   }
-
-//   if (
-//     isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
-//     isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
-//   ) {
-//     throw new ApiError(
-//       StatusCodes.FORBIDDEN,
-//       `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
-//     );
-//   }
-
-
-//   const total = isUserExist.iOffered?.length || 0;
-
-//   return {
-//     data: isUserExist.iOffered || [],
-//     total,
-//     totalPages: Math.ceil(total / limit),
-//     currentPage: page,
-//   };
-// };
-
-// I Offered - fixed populate sort
+// I Offered
 const iOfferd = async (
   payload: JwtPayload,
   page = 1,
@@ -1074,9 +1034,8 @@ const iOfferd = async (
 ) => {
   const { userID } = payload;
   const skip = (page - 1) * limit;
-  const sortDir = Number(sort) === 0 ? 1 : -1; // 0 -> asc, 1 -> desc
+  const sortDir = Number(sort) === 0 ? 1 : -1; 
 
-  // First load just the iOffered ids (no populate) to get total count
   const userWithIds = await User.findById(userID).select("iOffered").lean();
   if (!userWithIds) throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
 
@@ -1095,16 +1054,20 @@ const iOfferd = async (
     })
     .lean() as any;
 
+  const offer = await Offer.find({
+    form: isUserExist._id,
+    projectID: { $eq: null }
+  }).limit(limit).skip(skip).lean();
+
   const data = isUserExist?.iOffered || [];
 
   return {
-    data,
+    data: isUserExist.role == USER_ROLES.USER? offer : isUserExist.role == USER_ROLES.SERVICE_PROVIDER? data : [],
     total,
     totalPages: Math.ceil(total / limit),
     currentPage: page,
   };
 };
-
 
 //get a Offer
 const getAOffer = async (
@@ -1136,7 +1099,6 @@ const getAOffer = async (
       "This offer was not exist!"
     );
   };
-
 
   if (!isUserExist) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
@@ -1204,6 +1166,8 @@ const cOffer = async (
         validFor,
         description,
         to,
+        lat,
+        lng,
         endDate,
         startDate
       } = data;
@@ -1248,6 +1212,7 @@ const cOffer = async (
         form: isUserExist._id,
         projectName,
         category,
+        latLng: { coordinates: [lng, lat] },
         budget: Number(myBudget),
         jobLocation: location,
         deadline,
@@ -1259,8 +1224,6 @@ const cOffer = async (
       }
   
       const offer = await Offer.create(offerData);
-
-      console.log(offer)
   
       isUserExist.iOffered.push(offer._id);
       ifCustomerExist.myOffer.push(offer._id);
@@ -1274,7 +1237,7 @@ const cOffer = async (
   
       //@ts-ignore
       const io = global.io;
-      io.emit(`socket:${to}`,notification)
+      io.emit(`socket:${isUserExist}`,notification)
 
       try {
         if (ifCustomerExist.deviceID) {
@@ -1315,17 +1278,134 @@ const intracatOffer = async(
     const { acction, offerId } = data;
     const isUserExist = await User.findById(userID);
     const isOfferExist = await Offer.findById(offerId);
-    
     if (!isOfferExist) {
       throw new ApiError(StatusCodes.NOT_FOUND,"Offer not founded");
     };
     const project = await Post.findById(isOfferExist.projectID);
     if (!project) {
-      throw new ApiError(
-        StatusCodes.NOT_FOUND,
-        "Project not founded!"
-      )
-    };
+      if (isUserExist.role == USER_ROLES.SERVICE_PROVIDER) {
+
+        if (data.acction == "APPROVE") {
+  
+          const post = await Post.create({
+            projectName: isOfferExist.projectName,
+            coverImage: isOfferExist.companyImages[0],
+            jobDescription: isOfferExist.description,
+            category: isOfferExist.category,
+            subCategory: isOfferExist.category,
+            deadline: isOfferExist.deadline,
+            location: isOfferExist.jobLocation,
+            latLng: isOfferExist.latLng,
+            creatorID: isOfferExist.form,
+            autoCreated: true
+          })
+  
+          const user1 = await User.findById(isOfferExist.to);
+          const user2 = await User.findById(isOfferExist.form);
+          if (!user1 || !user2) {
+            throw new ApiError(StatusCodes.NOT_FOUND,"User not founded");
+          };
+          
+          if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+            throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
+          };
+  
+          let customer;
+          let provider;
+  
+          if (user1.role === USER_ROLES.USER) {
+            customer = user1;
+            provider = user2;
+          } else if ( user2.role === USER_ROLES.USER ) {
+            customer = user2;
+            provider = user1;
+          }
+  
+          isOfferExist.projectID = post._id,
+          await isOfferExist.save()
+  
+          const notification = await Notification.create({
+            for: post.creatorID,
+            content: `${provider.fullName} was accept your offer now you should pay to confirm your order!`,
+            notiticationType: "OFFER_REQUEST",
+            data: {
+                postId: post._id
+              }
+          });
+  
+          //@ts-ignore
+          const io = global.io;
+          io.emit(`socket:${notification.for.toString()}`, notification)
+  
+          isOfferExist.status = OFFER_STATUS.APPROVE;
+          post.acceptedOffer = isOfferExist._id;
+          post.deadline = isOfferExist?.deadline;
+
+          await User.updateOne(
+            { _id: post.creatorID },
+            { $pull: { iOffered: isOfferExist._id } }
+          );
+
+          await post.save();
+          await isOfferExist.save();
+  
+          try {
+            const pushNotificationFor = await User.findById(notification.for)!
+            if (pushNotificationFor.deviceID) {
+              await messageSend({
+                notification: {
+                  title: notification.content,
+                  body: `${isOfferExist.description}`
+                },
+                token: pushNotificationFor.deviceID
+              });
+            }
+            
+          } catch (error) {
+            console.log(error)
+          }
+
+          return "Offer accepted";
+          
+        } else {
+
+          const notification = await Notification.create({
+            for: isOfferExist.form,
+            content: `Your offer was declined!`
+          });
+  
+          //@ts-ignore
+          const io = global.io;
+          io.emit(`socket:${notification.for.toString()}`, notification)
+  
+          try {
+            const pushNotificationFor = await User.findById(notification.for)!
+            if (pushNotificationFor.deviceID) {
+              await messageSend({
+                notification: {
+                  title: notification.content,
+                  body: `${isOfferExist.description}`
+                },
+                token: pushNotificationFor.deviceID
+              });
+            }
+            
+          } catch (error) {
+            console.log(error)
+          }
+          
+          
+          return 
+        }
+
+      } else {
+        throw new ApiError(
+          StatusCodes.NOT_FOUND,
+          "Project not founded!"
+        )
+      }
+    } 
+
     if ( isOfferExist.status === "APPROVE" ) {
       throw new ApiError(StatusCodes.NOT_FOUND,"Offer already accepted!");
     };
@@ -1379,10 +1459,11 @@ const intracatOffer = async(
       content: isUserExist._id != customer._id ? `${customer.fullName} was accept your offer` : `${provider.fullName} was accept your offer now you should pay to confirm your order!`
     });
 
-
     //@ts-ignore
     const io = global.io;
     io.emit(`socket:${notification.for.toString()}`, notification)
+
+    console.log("Notificaitons -->> ",notification)
 
     isOfferExist.status = OFFER_STATUS.APPROVE;
     project.acceptedOffer = isOfferExist._id;
@@ -1677,6 +1758,7 @@ const getRecommendedPosts = async ({
     );
   }
 
+  // ✅ Step 1: Determine what to return based on user role
   const postType =
     user.role === USER_ROLES.SERVICE_PROVIDER ? "POST" : "PROVIDER";
 
@@ -1685,16 +1767,20 @@ const getRecommendedPosts = async ({
   const escapeRegex = (str: string) =>
     str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+  let results: any[] = [];
+
+  // ✅ Step 2: Handle empty query
   if (!query.trim()) {
     if (postType === "POST") {
-      const allPosts = await Post.find()
+      results = await Post.find()
         .populate("offers")
-        .select("-latLng")
+        .select("-latLng -offers")
         .lean();
 
-      return shuffleArray(allPosts).slice(skip, skip + limit);
+      // slice for pagination
+      results = shuffleArray(results).slice(skip, skip + limit);
     } else {
-      const allProviders = await User.find({
+      results = await User.find({
         role: USER_ROLES.SERVICE_PROVIDER,
         accountStatus: ACCOUNT_STATUS.ACTIVE,
       })
@@ -1703,94 +1789,87 @@ const getRecommendedPosts = async ({
         )
         .lean();
 
-      return shuffleArray(allProviders).slice(skip, skip + limit);
+      results = shuffleArray(results).slice(skip, skip + limit);
+    }
+  } else {
+    // ✅ Step 3: Build search conditions
+    const searchKeywords = query.trim().split(/\s+/);
+
+    const andConditions: any[] = searchKeywords.map((kw) => {
+      const regex = { $regex: escapeRegex(kw), $options: "i" };
+
+      if (postType === "POST") {
+        return {
+          $or: [
+            { projectName: regex },
+            { category: regex },
+            { subCategory: regex },
+            { jobDescription: regex },
+          ],
+        };
+      } else {
+        return {
+          $or: [
+            { fullName: regex },
+            { category: regex },
+            { subCategory: regex },
+            { description: regex },
+          ],
+        };
+      }
+    });
+
+    if (postType === "POST") {
+      results = await Post.find({ $and: andConditions })
+        .populate({
+          path: "offers",
+          populate: {
+            path: "form",
+            select: "fullName email phone address profileImage",
+          },
+        })
+        .sort({ createdAt: -1 })
+        .select("-latLng -offers")
+        .skip(skip)
+        .limit(limit)
+        .lean();
+    } else {
+      results = await User.find({
+        $and: andConditions,
+        role: USER_ROLES.SERVICE_PROVIDER,
+        accountStatus: ACCOUNT_STATUS.ACTIVE,
+      })
+        .select(
+          "-otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -password -__v -ra"
+        )
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
     }
   }
 
-  const searchKeywords = query.trim().split(/\s+/);
-
-  const andConditions: any[] = searchKeywords.map((kw) => {
-    const regex = { $regex: escapeRegex(kw), $options: "i" };
-
-    if (postType === "POST") {
-      return {
-        $or: [
-          { projectName: regex },
-          { catagory: regex },
-          { subCategory: regex },
-          { jobDescription: regex },
-        ],
-      };
-    } else {
-      return {
-        $or: [
-          { fullName: regex },
-          { category: regex },
-          { subCategory: regex },
-          { description: regex },
-        ],
-      };
-    }
-  });
-  
+  // ✅ Step 4: Normalize response format
   if (postType === "POST") {
-
-    
-    const posts = await Post.find({ $and: andConditions })
-    .populate({
-      path: "offers",
-      populate: {
-        path: "form",
-        select: "fullName email phone address profileImage",
-      },
-    })
-    .sort({ createdAt: -1 })
-    .select("-latLng")
-    .skip(skip)
-    .limit(limit)
-    .lean();
-
-    
-    const postsWithOfferFlag = await Promise.all(
-      posts.map(async (post) => {
+    const postsWithFlags = await Promise.all(
+      results.map(async (post: any) => {
         const existingOffer = await Offer.findOne({
           projectID: post._id,
           $or: [{ to: user._id }, { form: user._id }],
         });
 
-        const data = new Date(post.deadline);
-        const compe = new Date( Date.now());
-
         return {
-          isValid: data > compe,
-          projectName: post.projectName,
-          category: post.category,
-          location: post.location,
-          deadline: post.deadline,
-          coverImage: post.coverImage,
-          _id: post._id,
-          isOfferSend: !!existingOffer, 
+          ...post,
+          isValid: new Date(post.deadline).getTime() > Date.now(),
+          isOfferSend: !!existingOffer,
         };
       })
     );
 
-    return postsWithOfferFlag;
+    return postsWithFlags
   }
 
-  const providers = await User.find({
-    $and: andConditions,
-    role: USER_ROLES.SERVICE_PROVIDER,
-    accountStatus: ACCOUNT_STATUS.ACTIVE,
-  })
-    .select(
-      "-otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -password -__v"
-    )
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit)
-    .lean();
-
-  return providers;
+  return results
 };
 
 const getPostsOrProviders = async ({
@@ -1877,7 +1956,29 @@ const getPostsOrProviders = async ({
       posts = shuffleArray(allPosts).slice(skip, skip + limit);
     }
 
-    return posts;
+    const dataWithValidOfferSnd = await Promise.all(
+      posts.map( async ( post: any ) => {
+        const existingOffer = await Offer.findOne({
+          projectID: post._id,
+          $or: [ 
+            {
+              to: user._id
+            },
+            {
+              form: user._id
+            }
+          ]
+        })
+
+        return {
+          ...post,
+          isValid: new Date( post.deadline ).getTime() > Date.now(),
+          isOfferSend: !!existingOffer
+        }
+      })
+    )
+
+    return dataWithValidOfferSnd;
   } else {
     // Providers
     const queryObj: any = { role: USER_ROLES.SERVICE_PROVIDER, accountStatus: ACCOUNT_STATUS.ACTIVE, ...categoryFilter, ...geoFilter };
