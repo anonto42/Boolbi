@@ -170,7 +170,6 @@ const payoutToUser = async (
     return transfer;
 };
 
-
 export const PaymentService = {
     createSession,
     // chargeCustomer,
