@@ -1107,19 +1107,19 @@ const getAOffer = async (
 
   let isFavorite: boolean = false;
 
-    if ( isUserExist.role == USER_ROLES.SERVICE_PROVIDER) {
+  if ( isUserExist.role == USER_ROLES.SERVICE_PROVIDER) {
 
       if (isUserExist.favouriteServices.some((e: any) => e._id.toString() === offer.projectID.toString())) {
         isFavorite = true;
       }
 
-    } else if (isUserExist.role == USER_ROLES.USER) {
+  } else if (isUserExist.role == USER_ROLES.USER) {
 
       if (isUserExist.favouriteProvider.some((e: any) => e.toString() === offer.form._id.toString())) {
         isFavorite = true;
       }
 
-    }
+  }
 
   const chat = await Chat.findOne({
     users:[
@@ -1346,6 +1346,10 @@ const intracatOffer = async(
                 token: pushNotificationFor.deviceID
               });
             }
+
+            await Notification.deleteOne({
+              "data.offerId": isOfferExist._id,
+            })
             
           } catch (error) {
             console.log(error)
@@ -1437,6 +1441,9 @@ const intracatOffer = async(
        
       await user1.save();
       await isOfferExist.deleteOne();
+      await Notification.deleteOne({
+        "data.offerId": isOfferExist._id,
+      })
       return { message: "Offer Decline", isDecline: true}
     };
 
@@ -2441,21 +2448,34 @@ const doCounter = async (
     throw new ApiError(StatusCodes.NOT_FOUND, "Offer not found!");
   }
 
-  const post = await Post.findById(offer.projectID);
+  let post = await Post.findById(offer.projectID);
   if (!post) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "Post not found on Counter Offer!");
+
+    post= await Post.create({
+      projectName: offer.projectName,
+      coverImage: offer.companyImages[0],
+      jobDescription: offer.description,
+      category: offer.category,
+      subCategory: offer.category,
+      deadline: offer.deadline,
+      location: offer.jobLocation,
+      latLng: offer.latLng,
+      creatorID: offer.form,
+      autoCreated: true
+    })
+
   }
 
   const newOfferData = {
-    startDate: data.startDate || offer.startDate,
-    endDate: data.endDate || offer.endDate,
-    validFor: data.validFor || offer.validFor,
-    budget: data.budget || offer.budget,
+    startDate: data.startDate,
+    endDate: data.endDate,
+    validFor: data.validFor,
+    budget: data.budget,
     latLng: offer.latLng,
     jobLocation: offer.jobLocation,
     description: offer.description,
     companyImages: offer.companyImages,
-    projectID: offer.projectID,
+    projectID: post._id,
     to: offer.to,
     form: offer.form,
     status: offer.status,
@@ -2482,7 +2502,7 @@ const doCounter = async (
     notiticationType: "COUNTER_OFFER",
     data: {
       title: post.projectName,
-      offerId: offer._id,
+      offerId: newOffer._id,
       image: providerdata.profileImage
     },
     //@ts-ignore

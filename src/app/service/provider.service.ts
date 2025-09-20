@@ -13,6 +13,7 @@ import Payment from "../../model/payment.model";
 import { PAYMENT_STATUS } from "../../enums/payment.enum";
 import { PaginationParams } from "../../types/user";
 import { OFFER_STATUS } from "../../enums/offer.enum";
+import Chat from "../../model/chat.model";
 
 const singleOrder = async (
     payload: JwtPayload,
@@ -38,9 +39,9 @@ const singleOrder = async (
                                     path:"offerID",
                                     populate: "projectID"
                                 }) 
+                                .populate("customer","fullName")
                                 .populate({
-                                    path:"provider",
-                                    
+                                    path:"provider"
                                 })as any;
     if (!order) {
         throw new ApiError(
@@ -59,6 +60,8 @@ const singleOrder = async (
     return {
         deliveryRequest: order.deliveryRequest,
         status: order.trackStatus,
+        offerID: order.offerID._id,
+        customerName: order.customer.fullName,
         totalPrice: order.offerID.budget,
         projectName: order.offerID.projectID.projectName,
         projectDescription: order.offerID.projectID.jobDescription,
@@ -128,7 +131,7 @@ const AllOrders = async (
     currentPage: page,
     totalPages: Math.ceil(totalOrders / limit),
   };
-};
+}
 
 const AllCompletedOrders = async (
   payload: JwtPayload,
@@ -179,7 +182,7 @@ const AllCompletedOrders = async (
     }))
   
   return { data: formetedData }
-};
+}
 
 const ACompletedOrder = async (
   payload: string
@@ -191,6 +194,7 @@ const ACompletedOrder = async (
                                     path:"offerID",
                                     populate: "projectID"
                                 }) 
+                                .populate("customer","fullName")
                                 .populate({
                                     path:"provider",
                                 }).lean() as any;
@@ -205,6 +209,10 @@ const ACompletedOrder = async (
         orderID: order._id
     });
 
+    const isChatExist = await Chat.find({
+        users: { $all: [ order.customer._id, order.provider._id ] }
+    });
+
     return {
         totalPrice: order.offerID.budget,
         projectName: order.offerID.projectID.projectName,
@@ -215,12 +223,15 @@ const ACompletedOrder = async (
         deliveryDate: order.deliveryDate,
         providerName: order.provider.fullName, 
         providerID: order.provider._id,
+        customerName: order.customer.fullName,
         projectDoc: delivaryRequest.projectDoc,
         projectLink: delivaryRequest.uploatedProject,
         pdf: delivaryRequest.uploatedProject,
-        images: delivaryRequest.images
+        images: delivaryRequest.images,
+        offerID: order.offerID._id,
+        chatID: isChatExist[0]?._id || null
     }
-};
+}
 
 const dOrder = async (
     user: JwtPayload,
@@ -441,7 +452,7 @@ const getDeliveryTimeExtendsRequest = async (
     currentPage: page,
     totalPages: Math.ceil(total / limit),
   };
-};
+}
 
 const getADeliveryTimeExtendsRequest = async (
     payload: JwtPayload,
@@ -468,7 +479,7 @@ const getADeliveryTimeExtendsRequest = async (
     const requests = await DeliveryRequest.findById(requestId)
 
     return requests;
-};
+}
 
 const getDeliveryReqests = async (
   payload: JwtPayload,
@@ -526,7 +537,7 @@ const getDeliveryReqests = async (
         currentPage: page,
         totalPages: Math.ceil(totalRequests / limit),
     };
-};
+}
 
 const ADeliveryReqest = async (
     payload: JwtPayload,
@@ -584,7 +595,7 @@ const ADeliveryReqest = async (
     }
 
     return formatedData;
-};
+}
 
 const reqestAction = async (
     user: JwtPayload,

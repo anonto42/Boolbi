@@ -21,7 +21,6 @@ const deliveryRequestSchema = new Schema<IDR>({
   },
   uploatedProject:{
     type: String,
-    required: true
   },
   nextExtendeDate:{
     type: Date
