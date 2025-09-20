@@ -196,6 +196,13 @@ router
     )
 
 router
+    .route("/counter-offer")
+    .post(
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        UserController.counterOffer
+    )
+
+router
     .route("/filter")
     .get(
         auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),

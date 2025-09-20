@@ -469,21 +469,6 @@ const createPost = async (
       );
     }
   
-    // const isJobExistWithTitle = await Post.findOne({ projectName });
-    // if (isJobExistWithTitle) {
-    //   throw new ApiError(
-    //     StatusCodes.NOT_ACCEPTABLE,
-    //     `A job already exists with the title ${projectName}`
-    //   );
-    // }
-  
-    // if (images?.length < 1) {
-    //   throw new ApiError(
-    //     StatusCodes.NOT_ACCEPTABLE,
-    //     "You must provide at least one image to publish the job post"
-    //   );
-    // }
-  
     const jobData = {
       projectName,
       category,
@@ -985,7 +970,8 @@ const offers = async (
   const allOffers = await Offer
     .find({
       to: isUserExist._id,
-      status: OFFER_STATUS.WATING
+      status: OFFER_STATUS.WATING,
+      typeOfOffer: { $ne: "counter-offer" }
     })
     .sort({ updatedAt: sort == 0 ? 1 : -1})
     .limit(limit)
@@ -2202,9 +2188,42 @@ const offerOnPost = async(
   data: any
 ) => {
 
-  const { post_id: postID } = data;
+  const { post_id,offerId,
+        endDate,
+        startDate,
+        myBudget,
+        validFor,
+        description,
+        companyImages} = data;
+
   
-  const post = await Post.findById(postID)
+      if (offerId) {
+        const isOfferExist = await Offer.findById(new mongoose.Types.ObjectId(offerId));
+        if (!isOfferExist) {
+          throw new ApiError(StatusCodes.NOT_FOUND, "Offer not found!");
+        }
+
+        const offerData = {
+          budget: Number(myBudget),
+          description,
+          startDate,
+          endDate,
+          validFor,
+          companyImages,
+        };
+
+        const updatedOffer = await Offer.findByIdAndUpdate(
+          offerId,
+          { $set: offerData },
+          { new: true, runValidators: true } 
+        );
+
+        return updatedOffer;
+      }
+
+
+  
+  const post = await Post.findById(post_id)
   if (!post) {
     throw new ApiError(
       StatusCodes.NOT_FOUND,
@@ -2222,6 +2241,7 @@ const offerOnPost = async(
         description,
         companyImages
       } = data;
+
       const isUserExist = await User.findById(userID);
       
       if (post.creatorID == isUserExist._id) {
@@ -2264,17 +2284,6 @@ const offerOnPost = async(
           `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
         );
       };
-
-      const isOfferExist = await Offer.find({
-        projectID: post._id,
-        form: isUserExist._id
-      });
-      if (isOfferExist.length > 0) {
-        throw new ApiError(
-          409,
-          "You have already maked a offer!"
-        )
-      }
 
       const offerData = {
         to: ifCustomerExist._id,
@@ -2418,116 +2427,72 @@ const totalOffersOnPost = async (
 
 const doCounter = async (
   payload: JwtPayload,
-  data: TOffer & { providerId: string },
-  images: string[]
+  data: {
+    offerId: string;
+    startDate: Date;
+    endDate: Date;
+    validFor: number;
+    budget: number;
+  },
 ) => {
-   try {
-      const { userID } = payload;
-      const {
-        
-        projectName,
-        myBudget,
-        category,
-        location,
-        deadline,
-        validFor,
-        description,
-        to,
-        endDate,
-        startDate
-      } = data;
-      const isUserExist = await User.findById(userID);
+   
+  const offer = await Offer.findById( new mongoose.Types.ObjectId(data.offerId) );
+  if (!offer) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Offer not found!");
+  }
 
-      if (!isUserExist) {
-        throw new ApiError(
-          StatusCodes.NOT_FOUND, 
-          "User not found"
-        );
-      };
+  const post = await Post.findById(offer.projectID);
+  if (!post) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Post not found on Counter Offer!");
+  }
 
-      const ifCustomerExist = await User.findById(to);
-      if (!ifCustomerExist) {
-        throw new ApiError(
-          StatusCodes.NOT_FOUND, 
-          "User not found"
-        );
-      };
+  const newOfferData = {
+    startDate: data.startDate || offer.startDate,
+    endDate: data.endDate || offer.endDate,
+    validFor: data.validFor || offer.validFor,
+    budget: data.budget || offer.budget,
+    latLng: offer.latLng,
+    jobLocation: offer.jobLocation,
+    description: offer.description,
+    companyImages: offer.companyImages,
+    projectID: offer.projectID,
+    to: offer.to,
+    form: offer.form,
+    status: offer.status,
+    deadline: offer.deadline,
+    typeOfOffer: "counter-offer"
+  };
 
-      if (
-        isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
-        isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
-      ) {
-        throw new ApiError(
-          StatusCodes.FORBIDDEN,
-          `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
-        );
-      };
-      if (
-        ifCustomerExist.accountStatus === ifCustomerExist.DELETE ||
-        ifCustomerExist.accountStatus === ifCustomerExist.BLOCK
-      ) {
-        throw new ApiError(
-          StatusCodes.FORBIDDEN,
-          `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
-        );
-      };
-  
-      const offerData = {
-        to: ifCustomerExist._id,
-        form: isUserExist._id,
-        projectName,
-        category,
-        budget: Number(myBudget),
-        jobLocation: location,
-        deadline,
-        description,
-        startDate,
-        endDate,
-        validFor:validFor,
-        companyImages: images,
-      }
-  
-      const offer = await Offer.create(offerData);
-  
-      isUserExist.iOffered.push(offer._id);
-      ifCustomerExist.myOffer.push(offer._id);
-      await ifCustomerExist.save();
-      await isUserExist.save();
-  
-      const notification = await Notification.create({
-        for:ifCustomerExist._id,
-        content: `You get a offer from ${isUserExist.fullName}`
-      })
-  
-      //@ts-ignore
-      const io = global.io;
-      io.emit(`socket:${to}`,notification)
+  const newOffer = await Offer.create(newOfferData);
+  if (!newOffer) {
+    throw new ApiError(
+      StatusCodes.INTERNAL_SERVER_ERROR,
+      "Failed to create counter offer!"
+    );
+  };
 
-      try {
-        if (ifCustomerExist.deviceID) {
-          await messageSend({
-            notification: {
-              title: `${isUserExist.fullName} send you a offer!`,
-              body: `${description}`
-            },
-            token: ifCustomerExist.deviceID
-          });
-        }
-      } catch (error) {
-        console.log(error)
-      }
+  const provider = newOffer.form.toString() == payload.userID.toString() ? newOffer.to : newOffer.form;
+  const providerdata = await User.findById(provider);
+  if (!providerdata) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Provider not found!");
+  }
+  
+  const notification = await Notification.create({
+    for: provider,
+    notiticationType: "COUNTER_OFFER",
+    data: {
+      title: post.projectName,
+      offerId: offer._id,
+      image: providerdata.profileImage
+    },
+    //@ts-ignore
+    content: `You get a counter offer from ${providerdata.fullName}`
+  })
+  
+  const io = global.io;
+  //@ts-ignore
+  io.emit(`socket:${providerdata._id}`,notification)
 
-     
-      return offer;
-    } catch (error: any) {
-      for (const img of images) {
-        unlinkFile(img);
-      }
-      throw new ApiError(
-        StatusCodes.INTERNAL_SERVER_ERROR,
-        error.message
-      )
-    }
 };
 
 export const UserServices = {

@@ -555,17 +555,15 @@ const offerOnPost = catchAsync(
 const counterOffer = catchAsync(
     async( req:Request, res:Response ) => {
         const payload = (req as any)?.user;
-        
-        const photos = getMultipleFilesPath((req as any).files,"image")
+
         const {...data} = req.body;
-        data.companyImages = photos   
-        
-        const result = await UserServices.offerOnPost(payload,data);
+
+        const result = await UserServices.doCounter(payload,data);
 
         sendResponse(res, {
             success: true,
             statusCode: StatusCodes.OK,
-            message: "Successfully deleted notificaitons!",
+            message: "Counter offer created!",
             data: result
         })
     }

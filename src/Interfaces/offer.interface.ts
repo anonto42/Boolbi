@@ -19,4 +19,5 @@ export interface IOffer extends Document {
     endDate: Date;
     description: string;
     companyImages: string[];
+    typeOfOffer: "offer" | "counter-offer"
 }

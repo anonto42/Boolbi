@@ -1,6 +1,7 @@
 import { model, models, Schema } from "mongoose";
 import { IOffer } from "../Interfaces/offer.interface";
 import { OFFER_STATUS } from "../enums/offer.enum";
+import e from "express";
 
 const offerSchema = new Schema<IOffer>({
   to: {
@@ -70,7 +71,12 @@ const offerSchema = new Schema<IOffer>({
   companyImages:[{
     type: String,
     trim: true
-  }]
+  }],
+  typeOfOffer:{
+    type: String,
+    enum: ["offer","counter-offer"],
+    default: "offer"
+  }
 },{
   timestamps: true
 });

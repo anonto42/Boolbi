@@ -3,7 +3,7 @@ import { Document, Types } from "mongoose";
 export interface INotification extends Document {
     for: Types.ObjectId;
     content: string;
-    notiticationType: "DELIVERY_REQUEST" | "OFFER" | "NOTIFICATION" | "OFFER_REQUEST";
+    notiticationType: "DELIVERY_REQUEST" | "OFFER" | "NOTIFICATION" | "OFFER_REQUEST" | "COUNTER_OFFER";
     isRead: boolean;
     data: {
         title: string,// offer
