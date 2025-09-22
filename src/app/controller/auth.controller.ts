@@ -104,11 +104,29 @@ const socalLogin = catchAsync(
     }
 )
 
+const ftm_token = catchAsync(
+    async( req: Request, res: Response ) => {
+
+        const {...data} = req.body;
+        const user = (req as any).user;
+
+        const result = await AuthServices.fcmToken(user,data);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "FCM token token successfully",
+            data: result
+        })
+    }
+)
+
 export const AuthController = {
     SignIn,
     getOpt,
     verifyOtp,
     changePassword,
     socalLogin,
+    ftm_token,
     forgetPassword
 }

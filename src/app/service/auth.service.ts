@@ -286,8 +286,24 @@ const socalLogin = async (
     return { token };
 } 
 
+
+const fcmToken = async (
+    payload : JwtPayload,
+    data: { deviceID: string }
+) => {
+
+    const { userID } = payload;
+    const { deviceID } = data;
+    const isUser = await User.findByIdAndUpdate(userID,{ deviceID }, { new: true });
+    if (!isUser) {
+        throw new ApiError(StatusCodes.NOT_FOUND,"Your account is not exist!")
+    }
+    return isUser.deviceID;
+}
+
 export const AuthServices = {
     signIn,
+    fcmToken,
     emailSend,
     verifyOtp,
     changePassword,

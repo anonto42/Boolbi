@@ -19,7 +19,7 @@ import generateOTP from "../../util/generateOTP";
 import { emailTemplate } from "../../shared/emailTemplate";
 import { emailHelper } from "../../helpers/emailHelper";
 import { OFFER_STATUS } from "../../enums/offer.enum";
-import { Request, Response } from "express";
+import e, { Request, Response } from "express";
 import { RatingModel } from "../../model/Rating.model";
 import Chat from "../../model/chat.model";
 import { IOffer } from "../../Interfaces/offer.interface";
@@ -131,6 +131,7 @@ const UP = async (
   payload: JwtPayload,
   data: IUser
 ) => {
+  
   const { userID } = payload;
 
   const isExist = await User.findOne({ _id: userID });
@@ -148,79 +149,83 @@ const UP = async (
     );
   }
 
-  const fieldsToUpdate = [
-    "fullName",
-    "email",
-    "phone",
-    "city",
-    "address",
-    "postalCode",
-    "language",
-    "category",
-    "subCategory",
-    "samplePictures",
-    "description",
-    "latLng"
-  ];
+  // const fieldsToUpdate = [
+  //   "fullName",
+  //   "email",
+  //   "phone",
+  //   "city",
+  //   "address",
+  //   "postalCode",
+  //   "language",
+  //   "category",
+  //   "subCategory",
+  //   "samplePictures",
+  //   "description",
+  //   "latLng"
+  // ];
 
-  const dataForUpdate: Partial<IUser> = {};
+  // const dataForUpdate: Partial<IUser> = {};
 
-  for (const field of fieldsToUpdate) {
-    const newValue = data[field as keyof IUser];
-    const oldValue = isExist[field as keyof IUser];
+  // for (const field of fieldsToUpdate) {
+  //   const newValue = data[field as keyof IUser];
+  //   const oldValue = isExist[field as keyof IUser];
 
-    if (typeof newValue !== "undefined") {
-      // Handle samplePictures
-      if (field === "samplePictures" && Array.isArray(oldValue) && Array.isArray(newValue)) {
-        const removedImages = oldValue.filter(img => !newValue.includes(img));
-        for (const img of removedImages) {
-          unlinkFile(img);
-        }
-        if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
-          dataForUpdate[field] = newValue;
-        }
-        continue;
-      }
+  //   if (typeof newValue !== "undefined") {
+  //     // Handle samplePictures
+  //     if (field === "samplePictures" && Array.isArray(oldValue) && Array.isArray(newValue)) {
+  //       const removedImages = oldValue.filter(img => !newValue.includes(img));
+  //       for (const img of removedImages) {
+  //         unlinkFile(img);
+  //       }
+  //       if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+  //         dataForUpdate[field] = newValue;
+  //       }
+  //       continue;
+  //     }
 
-      // Handle latLng (GeoJSON Point)
-      if (field === "latLng") {
-        const lat = (newValue as any).lat;
-        const lng = (newValue as any).lng ?? (newValue as any).lan;
+  //     // Handle latLng (GeoJSON Point)
+  //     if (field === "latLng") {
+  //       const lat = (newValue as any).lat;
+  //       const lng = (newValue as any).lng ?? (newValue as any).lan;
 
-        if (
-          typeof lat === "number" &&
-          typeof lng === "number" &&
-          (
-            !oldValue ||
-            JSON.stringify((oldValue as any).coordinates) !== JSON.stringify([lng, lat])
-          )
-        ) {
-          dataForUpdate.latLng = {
-            type: "Point",
-            coordinates: [lng, lat],
-          };
-        }
-        continue;
-      }
+  //       if (
+  //         typeof lat === "number" &&
+  //         typeof lng === "number" &&
+  //         (
+  //           !oldValue ||
+  //           JSON.stringify((oldValue as any).coordinates) !== JSON.stringify([lng, lat])
+  //         )
+  //       ) {
+  //         dataForUpdate.latLng = {
+  //           type: "Point",
+  //           coordinates: [lng, lat],
+  //         };
+  //       }
+  //       continue;
+  //     }
 
-      // All other fields
-      if (JSON.stringify(newValue) !== JSON.stringify(oldValue)) {
-        dataForUpdate[field as keyof IUser] = newValue;
-      }
-    }
-  }
+  //     // All other fields
+  //     if (JSON.stringify(newValue) !== JSON.stringify(oldValue)) {
+  //       dataForUpdate[field as keyof IUser] = newValue;
+  //     }
+  //   }
+  // }
 
-  if (Object.keys(dataForUpdate).length === 0) {
-    return isExist; // No changes
-  }
+  // if (Object.keys(dataForUpdate).length === 0) {
+  //   return isExist; // No changes
+  // }
 
-  const updatedUser = await User.findByIdAndUpdate(
-    isExist._id,
-    { $set: dataForUpdate },
-    { new: true }
-  ).select("-password -otpVerification -isSocialAccount");
+  // const updatedUser = await User.findByIdAndUpdate(
+  //   isExist._id,
+  //   { $set: dataForUpdate },
+  //   { new: true }
+  // ).select("-password -otpVerification -isSocialAccount");
 
-  return updatedUser;
+  // return updatedUser;
+
+  const user = await User.findByIdAndUpdate(isExist._id, data, { new: true }).select("-password -otpVerification -isSocialAccount -latLng -__v -searchedCatagory -job -favouriteServices -iOffered -myOffer -orders -ratings -favouriteProvider -counterOffers").lean().exec();
+
+  return data;
 };
 
 //Delete Profile
@@ -743,19 +748,11 @@ const singlePost = async (
         path:"acceptedOffer",
         select: "-to -projectID -updatedAt -createdAt -jobLocation -deadline -validFor -startDate -endDate -__v -status -companyImages",
         populate: {
-          path: "form",
+          path: "form to",
           select: "fullName profileImage"
         }
-      })
-                            // .populate({
-                            //     path: 'offers',
-                            //     select: 'myBudget description image',
-                            //     // populate: {
-                            //     //     // path: 'by',
-                            //     //     // select: '-password -otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v'
-                            //     // }
-                            // })
-                            .populate("creatorID","fullName profileImage address city postalCode").lean();
+      }).populate("creatorID","fullName profileImage address city postalCode").lean();
+
     if (!post) {
       throw new ApiError(
         StatusCodes.NOT_FOUND,
@@ -787,7 +784,8 @@ const singlePost = async (
     delete postData?.creatorID
     return {
       ...postData,
-      chatID: chat? chat._id : ""
+      chatID: chat? chat._id : "",//@ts-ignore
+      oppositeUser: post.acceptedOffer?.to?._id?.toString() == isUserExist._id.toString() ? post.acceptedOffer?.form || null : post.acceptedOffer?.to || null,
     };
 };
   
@@ -1166,6 +1164,16 @@ const cOffer = async (
         );
       };
 
+      // Check if the service provider has added payment details
+      if (isUserExist.role == USER_ROLES.SERVICE_PROVIDER) {
+        if (!isUserExist.paymentCartDetails.accountID) {
+          throw new ApiError(
+            StatusCodes.BAD_REQUEST,
+            "You must add your payment details to be able to send an offer to a customer"
+          )
+        }
+      };
+
       const ifCustomerExist = await User.findById(to);
       if (!ifCustomerExist) {
         throw new ApiError(
@@ -1230,7 +1238,7 @@ const cOffer = async (
           await messageSend({
             notification: {
               title: `${isUserExist.fullName} send you a offer!`,
-              body: `${description}`
+              body: notification.toString()
             },
             token: ifCustomerExist.deviceID
           });
@@ -1341,7 +1349,7 @@ const intracatOffer = async(
               await messageSend({
                 notification: {
                   title: notification.content,
-                  body: `${isOfferExist.description}`
+                  body: notification.toString()
                 },
                 token: pushNotificationFor.deviceID
               });
@@ -1374,7 +1382,7 @@ const intracatOffer = async(
               await messageSend({
                 notification: {
                   title: notification.content,
-                  body: `${isOfferExist.description}`
+                  body: notification.toString()
                 },
                 token: pushNotificationFor.deviceID
               });
@@ -1470,7 +1478,7 @@ const intracatOffer = async(
         await messageSend({
           notification: {
             title: notification.content,
-            body: `${isOfferExist.description}`
+            body: notification.toString()
           },
           token: pushNotificationFor.deviceID
         });
@@ -2333,7 +2341,7 @@ const offerOnPost = async(
           await messageSend({
             notification: {
               title: `${isUserExist.fullName} send you a offer!`,
-              body: `${description}`
+              body: notification.toString()
             },
             token: ifCustomerExist.deviceID
           });

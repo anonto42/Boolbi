@@ -14,6 +14,7 @@ import { PAYMENT_STATUS } from "../../enums/payment.enum";
 import { PaginationParams } from "../../types/user";
 import { OFFER_STATUS } from "../../enums/offer.enum";
 import Chat from "../../model/chat.model";
+import { transfers } from "../router/payment.route";
 
 const singleOrder = async (
     payload: JwtPayload,
@@ -662,7 +663,6 @@ const reqestAction = async (
             "You provider was not added the payment methord!"
         )
     }
-    // return order.provider.paymentCartDetails.accountID
 
     delivaryRequest.requestStatus = acction
     await delivaryRequest.save();
@@ -680,12 +680,12 @@ const reqestAction = async (
         { new: true }
     )
 
-    // await transfers.create({
-    //     amount: amountAfterFee,
-    //     currency: 'usd',
-    //     destination: order.provider.paymentCartDetails.accountID,
-    //     transfer_group: `order_${order._id}`
-    // });
+    await transfers.create({
+        amount: amountAfterFee,
+        currency: 'usd',
+        destination: order.provider.paymentCartDetails.accountID,
+        transfer_group: `order_${order._id}`
+    });
 
     if (!delivaryRequest) {
         throw new ApiError(
@@ -709,7 +709,8 @@ const reqestAction = async (
         order._id,
         {
             $set:{
-                "trackStatus.isComplited" : true
+                "trackStatus.isComplited.status" : true,
+                "trackStatus.isComplited.date" : new Date( Date.now() )
             }
         }
     )

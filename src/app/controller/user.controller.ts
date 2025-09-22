@@ -38,7 +38,18 @@ const update = catchAsync(
         const user = (req as any)?.user;
         const images = getMultipleFilesPath(req.files,"image")
         const {...Data} = req.body;
+        
+        const lat = parseFloat(req.body.lat);
+        const lng = parseFloat(req.body.lng);
+
+        if ( !isNaN(lat) || !isNaN(lng) )
+        Data.latLng = {
+            type: "Point",
+            coordinates: [lng, lat],
+        };
+
         Data.samplePictures = images;
+        
         const result = await UserServices.UP(user,Data)
 
         sendResponse(res, {

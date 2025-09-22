@@ -11,7 +11,12 @@ const VerificationSchema = new Schema({
   },
   image:[{
     type: String
-  }]
+  }],
+  status:{
+    type: String,
+    enum: ["pending", "verified", "rejected"],
+    default: "pending"
+  }
 },{
   timestamps: true
 });
