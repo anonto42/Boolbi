@@ -358,14 +358,38 @@ const allPayments = async (
   const total = await Payment.countDocuments();
 
   const allPayments = await Payment.find({})
-    .populate("userId","fullName email phone")
-    .populate("orderId")
+    .populate("userId","fullName email phone profileImage")
+    .populate({
+      path: "orderId", 
+      select: "offerID customer",
+      populate: [{
+        path: "offerID",
+        select: "projectID",
+        populate:{
+          path: "projectID",
+          select: "projectName"
+        }
+      },{
+        path: "customer",
+        select: "fullName email"
+      }]
+    })
     .sort({ createdAt: -1 })
     .skip(skip)
-    .limit(limit);
+    .limit(limit)
+    .lean();
+
+  const organizedData = allPayments.map(payment => ({
+    jobName: payment.orderId?.offerID?.projectID?.projectName || "",
+    budget: payment.amount || "",
+    customerName: payment.userId?.fullName || "",
+    profit: payment.commission || "",
+    paymentStatus: payment.status || "",
+    _id: payment._id,
+  }))
 
   return {
-    data: allPayments,
+    data: organizedData,
     total,
     currentPage: page,
     totalPages: Math.ceil(total / limit)
@@ -382,9 +406,44 @@ const APayments = async (
       throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
     };
     
-    const allPayments = await Payment.findById(paymentID).populate("userId","fullName email").populate("orderId");
+    const payment = await Payment
+      .findById(paymentID)
+      .populate("userId","fullName email")
+      .populate({
+        path:"orderId"
+        ,select:"offerID customer"
+        ,populate:[{
+          path:"offerID"
+          ,select:"projectID"
+          ,populate:{
+            path:"projectID"
+            ,select:"projectName location category coverImage"
+          }
+        }
+      ]
+      })
+      .lean()
+      .exec();
 
-    return allPayments;
+    if (!payment) {
+      throw new ApiError(StatusCodes.NOT_FOUND,"Payment not founded")
+    };
+
+    //@ts-ignore
+    const totalOffers = await Offer.countDocuments({customer: payment.orderId?.customer});
+
+    return {//@ts-ignore
+      customerName: payment?.userId?.fullName || "",
+      //@ts-ignore
+      companyName: payment.orderId.offerID.projectID.projectName || "Boolbi",
+      //@ts-ignore
+      location: payment.orderId.offerID.projectID.location || "",
+      //@ts-ignore
+      category: payment.orderId.offerID.projectID.category || "",
+      //@ts-ignore
+      coverImage: payment.orderId.offerID.projectID.coverImage || "",
+      totalOffers
+    };
 }
 
 const allCatagorys = async (
@@ -451,7 +510,6 @@ const allCatagorys = async (
 
     return categories;
 }
-
 
 const addNewCatagory = async (
   payload: JwtPayload,
@@ -1216,6 +1274,8 @@ const intractVerificationRequest = async (
         "isVerified.status": ACCOUNT_VERIFICATION_STATUS.VERIFIED
       }
     })
+    request.status = "verified";
+
     const notification = await Notification.create({
         for: request.user._id,
         content: `${request.user.fullName} your verificaiton request was approved`
@@ -1227,10 +1287,12 @@ const intractVerificationRequest = async (
     await User.findByIdAndUpdate( request.user , {
       $set: {
         "isVerified.status": ACCOUNT_VERIFICATION_STATUS.REJECTED,
-        "isUser.isVerified.images": [],
-        "isUser.isVerified.doc": ""
+        // "isUser.isVerified.images": [],
+        // "isUser.isVerified.doc": ""
       }
     })
+    request.status = "rejected";
+    
     const notification = await Notification.create({
         for: request.user._id,
         content: `${request.user.fullName} your verificaiton request was rejected!`
@@ -1239,7 +1301,9 @@ const intractVerificationRequest = async (
     io.emit(`socket:${ request.user._id }`, notification);
   }
 
-  return await Verification.find();
+  await request.save();
+
+  return ;
 }
 
 export const AdminService = {
