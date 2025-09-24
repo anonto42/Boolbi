@@ -1,4 +1,5 @@
 import { initializeApp, cert  } from "firebase-admin/app";
+import admin from "firebase-admin";
 import { getMessaging } from "firebase-admin/messaging";
 import ApiError from "../errors/ApiError";
 import { StatusCodes } from "http-status-codes";
@@ -15,17 +16,25 @@ if (!base64key) {
     "Firebase service account key is not provided in environment variables"
   )
 }
-const firbaseServiceAccountKey = Buffer.from(base64key,"base64").toString("utf-8");
-const servireAccountKey = JSON.parse(firbaseServiceAccountKey);
 
-initializeApp({
-  credential: cert(servireAccountKey)
-});
+// Decode base64-encoded service account JSON
+const serviceAccount = JSON.parse(
+  Buffer.from(base64key, "base64").toString("utf-8")
+);
+
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+  });
+}
+
+export default admin;
 
 interface message {
   notification:{
     title: string;
-    body: string;
+    body: any;
+    data?: any;
   },
   token: string
 }
