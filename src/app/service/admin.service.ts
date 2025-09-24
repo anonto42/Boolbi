@@ -275,7 +275,7 @@ const aCustomer = async (
         throw new ApiError(StatusCodes.BAD_GATEWAY,"You must give the customer id to get the customer")
     };
 
-    return await User.findById(customerID)
+    return await User.findById( new mongoose.Types.ObjectId( customerID )).select("fullName email phone address accountStatus accountActivityStatus address category subCategory description profileImage city").lean();
 }
 
 const updateUserAccountStatus = async (
@@ -844,22 +844,7 @@ const statusAnnounsments = async (
 };
 
 const privacyPolicy = async (
-  payload: JwtPayload,
 ) => {
-    const { userID } = payload;
-    const isAdmin = await User.findById(userID);
-    if (!isAdmin) {
-        throw new ApiError(StatusCodes.EXPECTATION_FAILED,"User not founded")
-    }
-    if (
-      isAdmin.accountStatus === ACCOUNT_STATUS.DELETE ||
-      isAdmin.accountStatus === ACCOUNT_STATUS.BLOCK
-    ) {
-      throw new ApiError(
-        StatusCodes.FORBIDDEN,
-        `Your account was ${isAdmin.accountStatus.toLowerCase()}!`
-      );
-    }
 
     const privacyPolicy = await User.findOne({role: USER_ROLES.SUPER_ADMIN});
     if (!privacyPolicy) {
@@ -903,23 +888,8 @@ const editePrivacyPolicy = async (
 };
 
 const conditions = async (
-  payload: JwtPayload,
 ) => {
-    const { userID } = payload;
-    const isAdmin = await User.findById(userID);
-    if (!isAdmin) {
-        throw new ApiError(StatusCodes.EXPECTATION_FAILED,"User not founded")
-    }
-    if (
-      isAdmin.accountStatus === ACCOUNT_STATUS.DELETE ||
-      isAdmin.accountStatus === ACCOUNT_STATUS.BLOCK
-    ) {
-      throw new ApiError(
-        StatusCodes.FORBIDDEN,
-        `Your account was ${isAdmin.accountStatus.toLowerCase()}!`
-      );
-    }
-
+  
     const termsConditions = await User.findOne({role: USER_ROLES.SUPER_ADMIN});
     if (!termsConditions) {
         throw new ApiError(StatusCodes.NOT_FOUND, "Terms & Conditions dose not exist!");

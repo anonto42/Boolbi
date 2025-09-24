@@ -120,7 +120,7 @@ router
 router
     .route("/policy")
     .get(
-        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        // auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
         AdminController.getPrivacyPolicy
     )
     .patch(
@@ -132,7 +132,7 @@ router
 router
     .route("/condition")
     .get(
-        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        // auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
         AdminController.termsAndConditions
     )
     .patch(

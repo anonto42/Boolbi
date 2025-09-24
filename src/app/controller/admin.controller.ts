@@ -303,8 +303,8 @@ const deleteAnnounsments = catchAsync(
 
 const getPrivacyPolicy = catchAsync(
     async( req: Request, res: Response ) => {
-        const Payload = (req as any).user;
-        const result = await AdminService.privacyPolicy(Payload)
+        
+        const result = await AdminService.privacyPolicy()
 
         sendResponse(res, {
             success: true,
@@ -332,8 +332,8 @@ const editeyPolicy = catchAsync(
 
 const termsAndConditions = catchAsync(
     async( req: Request, res: Response ) => {
-        const Payload = (req as any).user;
-        const result = await AdminService.conditions(Payload)
+        
+        const result = await AdminService.conditions()
 
         sendResponse(res, {
             success: true,
@@ -503,4 +503,4 @@ export const AdminController = {
     deleteSubCatagroys,
     updateSubCatagroys,
     engagement
-}
+};

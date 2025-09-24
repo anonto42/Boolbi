@@ -11,6 +11,7 @@ import { IChangePassword, ISocalLogin } from "../../types/auth";
 import { ACCOUNT_STATUS, USER_ROLES } from "../../enums/user.enums";
 import { compare, hash } from "bcryptjs";
 import { JwtPayload } from "jsonwebtoken";
+import adminDetails from "../../helpers/firebaseHelper";
 
 const signIn = async ( 
     payload : SignInData
@@ -256,6 +257,12 @@ const socalLogin = async (
         deviceID
     } : ISocalLogin,
 ) => {
+    const fireBaseToken = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjkyN2I4ZmI2N2JiYWQ3NzQ0NWU1ZmVhNGM3MWFhOTg0NmQ3ZGRkMDEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiIxNzgyNDgyMjAyNS1mZXJudHFlOW00YnJib3RqaDhydjdkcnNocms5NmU1cS5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbSIsImF1ZCI6IjE3ODI0ODIyMDI1LTV2b2ZvZnFyMXM1Mzh2NXVnM241OGQ1N2NvYjM1bG42LmFwcHMuZ29vZ2xldXNlcmNvbnRlbnQuY29tIiwic3ViIjoiMTE3ODUwMTQ3NjkzODQ2NjA2OTcxIiwiZW1haWwiOiJ2aXJ0dWFsZnVuMjRAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOiJNZWRpYSIsInBpY3R1cmUiOiJodHRwczovL2xoMy5nb29nbGV1c2VyY29udGVudC5jb20vYS9BQ2c4b2NKdzVrSXVXQXBJV2pQTmxwdnRpZXNkb082ZmlCbXRsTExkR3VjUHBFUGwzRkM5Umc9czk2LWMiLCJnaXZlbl9uYW1lIjoiTWVkaWEiLCJpYXQiOjE3NTg2MjM4MzUsImV4cCI6MTc1ODYyNzQzNX0.Y1XF3GdwzFFUujBDzEoNbN150NJiyboc4OJ6-Cc3CZLIgP5lBiGSmd-sR75CodioCV6xYZYob54UnyXcj-66OUhvuihDbRLcP4tRlh7mjD0XGKbqilNUwPZujI63LseZ-ZNsb4j4t-Z7txz4FRE8ALmN0qJzUoAxWdTn6KnUwimu8vgtBnKg7BvNJCxYRlvlh5P6hD0myoQOsIOEsHfgVrxLIsg5PQCzY"
+
+    const decoded = await adminDetails.auth().verifyIdToken(fireBaseToken)
+
+    return decoded
+
     const isUserExist = await User.findOne({
         'isSocialAccount.socialIdentity': uid
     });
@@ -285,7 +292,6 @@ const socalLogin = async (
     
     return { token };
 } 
-
 
 const fcmToken = async (
     payload : JwtPayload,
