@@ -52,11 +52,8 @@ const OTPZodSchema =  z.object({
 
 const socalLoginZodSchema = z.object({
   body: z.object({
-    uid: z.string({ required_error: "You must give the uid of login." }),
-    provider: z.string({required_error: "You must your login provider"}),
-    email: z.string({required_error: "You must your email"}),
-    displayName: z.string({required_error: "You must your login provider"}),
-    deviceID: z.string({required_error:"You must give the device id!"})
+    token: z.string({ required_error: "You must give the token!"}),
+    provider: z.string( { required_error: "You must give the provider name!"})
   })
 });
 
