@@ -1164,7 +1164,6 @@ const cOffer = async (
         );
       };
 
-      // Check if the service provider has added payment details
       if (isUserExist.role == USER_ROLES.SERVICE_PROVIDER) {
         if (!isUserExist.paymentCartDetails.accountID) {
           throw new ApiError(
@@ -1172,7 +1171,7 @@ const cOffer = async (
             "You must add your payment details to be able to send an offer to a customer"
           )
         }
-      };
+      }
 
       const ifCustomerExist = await User.findById(to);
       if (!ifCustomerExist) {
@@ -1238,8 +1237,13 @@ const cOffer = async (
           await messageSend({
             notification: {
               title: `${isUserExist.fullName} send you a offer!`,
-              body: notification.toString()
+              body: `${description}`,
+              
             },
+            //@ts-ignore
+              data: {
+                additionalData: 'Custom data here',
+              },
             token: ifCustomerExist.deviceID
           });
         }
@@ -1349,7 +1353,7 @@ const intracatOffer = async(
               await messageSend({
                 notification: {
                   title: notification.content,
-                  body: notification.toString()
+                  body: `${isOfferExist.description}`
                 },
                 token: pushNotificationFor.deviceID
               });
@@ -1382,7 +1386,7 @@ const intracatOffer = async(
               await messageSend({
                 notification: {
                   title: notification.content,
-                  body: notification.toString()
+                  body: `${isOfferExist.description}`
                 },
                 token: pushNotificationFor.deviceID
               });
@@ -1478,7 +1482,7 @@ const intracatOffer = async(
         await messageSend({
           notification: {
             title: notification.content,
-            body: notification.toString()
+            body: `${isOfferExist.description}`
           },
           token: pushNotificationFor.deviceID
         });
@@ -2341,7 +2345,7 @@ const offerOnPost = async(
           await messageSend({
             notification: {
               title: `${isUserExist.fullName} send you a offer!`,
-              body: notification.toString()
+              body: `${description}`
             },
             token: ifCustomerExist.deviceID
           });
