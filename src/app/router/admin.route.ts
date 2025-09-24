@@ -41,6 +41,11 @@ router
         auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
         AdminController.providers
     )
+    .patch(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        validateRequest( AdminValidation.userUpdateSchema ),
+        AdminController.updateAccountStatus
+    )
 
 router 
     .route("/payment")

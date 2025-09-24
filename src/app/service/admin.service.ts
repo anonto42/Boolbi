@@ -20,162 +20,123 @@ import Order from "../../model/order.model";
 import { PaginationParams } from "../../types/user";
 import mongoose from "mongoose";
 
-const overview = async (
-    payload: JwtPayload
-) => {
-    const { userID } = payload;
-    const user = await User.findById(userID);
-    if ( !user ) {
-      throw new ApiError(
-        StatusCodes.NOT_FOUND,
-        "Admin not founded!"
-      )
-    };
+export const overview = async (payload: JwtPayload) => {
+  const { userID } = payload;
+  const user = await User.findById(userID);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found!");
+  }
 
-    const totalUser = await User.find().countDocuments();
-    const totalJobRequest = await Offer.find().countDocuments();
-    const totalJobPost = await Post.find().countDocuments();
-    const totalCommission = await Payment.aggregate([
-      { $match: { status: PAYMENT_STATUS.SUCCESS } },
-      {
-        $group: {
-          _id: null,
-          totalCommission: { $sum: "$commission" }
-        }
-      }
-    ]);
-    const commissionSum = totalCommission[0]?.totalCommission || 0;
+  const totalUser = await User.countDocuments();
+  const totalJobRequest = await Offer.countDocuments();
+  const totalJobPost = await Post.countDocuments();
 
-    const currentYear = new Date().getFullYear();
-
-    const result = await Payment.aggregate([
-      {
-        $match: {
-          createdAt: {
-            $gte: new Date(`${currentYear}-01-01`),
-            $lt: new Date(`${currentYear + 1}-01-01`)
-          }
-        }
+  // Commission sum
+  const totalCommission = await Payment.aggregate([
+    { $match: { status: PAYMENT_STATUS.SUCCESS } },
+    {
+      $group: {
+        _id: null,
+        totalCommission: { $sum: "$commission" },
       },
-      {
-        $group: {
-          _id: { $month: "$createdAt" },
-          totalCommission: { $sum: "$commission" }
-        }
-      }
-    ]);
+    },
+  ]);
+  const commissionSum = totalCommission[0]?.totalCommission || 0;
 
-    const months = [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-    ];
+  // Yearly commission revenue
+  const currentYear = new Date().getFullYear();
 
-    // Convert aggregation result to a map for fast access
-    const commissionMap = new Map<number, number>();
-    result.forEach(entry => {
-      commissionMap.set(entry._id, entry.totalCommission);
-    });
+  const result = await Payment.aggregate([
+    {
+      $match: {
+        createdAt: {
+          $gte: new Date(`${currentYear}-01-01`),
+          $lt: new Date(`${currentYear + 1}-01-01`),
+        },
+        status: PAYMENT_STATUS.SUCCESS,
+      },
+    },
+    {
+      $group: {
+        _id: { $month: "$createdAt" },
+        totalCommission: { $sum: "$commission" },
+      },
+    },
+  ]);
 
-    // Build the final array format
-    const formattedData = months.map((monthName, index) => ({
-      month: monthName,
-      commission: commissionMap.get(index + 1) || 0
-    }));
+  const months = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  ];
 
-    const today = startOfDay(new Date());
-    const lastWeek = subDays(today, 6);
+  const commissionMap = new Map<number, number>();
+  result.forEach((entry) => {
+    commissionMap.set(entry._id, entry.totalCommission);
+  });
 
-    const data = await User.aggregate([
-      {
-        $match: {
-          createdAt: {
-            $gte: lastWeek,
-            $lte: addDays(today, 1)
-          },
-          role: { $in: [ USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER] }
-        }
+  const yearlyRevenueData = months.map((monthName, index) => ({
+    month: monthName,
+    commission: commissionMap.get(index + 1) || 0,
+  }));
+
+  // ===========================
+  // Yearly user join breakdown
+  // ===========================
+  const startOfYear = new Date(`${currentYear}-01-01`);
+  const endOfYear = new Date(`${currentYear + 1}-01-01`);
+
+  const userMonthlyData = await User.aggregate([
+    {
+      $match: {
+        createdAt: { $gte: startOfYear, $lt: endOfYear },
+        role: { $in: [USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER] },
       },
-      {
-        $project: {
-          role: 1,
-          day: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }
-        }
+    },
+    {
+      $group: {
+        _id: { month: { $month: "$createdAt" }, role: "$role" },
+        count: { $sum: 1 },
       },
-      {
-        $group: {
-          _id: { day: "$day", role: "$role" },
-          count: { $sum: 1 }
-        }
+    },
+    {
+      $project: {
+        _id: 0,
+        monthNumber: "$_id.month",
+        role: "$_id.role",
+        count: 1,
       },
-      {
-        $group: {
-          _id: "$_id.day",
-          roles: {
-            $push: {
-              role: "$_id.role",
-              count: "$count"
-            }
-          }
-        }
-      },
-      {
-        $project: {
-          _id: 0,
-          day: "$_id",
-          serviceProvider: {
-            $let: {
-              vars: {
-                sp: {
-                  $arrayElemAt: [
-                    {
-                      $filter: {
-                        input: "$roles",
-                        as: "item",
-                        cond: { $eq: ["$$item.role", "serviceProvider"] }
-                      }
-                    },
-                    0
-                  ]
-                }
-              },
-              in: { $ifNull: ["$$sp.count", 0] }
-            }
-          },
-          categoryUser: {
-            $let: {
-              vars: {
-                cu: {
-                  $arrayElemAt: [
-                    {
-                      $filter: {
-                        input: "$roles",
-                        as: "item",
-                        cond: { $eq: ["$$item.role", "categoryUser"] }
-                      }
-                    },
-                    0
-                  ]
-                }
-              },
-              in: { $ifNull: ["$$cu.count", 0] }
-            }
-          }
-        }
-      },
-      {
-        $sort: { day: 1 }
-      }
-    ]);
+    },
+  ]);
+
+  const userJoined = months.map((monthName, index) => {
+    const userCount =
+      userMonthlyData.find(
+        (d) => d.monthNumber === index + 1 && d.role === USER_ROLES.USER
+      )?.count || 0;
+
+    const serviceProviderCount =
+      userMonthlyData.find(
+        (d) =>
+          d.monthNumber === index + 1 &&
+          d.role === USER_ROLES.SERVICE_PROVIDER
+      )?.count || 0;
 
     return {
-        totalJobPost,
-        totalJobRequest,
-        totalUser,
-        totalRevenue: commissionSum,
-        yearlyRevenueData: formattedData,
-        userJoined: data
+      month: monthName,
+      user: userCount,
+      serviceProvider: serviceProviderCount,
     };
-}
+  });
+
+  return {
+    totalJobPost,
+    totalJobRequest,
+    totalUser,
+    totalRevenue: commissionSum,
+    yearlyRevenueData,
+    userJoined,
+  };
+};
 
 const engagementData = async (
   year : string
@@ -223,7 +184,10 @@ const engagementData = async (
 
 const allCustomers = async (
   payload: JwtPayload,
-  params: PaginationParams 
+  params: {
+    page: number,
+    limit: number
+  } 
 ) => {
   const { userID } = payload;
   const { page = 1, limit = 10 } = params;
@@ -302,7 +266,10 @@ const updateUserAccountStatus = async (
 
 const allProvider = async (
   payload: JwtPayload,
-  params: PaginationParams
+  params: {
+    page: number,
+    limit: number
+  }
 ) => {
   const { userID } = payload;
   const { page = 1, limit = 10 } = params;
@@ -344,7 +311,10 @@ const allProvider = async (
 
 const allPayments = async (
   payload: JwtPayload,
-  params: PaginationParams
+  params: {
+    page: number,
+    limit: number
+  }
 ) => {
   const { userID } = payload;
   const { page = 1, limit = 10 } = params;

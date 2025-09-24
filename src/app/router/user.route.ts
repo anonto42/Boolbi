@@ -20,18 +20,18 @@ router
         UserController.signupUser
     )
     .put(
-        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        auth( USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
         fileUploadHandler(),
         validateRequest(Validation.userUpdateProfileZodSchem),
         UserController.update
     )
     .patch(
-        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        auth( USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
         validateRequest(Validation.updateUserLangouageZodSchem),
         UserController.language
     )
     .delete(
-        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        auth( USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
         UserController.profileDelete
     )
 
@@ -44,28 +44,28 @@ router
 router
     .route("/status")
     .patch(
-        auth( USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER ),
+        auth( USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
         UserController.status
     )
 
 router
     .route('/privacy')
     .get(
-        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        auth( USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
         UserController.privacy
     )
 
 router
     .route('/condition')
     .get(
-        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        auth( USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
         UserController.condition
     )
 
 router
     .route("/image")
     .patch(
-        auth( USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER ),
+        auth( USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
         fileUploadHandler(),
         UserController.uploadImages
     )
@@ -73,23 +73,23 @@ router
 router
     .route("/post")
     .get(
-        auth(USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER),
+        auth(USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
         UserController.post
     )
     .post(
-        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER),
+        auth( USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
         fileUploadHandler(),
         validateRequest( Validation.jobPostZodSchem ),
         UserController.createPost
     )
     .put(
-        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        auth( USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
         fileUploadHandler(),
         validateRequest( Validation.jobPostZodSchem ),
         UserController.updateJob
     )
     .delete(
-        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER),
+        auth(USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
         UserController.deletePost
     )
 

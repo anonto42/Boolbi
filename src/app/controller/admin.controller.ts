@@ -38,10 +38,11 @@ const customers = catchAsync(
     async( req: Request, res: Response ) => {
         const Payload = (req as any).user;
         const specificUser = req.query.id;
-        const {...data} = req.body;
+        const { page, limit }: { page?: any, limit?: any} = req.query;
+
         let result;
         if (!specificUser) {
-            result = await AdminService.allCustomers(Payload,data);
+            result = await AdminService.allCustomers(Payload,{page: Number(page || 1),limit: Number(limit || 10)});
         } else if ( specificUser ) {
             result = await AdminService.aCustomer(Payload,specificUser as string)
         }
@@ -75,10 +76,11 @@ const providers = catchAsync(
     async( req: Request, res: Response ) => {
         const Payload = (req as any).user;
         const specificUser = req.query.id;
-        const { ...data } = req.body;
+        const { page, limit }: { page?: any, limit?: any} = req.query;
+
         let result;
         if (!specificUser) {
-            result = await AdminService.allProvider(Payload,data);
+            result = await AdminService.allProvider(Payload,{page: Number(page || 1),limit: Number(limit || 10)});
         } else if ( specificUser ) {
             result = await AdminService.aCustomer(Payload,specificUser as string)
         }
@@ -96,10 +98,11 @@ const payments = catchAsync(
     async( req: Request, res: Response ) => {
         const Payload = (req as any).user;
         const specificUser = req.query.id;
-        const {...data} = req.body;
+        const { page, limit }: { page?: any, limit?: any} = req.query;
+
         let result;
         if (!specificUser) {
-            result = await AdminService.allPayments(Payload,data);
+            result = await AdminService.allPayments(Payload,{page: Number(page || 1),limit: Number(limit || 10)});
         } else if ( specificUser ) {
             result = await AdminService.APayments(Payload,specificUser as string)
         }
