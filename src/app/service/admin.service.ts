@@ -547,14 +547,14 @@ const deleteSubCatagory = async (
     const { userID } = payload;
     const isAdmin = await User.findById(userID);
     if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
-        throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+      throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
     };
-    if ( catagoryId ) {
-        throw new ApiError(StatusCodes.BAD_REQUEST,"You should give the catagory id for delete!")
+    if ( !catagoryId ) {
+      throw new ApiError(StatusCodes.BAD_REQUEST,"You should give the catagory id for delete!")
     };
     const subCatagoryModel = await SubCatagroy.findOneAndDelete({_id: catagoryId});
     if (!subCatagoryModel) {
-        throw new ApiError(StatusCodes.NOT_FOUND,"Your giver catagory not exist!")
+      throw new ApiError(StatusCodes.NOT_FOUND,"Your giver catagory not exist!")
     };
 
     return subCatagoryModel;
@@ -567,16 +567,16 @@ const deleteCatagory = async (
     const { userID } = payload;
     const isAdmin = await User.findById(userID);
     if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
-        throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
+      throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
     };
-    if ( catagoryId ) {
-        throw new ApiError(StatusCodes.BAD_REQUEST,"You should give the catagory id for delete!")
+    if ( !catagoryId ) {
+      throw new ApiError(StatusCodes.BAD_REQUEST,"You should give the catagory id for delete!")
     };
     const catagoryModel = await Catagroy.findOneAndDelete({_id: catagoryId});
-    unlinkFile((catagoryModel as any).image)
     if (!catagoryModel) {
-        throw new ApiError(StatusCodes.NOT_FOUND,"Your giver catagory not exist!")
+      throw new ApiError(StatusCodes.NOT_FOUND,"Your giver catagory not exist!")
     };
+    unlinkFile((catagoryModel as any).image)
 
     return catagoryModel;
 }
@@ -813,15 +813,14 @@ const statusAnnounsments = async (
   return ANNOUNSMENT;
 };
 
-const privacyPolicy = async (
-) => {
+const privacyPolicy = async () => {
 
-    const privacyPolicy = await User.findOne({role: USER_ROLES.SUPER_ADMIN});
-    if (!privacyPolicy) {
-        throw new ApiError(StatusCodes.NOT_FOUND, "PrivacyPolicy does not exist!");
-    }
+  const privacyPolicy = await User.findOne({role: USER_ROLES.SUPER_ADMIN});
+  if (!privacyPolicy) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "PrivacyPolicy does not exist!");
+  }
 
-    return privacyPolicy.privacyPolicy;
+  return privacyPolicy.privacyPolicy;
 };
 
 const editePrivacyPolicy = async (
@@ -857,8 +856,7 @@ const editePrivacyPolicy = async (
     return data;
 };
 
-const conditions = async (
-) => {
+const conditions = async () => {
   
     const termsConditions = await User.findOne({role: USER_ROLES.SUPER_ADMIN});
     if (!termsConditions) {
@@ -1009,7 +1007,10 @@ const deleteAdmin = async (
 
 const allSupportRequests = async (
   payload: JwtPayload,
-  params: PaginationParams
+  params: {
+    page: number,
+    limit: number
+  }
 ) => {
   const { userID } = payload;
   const { page = 1, limit = 10 } = params;

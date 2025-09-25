@@ -5,6 +5,9 @@ import { StatusCodes } from "http-status-codes";
 import { AdminService } from "../service/admin.service";
 import { ACCOUNT_STATUS } from "../../enums/user.enums";
 import { getSingleFilePath } from "../../shared/getFilePath";
+import ApiError from "../../errors/ApiError";
+import SubCatagroy from "../../model/subCategory.model";
+import mongoose from "mongoose";
 
 const overView = catchAsync(
     async( req: Request, res: Response ) => {
@@ -126,6 +129,46 @@ const catagroys = catchAsync(
             success: true,
             statusCode: StatusCodes .OK,
             message: "Successfully get all the catagorys",
+            data: result
+        });
+    }
+);
+
+const subCatagroy = catchAsync(
+    async( req: Request, res: Response ) => {
+        const id = req.params.id as string;
+        if (!id) {
+            throw new ApiError(
+                StatusCodes.NOT_FOUND,
+                "Id not given of subCategory!"
+            )
+        }
+
+        const result = await SubCatagroy.findById( new mongoose.Types.ObjectId(id));
+        if (!result) {
+            throw new ApiError(
+                StatusCodes.NOT_FOUND,
+                "Sub Category not found!"
+            )
+        }
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully get the sub-catagory",
+            data: result
+        });
+    }
+);
+
+const allSubCatagroy = catchAsync(
+    async( req: Request, res: Response ) => {
+        const result = await SubCatagroy.find().populate("categoryId","image name");
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully get all sub-catagory",
             data: result
         });
     }
@@ -395,7 +438,7 @@ const newAdmins = catchAsync(
 const deleteAdmin = catchAsync(
     async( req: Request, res: Response ) => {
         const Payload = (req as any).user;
-        const adminId = req.query.adminId;
+        const adminId = req.query.adminID;
         const result = await AdminService.deleteAdmin(Payload,adminId as string)
 
         sendResponse(res, {
@@ -410,8 +453,9 @@ const deleteAdmin = catchAsync(
 const supportReques = catchAsync(
     async( req: Request, res: Response ) => {
         const Payload = (req as any).user;
-        const {...data} = req.body;
-        const result = await AdminService.allSupportRequests(Payload,data)
+        const { page, limit }: { page?: any, limit?: any} = req.query;
+
+        const result = await AdminService.allSupportRequests(Payload,{page: Number(page || 1),limit: Number(limit || 10)})
 
         sendResponse(res, {
             success: true,
@@ -482,6 +526,7 @@ export const AdminController = {
     updateAccountStatus,
     intrackWithRequest,
     providers,
+    allSubCatagroy,
     payments,
     catagroys,
     newCatagroys,
@@ -496,6 +541,7 @@ export const AdminController = {
     editeyPolicy,
     termsAndConditions,
     allAdmins,
+    subCatagroy,
     allVerifications,
     editeConditions,
     newAdmins,
