@@ -121,6 +121,7 @@ const profle = async (
 
     return { 
       ...isExist, 
+      isPaymentVerified: isExist.paymentCartDetails?.accountID && isExist.paymentCartDetails?.customerID? true : false,
       unReadNotifications: unreated,
       unReadMessages: unseenCount
     }
@@ -1165,7 +1166,7 @@ const cOffer = async (
       };
 
       if (isUserExist.role == USER_ROLES.SERVICE_PROVIDER) {
-        if (!isUserExist.paymentCartDetails.accountID) {
+        if (!isUserExist.paymentCartDetails.accountID && !isUserExist.paymentCartDetails.customerID) {
           throw new ApiError(
             StatusCodes.BAD_REQUEST,
             "You must add your payment details to be able to send an offer to a customer"
@@ -1282,9 +1283,14 @@ const intracatOffer = async(
     const project = await Post.findById(isOfferExist.projectID);
     if (!project) {
       if (isUserExist.role == USER_ROLES.SERVICE_PROVIDER) {
-
         if (data.acction == "APPROVE") {
-  
+          if (!isUserExist.paymentCartDetails.accountID && !isUserExist.paymentCartDetails.customerID) {
+            throw new ApiError(
+              StatusCodes.BAD_REQUEST,
+              "You must add your payment details to accept a offer!"
+            )
+          }
+          
           const post = await Post.create({
             projectName: isOfferExist.projectName,
             coverImage: isOfferExist.companyImages[0],
@@ -2215,7 +2221,25 @@ const offerOnPost = async(
         description,
         companyImages} = data;
 
-  
+        const user = await User.findById(
+          new mongoose.Types.ObjectId( payload.userID )
+        ).lean().exec();
+        if (!user) {
+          throw new ApiError(
+            StatusCodes.NOT_FOUND,
+            "User not found!"
+          )
+        }
+//@ts-ignore
+        if (user.role == USER_ROLES.SERVICE_PROVIDER) {//@ts-ignore
+        if (!isUserExist.paymentCartDetails.accountID && !isUserExist.paymentCartDetails.customerID) {
+          throw new ApiError(
+            StatusCodes.BAD_REQUEST,
+            "You must add your payment details to be able to send an offer to a customer"
+          )
+        }
+      }
+        
       if (offerId) {
         const isOfferExist = await Offer.findById(new mongoose.Types.ObjectId(offerId));
         if (!isOfferExist) {
@@ -2454,6 +2478,27 @@ const doCounter = async (
     budget: number;
   },
 ) => {
+
+  const user = await User.findById(
+    new mongoose.Types.ObjectId( payload.userId )
+  ).lean();
+  if (!user) {
+    throw new ApiError(
+      StatusCodes.NOT_FOUND,
+      "You don't have the user!"
+    )
+  }
+
+  //@ts-ignore
+  if (user.role == USER_ROLES.SERVICE_PROVIDER) {
+    //@ts-ignore
+        if (!isUserExist.paymentCartDetails.accountID && !isUserExist.paymentCartDetails.customerID) {
+          throw new ApiError(
+            StatusCodes.BAD_REQUEST,
+            "You must add your payment details to be able to send an offer to a customer"
+          )
+        }
+      }
    
   const offer = await Offer.findById( new mongoose.Types.ObjectId(data.offerId) );
   if (!offer) {
