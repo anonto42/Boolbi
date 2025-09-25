@@ -4,7 +4,6 @@ import sendResponse from "../../shared/sendResponse";
 import { ProviderService } from "../service/provider.service";
 import { getMultipleFilesPath, getSingleFilePath } from "../../shared/getFilePath";
 
-
 const gOrder = catchAsync(
     async( req, res ) => {
         const user = (req as any)?.user;
