@@ -14,14 +14,14 @@ const userSchema = new Schema<IUser>({
   },
   fullName: {
     type: String,
-    default: "--",
+    default: "",
     min: 6,
     max: 100,
     trim: true
   },
   description: {
     type: String,
-    default: "--",
+    default: "",
     min: 6,
     trim: true   
   },
@@ -33,11 +33,11 @@ const userSchema = new Schema<IUser>({
   },
   category:{
     type: String,
-    default: "--"
+    default: ""
   },
   subCategory:{
     type: String,
-    default: "--"
+    default: ""
   },
   deviceID:{
     type: String
@@ -74,19 +74,19 @@ const userSchema = new Schema<IUser>({
     type: String,
     trim: true,
     min: 3,
-    default: "--"
+    default: ""
   },
   postalCode:{
     type: String,
     trim: true,
     min: 4,
-    default: "--"
+    default: ""
   },
   address:{
     type: String,
     trim: true,
     min: 7,
-    default: "--"
+    default: ""
   },
   password: {
     type: String,
@@ -94,7 +94,7 @@ const userSchema = new Schema<IUser>({
   },
   phone: {
     type: String,
-    default: "--"
+    default: ""
   },
   samplePictures: {
     type: [String],

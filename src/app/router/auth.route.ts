@@ -9,6 +9,9 @@ const router = Router();
 
 router
     .route("/sign-in")
+    .get(
+        AuthController.getGestUser
+    )
     .post(
         validateRequest(Validation.signInZodSchema),
         AuthController.SignIn
@@ -52,6 +55,5 @@ router
         auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
         AuthController.ftm_token
     )
-
 
 export const AuthRouter = router;

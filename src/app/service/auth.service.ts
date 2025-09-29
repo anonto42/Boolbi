@@ -12,6 +12,7 @@ import { ACCOUNT_STATUS, USER_ROLES } from "../../enums/user.enums";
 import { compare, hash } from "bcryptjs";
 import { JwtPayload } from "jsonwebtoken";
 import axios from "axios";
+import { IUser } from "../../Interfaces/User.interface";
 
 const signIn = async ( 
     payload : SignInData
@@ -32,7 +33,7 @@ const signIn = async (
         )
     }
     if ( isUser.accountStatus === ACCOUNT_STATUS.DELETE || isUser.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUser.accountStatus.toLowerCase()}!`)
+        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUser.accountStatus.toLowerCase()} pleas contact to admin!`)
     };
 
     const isTrue = await bcryptjs.compare(password, isUser.password);
@@ -308,8 +309,34 @@ const fcmToken = async (
     return isUser.deviceID;
 }
 
+const createGestUser = async () => {
+
+    const isGestUserExist = await User.findOne({ fullName: "gest user"}).lean().exec() as IUser;
+    ;
+    let token;
+    if(!isGestUserExist){
+        const newGestUser = await User.create({
+            fullName: "gest user",
+            userVerification: true,
+            email: "gest@mail.com",
+            role: USER_ROLES.USER,
+            password: "12345678"
+            
+        } as IUser)
+        
+        token = jwtHelper.createToken({language: newGestUser.language, role: newGestUser.role, userID: newGestUser._id});
+
+        return { token }
+    }
+
+    token = jwtHelper.createToken({language: isGestUserExist.language, role: isGestUserExist.role, userID: isGestUserExist._id});
+
+    return { token }
+}
+
 export const AuthServices = {
     signIn,
+    createGestUser,
     fcmToken,
     emailSend,
     verifyOtp,

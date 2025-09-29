@@ -121,9 +121,24 @@ const ftm_token = catchAsync(
     }
 )
 
+const getGestUser = catchAsync(
+    async( req: Request, res: Response ) => {
+
+        const result = await AuthServices.createGestUser();
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes.OK,
+            message: "Successfully get gest account ",
+            data: result
+        })
+    }
+)
+
 export const AuthController = {
     SignIn,
     getOpt,
+    getGestUser,
     verifyOtp,
     changePassword,
     socalLogin,

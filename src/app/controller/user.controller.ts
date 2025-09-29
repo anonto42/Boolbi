@@ -431,6 +431,7 @@ const recommendedPosts = catchAsync(
 
 const filterPosts = catchAsync(
     async( req:Request, res:Response ) => {
+        
         const payload = (req as any)?.user;
 
         const data = {  

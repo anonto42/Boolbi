@@ -4,7 +4,11 @@ import { USER_ROLES } from "../../enums/user.enums";
 import { PaymentController } from "../controller/payment.controller";
 import Stripe from "stripe";
 import config from "../../config";
-import { cardAddedSuccessfull, errorOnPayment } from "../../shared/paymentTemplate";
+import { errorOnPayment } from "../../shared/paymentTemplate";
+import User from "../../model/user.model";
+import mongoose from "mongoose";
+import ApiError from "../../errors/ApiError";
+import { StatusCodes } from "http-status-codes";
 
 const router = Router();
 
@@ -51,6 +55,25 @@ router
     .get(
         PaymentController.refreshSesstion
     )
+
+router
+    .route("/return")
+    .get(async (req, res)=>{
+
+        const { accountId, userId } = req.query;
+
+        if (!userId && !accountId) {
+            throw new ApiError(
+                StatusCodes.BAD_GATEWAY,
+                "We don't found the Details"
+            )
+        }
+        const user = await User.findById( new mongoose.Types.ObjectId(userId as string) )
+        user.paymentCartDetails.accountID
+        await user.save();
+
+        res.send("Successfully setup the account!")
+    })
 
 router
     .route("/failed")

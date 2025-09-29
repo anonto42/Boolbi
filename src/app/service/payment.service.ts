@@ -110,16 +110,13 @@ const verifyProvider = async (
             transfers: { requested: true },
         }
     });
-
-    user.paymentCartDetails.accountID = account.id;
-    await user.save();
     
     let url;
 
     const onboardLInk = await accountLinks.create({
         account: account.id,
         refresh_url: `${protocol}://${host}/api/v1/payment/refresh/${account.id}`,
-        return_url: `${protocol}://${host}/api/v1/payment/success/${account.id}`,
+        return_url: `${protocol}://${host}/api/v1/payment/return?accountId=${account.id}&userId=${user._id}`,
         type: "account_onboarding"
     })
     url = onboardLInk.url;
@@ -152,7 +149,7 @@ const payoutToUser = async (
         throw new ApiError(StatusCodes.BAD_REQUEST, "You haven't completed the order process!");
     }
 
-    if (!user.paymentCartDetails.customerID) {
+    if (!user.paymentCartDetails.accountID) {
         throw new ApiError(StatusCodes.EXPECTATION_FAILED, "We didn't find your payment method!");
     }
 
@@ -160,7 +157,7 @@ const payoutToUser = async (
     const transfer = await transfers.create({
         amount: Math.round(order.offerID.budget * 100), // Convert to cents
         currency: 'usd',
-        destination: user.paymentCartDetails.customerID,
+        destination: user.paymentCartDetails.accountID,
     });
 
     if (!transfer) {
