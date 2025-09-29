@@ -19,7 +19,8 @@ async function main() {
     try {
 
         let response: any = {};
-        await mongoose.connect(`mongodb://${config.database_user_name}:${config.database_user_password}@mongo:${config.database_port}/${config.database_name}?authSource=admin`)
+        // await mongoose.connect(`mongodb://${config.database_user_name}:${config.database_user_password}@mongo:${config.database_port}/${config.database_name}?authSource=admin`)
+        await mongoose.connect(`mongodb://localhost:27017/boolbi`)
         .then( rep => response = rep )
         .catch( err => console.log( err ))
         console.log(colors.green("✅ Your Database was hosted on: ") + colors.cyan(response.connection.host)),

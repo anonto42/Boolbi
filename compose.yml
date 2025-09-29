@@ -4,10 +4,10 @@ services:
     image: mongo
     env_file:
       - .env 
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_ADMINUSERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_ADMINPASSWORD}
-      - MONGO_INITDB_DATABASE=${DATABASE_NAME}
+    # environment:
+    #   - MONGO_INITDB_ROOT_USERNAME=${MONGODB_ADMINUSERNAME}
+    #   - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_ADMINPASSWORD}
+    #   - MONGO_INITDB_DATABASE=${DATABASE_NAME}
     volumes:
       - shared-data:/shared
     ports:
