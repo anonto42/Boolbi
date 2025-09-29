@@ -23,80 +23,80 @@ services:
           cpus: '0.25'      # minimum CPU reserved
           memory: 256M      # minimum memory reserved
 
-  nginx:
-    build:
-      context: .
-      dockerfile: ./Docker/Dockerfile.nginx
-    ports:
-      - "80:80"
-    env_file:
-      - .env
-    depends_on:
-      - server
-      - server2
-      - server3
-    networks:
-      - server-net
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M 
-        reservations:
-          cpus: '0.25'
-          memory: 256M
+  # nginx:
+  #   build:
+  #     context: .
+  #     dockerfile: ./Docker/Dockerfile.nginx
+  #   ports:
+  #     - "80:80"
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - server
+  #     - server2
+  #     - server3
+  #   networks:
+  #     - server-net
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '0.5'
+  #         memory: 512M 
+  #       reservations:
+  #         cpus: '0.25'
+  #         memory: 256M
 
-  server:
-    build:
-      context: .
-      dockerfile: ./Docker/Dockerfile
-    container_name: server
-    hostname: server
-    env_file:
-      - .env
-    volumes:
-      - shared-data:/shared
-    # ports:
-    #   - "1111:${PORT}"
-    networks:
-      - server-net
-    depends_on:
-      - mongo
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M 
-        reservations:
-          cpus: '0.25'
-          memory: 256M 
+  # server:
+  #   build:
+  #     context: .
+  #     dockerfile: ./Docker/Dockerfile
+  #   container_name: server
+  #   hostname: server
+  #   env_file:
+  #     - .env
+  #   volumes:
+  #     - shared-data:/shared
+  #   # ports:
+  #   #   - "1111:${PORT}"
+  #   networks:
+  #     - server-net
+  #   depends_on:
+  #     - mongo
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '0.5'
+  #         memory: 512M 
+  #       reservations:
+  #         cpus: '0.25'
+  #         memory: 256M 
 
-  server2:
-    build:
-      context: .
-      dockerfile: ./Docker/Dockerfile
-    container_name: server2
-    hostname: server2
-    env_file:
-      - .env
-    volumes:
-      - shared-data:/shared
-    # ports:
-    #   - "2222:${PORT}"
-    networks:
-      - server-net
-    depends_on:
-      - mongo
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M   
-        reservations:
-          cpus: '0.25'  
-          memory: 256M 
+  # server2:
+  #   build:
+  #     context: .
+  #     dockerfile: ./Docker/Dockerfile
+  #   container_name: server2
+  #   hostname: server2
+  #   env_file:
+  #     - .env
+  #   volumes:
+  #     - shared-data:/shared
+  #   # ports:
+  #   #   - "2222:${PORT}"
+  #   networks:
+  #     - server-net
+  #   depends_on:
+  #     - mongo
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '0.5'
+  #         memory: 512M   
+  #       reservations:
+  #         cpus: '0.25'  
+  #         memory: 256M 
 
-  server3:
+  # server3:
     build:
       context: .
       dockerfile: ./Docker/Dockerfile
