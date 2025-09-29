@@ -6,6 +6,7 @@ import { socketHelper } from './helpers/socketHelper';
 import { errorLogger, logger } from './shared/logger';
 import DBConnection from './DB/ConnentDB';
 import { superUserCreate } from './DB/SuperUserCreate';
+import mongoose from 'mongoose';
 
 //uncaught exception
 process.on('uncaughtException', error => {
@@ -17,7 +18,7 @@ let server: any;
 async function main() {
   try {
     
-    await DBConnection()
+      await mongoose.connect(`mongodb://localhost:27017/boolbi`)
         .then( response =>(
             console.log(colors.green("✅ Your Database was hosted on: ") + colors.cyan(response.connection.host)),
             console.log(colors.green("✅ Your Database is running on port: ") + colors.yellow(response.connection.port.toString())),
