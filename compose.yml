@@ -10,8 +10,6 @@ services:
       - shared-data:/shared
     ports:
       - "27017:27017"
-    networks:
-      - server-net
     deploy:
       resources:
         limits:
