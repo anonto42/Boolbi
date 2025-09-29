@@ -1,4 +1,4 @@
-import chalk from "chalk";
+import colors from "colors";
 import { errorLogger, logger } from "./shared/logger";
 import config from "./config";
 import app from "./index";
@@ -22,9 +22,9 @@ async function main() {
         await mongoose.connect(`mongodb://${config.database_user_name}:${config.database_user_password}@mongo:${config.database_port}/${config.database_name}?authSource=admin`)
         .then( rep => response = rep )
         .catch( err => console.log( err ))
-        console.log(chalk.green("✅ Your Database was hosted on: ") + chalk.cyan(response.connection.host)),
-        console.log(chalk.green("✅ Your Database is running on port: ") + chalk.yellow(response.connection.port)),
-        console.log(chalk.green("✅ Your Database name is: ") + chalk.magenta(response.connection.name))
+        console.log(colors.green("✅ Your Database was hosted on: ") + colors.cyan(response.connection.host)),
+        console.log(colors.green("✅ Your Database is running on port: ") + colors.yellow(response.connection.port)),
+        console.log(colors.green("✅ Your Database name is: ") + colors.magenta(response.connection.name))
 
         await superUserCreate();
 
@@ -36,7 +36,7 @@ async function main() {
 
         server = app.listen(port, config.ip_address as string,()=>{
             logger.info(
-                chalk.yellow(`♻️  Application listening on port:${config.port}`)
+                colors.yellow(`♻️  Application listening on port:${config.port}`)
             );
         });
 
@@ -52,7 +52,7 @@ async function main() {
         global.io = io;
         
     } catch (error) {
-        errorLogger.error(chalk.red('🤢 Failed to connect Database'));
+        errorLogger.error(colors.red('🤢 Failed to connect Database'));
     }
 
     //handle unhandleRejection
