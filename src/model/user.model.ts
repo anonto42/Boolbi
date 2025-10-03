@@ -26,9 +26,7 @@ const userSchema = new Schema<IUser>({
     trim: true   
   },
   email: { 
-    type: String, 
-    unique: true, 
-    required: true,
+    type: String,
     trim: true
   },
   category:{
