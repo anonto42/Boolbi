@@ -5,7 +5,7 @@ import { FilterPost, GetRecommendedPostsOptions, ISignUpData, JobPost, Notificat
 import { bcryptjs } from "../../helpers/bcryptHelper";
 import { IUser } from "../../Interfaces/User.interface";
 import { JwtPayload } from "jsonwebtoken";
-import { IPhotos } from "../../Interfaces/post.interface";
+import { IPhotos, IPost } from "../../Interfaces/post.interface";
 import unlinkFile from "../../shared/unlinkFile";
 import Post from "../../model/post.model";
 import mongoose, { Types } from "mongoose";
@@ -24,6 +24,7 @@ import { RatingModel } from "../../model/Rating.model";
 import Chat from "../../model/chat.model";
 import { IOffer } from "../../Interfaces/offer.interface";
 import Message from "../../model/message.model";
+// import { calculateDistanceInKm } from "../../helpers/calculationCount";
 
 //User signUp
 const signUp = async ( 
@@ -306,18 +307,18 @@ const accountStatus = async (
 
 //Privacy & Policy
 const privacy = async ( 
-    payload : JwtPayload
+    // payload : JwtPayload
 ) => {
-    const { userID } = payload;
+    // const { userID } = payload;
 
-    const isExist = await User.findOne({_id: userID})
-    if (!isExist) {
-        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
-    };
+    // const isExist = await User.findOne({_id: userID})
+    // if (!isExist) {
+    //     throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
+    // };
 
-    if ( isExist.accountStatus === ACCOUNT_STATUS.DELETE || isExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
-    };
+    // if ( isExist.accountStatus === ACCOUNT_STATUS.DELETE || isExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+    //     throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
+    // };
 
     const privacy = await User.findOne({ role: USER_ROLES.SUPER_ADMIN });
     if (!privacy) {
@@ -329,18 +330,18 @@ const privacy = async (
 
 //Terms & Conditions
 const conditions = async ( 
-    payload : JwtPayload
+    // payload : JwtPayload
 ) => {
-    const { userID } = payload;
+    // const { userID } = payload;
 
-    const isExist = await User.findOne({_id: userID})
-    if (!isExist) {
-        throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
-    };
+    // const isExist = await User.findOne({_id: userID})
+    // if (!isExist) {
+    //     throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
+    // };
 
-    if ( isExist.accountStatus === ACCOUNT_STATUS.DELETE || isExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
-        throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
-    };
+    // if ( isExist.accountStatus === ACCOUNT_STATUS.DELETE || isExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
+    //     throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isExist.accountStatus.toLowerCase()}!`)
+    // };
 
     const condition = await User.findOne({ role: USER_ROLES.SUPER_ADMIN });
     if (!condition) {
@@ -1799,8 +1800,24 @@ const getRecommendedPosts = async ({
   return results
 };
 
-// Have to work 
-const getPostsOrProviders = async ({
+const calculateDistanceInKm = (lat1?: number, lon1?: number, lat2?: number, lon2?: number) => {
+  const nums = [lat1, lon1, lat2, lon2].map(Number);
+  if (nums.some((n) => !Number.isFinite(n))) return Infinity;
+  const [aLat, aLon, bLat, bLon] = nums as number[];
+  const R = 6371;
+  const dLat = ((bLat - aLat) * Math.PI) / 180;
+  const dLon = ((bLon - aLon) * Math.PI) / 180;
+  const s1 = Math.sin(dLat / 2);
+  const s2 = Math.sin(dLon / 2);
+  const h = s1 * s1 + Math.cos((aLat * Math.PI) / 180) * Math.cos((bLat * Math.PI) / 180) * s2 * s2;
+  return 2 * R * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+};
+
+const shuffle = <T,>(arr: T[]) => arr.sort(() => Math.random() - 0.5);
+const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const rx = (s?: string) => (s && s.trim() ? { $regex: esc(s.trim()), $options: "i" } : undefined);
+
+export const getPostsOrProviders = async ({
   payload,
   page = 1,
   limit = 20,
@@ -1811,73 +1828,56 @@ const getPostsOrProviders = async ({
   lng,
   distance = 50,
 }: GetRecommendedPostsOptions & FilterPost) => {
+
+  console.log({  payload,
+  page ,
+  limit,
+  query,
+  category,
+  subCategory,
+  lat,
+  lng,
+  distance,
+})
+
   const { userID } = payload;
   const skip = (page - 1) * limit;
 
-  // Fetch user
+  const latN = Number(lat);
+  const lngN = Number(lng);
+  const distN = Number(distance);
+  const hasCoords = Number.isFinite(latN) && Number.isFinite(lngN);
+  const hasDist = Number.isFinite(distN) && distN >= 1;
+
+  // User checks
   const user = await User.findById(userID).lean() as IUser;
   if (!user) throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
-
-  if (
-    user.accountStatus === ACCOUNT_STATUS.DELETE ||
-    user.accountStatus === ACCOUNT_STATUS.BLOCK
-  ) {
-    throw new ApiError(
-      StatusCodes.FORBIDDEN,
-      `Your account was ${user.accountStatus.toLowerCase()}!`
-    );
+  if (user.accountStatus === ACCOUNT_STATUS.DELETE || user.accountStatus === ACCOUNT_STATUS.BLOCK) {
+    throw new ApiError(StatusCodes.FORBIDDEN, `Your account was ${user.accountStatus.toLowerCase()}!`);
   }
 
   const isServiceProvider = user.role === USER_ROLES.SERVICE_PROVIDER;
 
-  // Utility: shuffle array
-  const shuffleArray = (arr: any[]) => arr.sort(() => Math.random() - 0.5);
-
-  // Escape regex for search
-  const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-  // Build search keywords
-  const searchKeywords = query.trim() ? query.trim().split(/\s+/) : [];
-
-  // Build AND conditions for search (case-insensitive)
-  const andConditions: any[] = searchKeywords.map((kw) => {
-    const regex = { $regex: escapeRegex(kw), $options: "i" };
-    if (isServiceProvider) {
-      // Post search
-      return { $or: [{ projectName: regex }, { category: regex }, { subCategory: regex }]};
-    } else {
-      // Provider search
-      return { $or: [{ fullName: regex }, { category: regex }, { subCategory: regex }] };
-    }
-  });
-
-  const categoryFilter: any = {};
-  if (category) categoryFilter.category = category;
-  if (subCategory) categoryFilter.subCategory = subCategory;
-
-  let geoFilter: any = {};
-  if (
-    typeof lat === "number" &&
-    typeof lng === "number" &&
-    !Number.isNaN(lat) &&
-    !Number.isNaN(lng)
-  ) {
-    geoFilter["latLng"] = {
-      $near: {
-        $geometry: {
-          type: "Point",
-          coordinates: [lng, lat],
-        },
-        $maxDistance: distance * 1000, // distance in meters
-      },
-    };
+  if (isServiceProvider) {
+    
   }
 
-  if (isServiceProvider) {
-    const queryObj: any = { ...categoryFilter, ...geoFilter };
-    if (andConditions.length) queryObj.$and = andConditions;
+  // Fuzzy regexes
+  const qRegex = rx(query);
+  const catRegex = rx(category);
+  const subCatRegex = rx(subCategory);
 
-    let posts = await Post.find(queryObj)
+  const noInputFilters = !qRegex && !catRegex && !subCatRegex && !hasCoords;
+
+  if (isServiceProvider) {
+
+    let posts = await Post.find( !query ? {
+      category: category
+    }: {
+      projectName: { $regex: query, $options: "i" },
+      subCategory: subCatRegex,
+      category: catRegex
+    })
       .populate({
         path: "offers",
         populate: { path: "form", select: "fullName email phone address profileImage" },
@@ -1887,57 +1887,114 @@ const getPostsOrProviders = async ({
       .limit(limit)
       .lean();
 
-    // Fallback to random if empty and no query/category/subCategory
-    if (!posts.length && !query && !category && !subCategory) {
-      const allPosts = await Post.find().populate("offers").select("-latLng").lean();
-      posts = shuffleArray(allPosts).slice(skip, skip + limit);
-    }
+    const subCategoryFilter = posts.filter( e => e.subCategory == subCategory);
 
-    const dataWithValidOfferSnd = await Promise.all(
-      posts.map( async ( post: any ) => {
+    const data = subCategory ? subCategoryFilter : posts
+
+    const enriched = await Promise.all(
+      data.map(async (post: any) => {
         const existingOffer = await Offer.findOne({
           projectID: post._id,
-          $or: [ 
-            {
-              to: user._id
-            },
-            {
-              form: user._id
-            }
-          ]
-        })
+          $or: [{ to: user._id }, { form: user._id }],
+        });
+
+        const pLat = post?.latLng?.coordinates?.[1];
+        const pLng = post?.latLng?.coordinates?.[0];
+        const dKm = hasCoords ? calculateDistanceInKm(latN, lngN, pLat, pLng) : undefined;
 
         return {
           ...post,
-          isValid: new Date( post.deadline ).getTime() > Date.now(),
-          isOfferSend: !!existingOffer
-        }
+          isValid: new Date(post.deadline).getTime() > Date.now(),
+          isOfferSend: !!existingOffer,
+          distance: dKm,
+        };
       })
-    )
+    );
 
-    return dataWithValidOfferSnd;
-  } else {
-    // Providers
-    const queryObj: any = { role: USER_ROLES.SERVICE_PROVIDER, accountStatus: ACCOUNT_STATUS.ACTIVE, ...categoryFilter, ...geoFilter };
-    if (andConditions.length) queryObj.$and = andConditions;
-
-    let providers = await User.find(queryObj)
-      .select("-password -otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
-
-    // Fallback to random if empty and no query/category/subCategory
-    if (!providers.length && !query && !category && !subCategory) {
-      const allProviders = await User.find({ role: USER_ROLES.SERVICE_PROVIDER, accountStatus: ACCOUNT_STATUS.ACTIVE })
-        .select("-password -otpVerification -isSocialAccount -latLng -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v")
-        .lean();
-      providers = shuffleArray(allProviders).slice(skip, skip + limit);
+    let filtered = enriched;
+    if (hasCoords && hasDist) {
+      filtered = enriched.filter((p) => Number.isFinite(p.distance) && (p.distance as number) <= (distN <= 1 ? 50 : distN ));
     }
 
-    return providers;
+    if (noInputFilters) {
+      const all = await Post.find({})
+        .populate({
+          path: "offers",
+          populate: { path: "form", select: "fullName email phone address profileImage" },
+        })
+        .lean();
+
+      const pageRand = shuffle(all).slice(skip, skip + limit).map((p: any) => {
+        const pLat = p?.latLng?.coordinates?.[1];
+        const pLng = p?.latLng?.coordinates?.[0];
+        const dKm = hasCoords ? calculateDistanceInKm(latN, lngN, pLat, pLng) : undefined;
+        return {
+          ...p,
+          isValid: new Date(p.deadline).getTime() > Date.now(),
+          isOfferSend: false,
+          distance: dKm,
+        };
+      });
+
+      return pageRand;
+    }
+
+    return filtered;
   }
+
+  const andFilters: any[] = [
+    { role: USER_ROLES.SERVICE_PROVIDER },
+    { accountStatus: ACCOUNT_STATUS.ACTIVE },
+  ];
+
+  if (qRegex) andFilters.push({ $or: [{ fullName: qRegex }, { category: qRegex }, { subCategory: qRegex }] });
+  if (catRegex) andFilters.push({ category: catRegex });    
+  if (subCatRegex) andFilters.push({ subCategory: subCatRegex });  
+
+  const providerQuery: any = andFilters.length ? { $and: andFilters } : {};
+
+  let providers = await User.find(providerQuery)
+    .select(
+      "-password -otpVerification -isSocialAccount -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v"
+    )
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean();
+
+  const withDist = providers.map((p: any) => {
+    const pLat = p?.latLng?.coordinates?.[1];
+    const pLng = p?.latLng?.coordinates?.[0];
+    const dKm = hasCoords ? calculateDistanceInKm(latN, lngN, pLat, pLng) : undefined;
+    return { ...p, distance: dKm };
+  });
+
+  let filteredProviders = withDist;
+  if (hasCoords && hasDist) {
+    filteredProviders = withDist.filter((p) => Number.isFinite(p.distance) && (p.distance as number) <= (distN <= 1 ? 50 : distN ));
+  }
+
+  if (noInputFilters || filteredProviders.length === 0) {
+    const all = await User.find({
+      role: USER_ROLES.SERVICE_PROVIDER,
+      accountStatus: ACCOUNT_STATUS.ACTIVE,
+    })
+      .select(
+        "-password -otpVerification -isSocialAccount -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v"
+      )
+      .lean();
+
+    const pageRand = shuffle(all).slice(skip, skip + limit).map((p: any) => {
+      const pLat = p?.latLng?.coordinates?.[1];
+      const pLng = p?.latLng?.coordinates?.[0];
+      const dKm = hasCoords ? calculateDistanceInKm(latN, lngN, pLat, pLng) : undefined;
+      return { ...p, distance: dKm };
+    });
+
+    return pageRand;
+  }
+
+  return filteredProviders;
 };
 
 const allNotifications = async (
@@ -2499,42 +2556,42 @@ const doCounter = async (
 };
 
 export const UserServices = {
-    getPostsOrProviders,
-    doCounter,
-    totalOffersOnPost,
-    getReatings,
-    allPost,
-    offerOnPost,
-    aProvider,
-    deleteNotification,
-    addRating,
-    getRequests,
-    updateNotifications,
-    getAOffer,
-    signUp,
-    allNotifications,
-    searchPosts,
-    profle,
-    UP,
-    profileDelete,
-    language,
-    Images,
-    createPost,
-    accountStatus,
-    privacy,
-    conditions,
-    post,
-    favorite,
-    getFavorite,
-    removeFavorite,
-    deleteJob,
-    offers,
-    UPost,
-    singlePost,
-    cOffer,
-    intracatOffer,
-    deleteOffer,
-    supportRequest,
-    iOfferd,
-    getRecommendedPosts
+  getPostsOrProviders,
+  doCounter,
+  totalOffersOnPost,
+  getReatings,
+  allPost,
+  offerOnPost,
+  aProvider,
+  deleteNotification,
+  addRating,
+  getRequests,
+  updateNotifications,
+  getAOffer,
+  signUp,
+  allNotifications,
+  searchPosts,
+  profle,
+  UP,
+  profileDelete,
+  language,
+  Images,
+  createPost,
+  accountStatus,
+  privacy,
+  conditions,
+  post,
+  favorite,
+  getFavorite,
+  removeFavorite,
+  deleteJob,
+  offers,
+  UPost,
+  singlePost,
+  cOffer,
+  intracatOffer,
+  deleteOffer,
+  supportRequest,
+  iOfferd,
+  getRecommendedPosts
 };
