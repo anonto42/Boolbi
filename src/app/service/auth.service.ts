@@ -269,22 +269,28 @@ const socalLogin = async (
     const isUserExist = await User.findOne({
         email: data.emailAddresses[0].value
     });
+    if (!isUserExist) {
+        throw new ApiError(
+            StatusCodes.NOT_FOUND,
+            "Your account was not exist! you have to sign up your account!"
+        )
+    }
 
     // Create user if there is not any user
-    if ( isUserExist === null ) {
-        const user = await User.create({
-            'isSocialAccount.isSocial': true,
-            'isSocialAccount.provider': provider,
-            role: USER_ROLES.USER,
-            password: "--",
-            email: data.emailAddresses[0].value,
-            fullName: data.names[0].displayName,
-            profileImage: data.photos[0].url
-        })
+    // if ( isUserExist === null ) {
+    //     const user = await User.create({
+    //         'isSocialAccount.isSocial': true,
+    //         'isSocialAccount.provider': provider,
+    //         role: USER_ROLES.USER,
+    //         password: "--",
+    //         email: data.emailAddresses[0].value,
+    //         fullName: data.names[0].displayName,
+    //         profileImage: data.photos[0].url
+    //     })
         
-        const token = jwtHelper.createToken({language: "en", role: user.role, userID: user._id});
-        return { token };
-    };
+    //     const token = jwtHelper.createToken({language: "en", role: user.role, userID: user._id});
+    //     return { token };
+    // };
 
     if ( isUserExist.accountStatus === ACCOUNT_STATUS.DELETE || isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK ) {
         throw new ApiError(StatusCodes.FORBIDDEN,`Your account was ${isUserExist.accountStatus.toLowerCase()}!`)
