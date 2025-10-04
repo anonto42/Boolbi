@@ -29,7 +29,7 @@ import Message from "../../model/message.model";
 const signUp = async ( 
     payload : ISignUpData
 ) => {
-    const { fullName, email, password, confirmPassword, phone, role } = payload;
+    const { fullName, email, password, confirmPassword, phone, role, category, subCategory } = payload;
 
     const isExist = await User.findOne({email: email});
     if (isExist) {
@@ -63,6 +63,8 @@ const signUp = async (
         email,
         password: hashed,
         phone,
+        category,
+        subCategory,
         role,
     };
 
@@ -163,11 +165,9 @@ const profileDelete = async (
   payload: JwtPayload
 ) => {
   const { userID } = payload;
-  const isUser = await User.findById(userID);
+  const isUser = await User.findById(userID) as IUser;
 
-  if (!isUser) {
-    throw new ApiError(StatusCodes.BAD_GATEWAY, "Your account does not exist!");
-  }
+  if (!isUser) throw new ApiError(StatusCodes.BAD_GATEWAY, "Your account does not exist!");
 
   if (
     isUser.accountStatus === ACCOUNT_STATUS.DELETE ||
@@ -177,20 +177,9 @@ const profileDelete = async (
       StatusCodes.FORBIDDEN,
       `Your account was ${isUser.accountStatus.toLowerCase()}!`
     );
-  }
+  };
 
-  // if (Array.isArray(isUser.samplePictures)) {
-  //   for (const img of isUser.samplePictures) {
-  //     unlinkFile(img);
-  //   }
-  // }
-
-  // if (isUser.profileImage) {
-  //   unlinkFile(isUser.profileImage);
-  // }
-
-  isUser.accountStatus = ACCOUNT_STATUS.DELETE;
-  await isUser.save();
+  const account = await User.findByIdAndUpdate(isUser._id, { email: "deleted@mail.de",accountStatus: ACCOUNT_STATUS.DELETE }, { new: true }).lean().exec()
 
   return true;
 };
@@ -1613,10 +1602,10 @@ const searchPostsByQuery = async (
       { projectName: { $regex: query, $options: "i" } },
       { category: { $regex: query, $options: "i" } },
       { subCategory: { $regex: query, $options: "i" } },
-      { companyName: { $regex: query, $options: "i" } },
-      { jobDescription: { $regex: query, $options: "i" } },
     ],
   };
+
+  console.log(conditions)
 
   const [results, total] = await Promise.all([
     Post.find(conditions)
@@ -1648,11 +1637,11 @@ const searchProvidersByQuery = async (
 
   const conditions = {
     role: USER_ROLES.SERVICE_PROVIDER,
+    accountStatus: ACCOUNT_STATUS.ACTIVE,
     $or: [
       { fullName: { $regex: query, $options: "i" } },
       { category: { $regex: query, $options: "i" } },
       { subCategory: { $regex: query, $options: "i" } },
-      { serviceDescription: { $regex: query, $options: "i" } },
     ],
   };
 
@@ -1744,7 +1733,6 @@ const getRecommendedPosts = async ({
             { projectName: regex },
             { category: regex },
             { subCategory: regex },
-            { jobDescription: regex },
           ],
         };
       } else {
@@ -1753,7 +1741,6 @@ const getRecommendedPosts = async ({
             { fullName: regex },
             { category: regex },
             { subCategory: regex },
-            { description: regex },
           ],
         };
       }
@@ -1812,6 +1799,7 @@ const getRecommendedPosts = async ({
   return results
 };
 
+// Have to work 
 const getPostsOrProviders = async ({
   payload,
   page = 1,
@@ -1856,26 +1844,36 @@ const getPostsOrProviders = async ({
     const regex = { $regex: escapeRegex(kw), $options: "i" };
     if (isServiceProvider) {
       // Post search
-      return { $or: [{ projectName: regex }, { category: regex }, { subCategory: regex }, { jobDescription: regex }] };
+      return { $or: [{ projectName: regex }, { category: regex }, { subCategory: regex }]};
     } else {
       // Provider search
-      return { $or: [{ fullName: regex }, { category: regex }, { subCategory: regex }, { description: regex }] };
+      return { $or: [{ fullName: regex }, { category: regex }, { subCategory: regex }] };
     }
   });
 
-  // Build category/subCategory filters
   const categoryFilter: any = {};
   if (category) categoryFilter.category = category;
   if (subCategory) categoryFilter.subCategory = subCategory;
 
-  // Build geo filter if lat/lng provided
   let geoFilter: any = {};
-  if (typeof lat === "number" && typeof lng === "number" && !Number.isNaN(lat) && !Number.isNaN(lng)) {
-    geoFilter.latLng = { $geoWithin: { $centerSphere: [[lng, lat], distance / 6378.1] } };
+  if (
+    typeof lat === "number" &&
+    typeof lng === "number" &&
+    !Number.isNaN(lat) &&
+    !Number.isNaN(lng)
+  ) {
+    geoFilter["latLng"] = {
+      $near: {
+        $geometry: {
+          type: "Point",
+          coordinates: [lng, lat],
+        },
+        $maxDistance: distance * 1000, // distance in meters
+      },
+    };
   }
 
   if (isServiceProvider) {
-    // Posts
     const queryObj: any = { ...categoryFilter, ...geoFilter };
     if (andConditions.length) queryObj.$and = andConditions;
 

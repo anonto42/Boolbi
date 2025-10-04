@@ -16,7 +16,7 @@ router
         UserController.profile
     )
     .post(
-        validateRequest(Validation.singnUpZodSchema),
+        // validateRequest(Validation.singnUpZodSchema),
         UserController.signupUser
     )
     .put(

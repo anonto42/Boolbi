@@ -86,7 +86,7 @@ const profileDelete = catchAsync(
         sendResponse(res, {
             success: true,
             statusCode: StatusCodes.OK,
-            message: "Profile delete successfully",
+            message: "Account deleted successfully",
             data: result
         })
     }
@@ -445,6 +445,7 @@ const filterPosts = catchAsync(
             lng: Number(req.query.lng),
             distance: Number(req.query.distance),
         }   
+        console.log(data)
         const result = await UserServices.getPostsOrProviders(data);
 
         sendResponse(res, {
