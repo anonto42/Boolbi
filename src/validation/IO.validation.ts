@@ -2,20 +2,21 @@ import { z } from 'zod';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const singnUpZodSchema = z.object({
-  body: z.object({
-    role: z.string({ required_error: "You must give your account type"}),
-    fullName: z.string({ required_error: 'Full Name is required' }),
-    phone: z.string().optional(),
-    password: z.string({ required_error: 'Password is required' }),
-    confirmPassword: z.string({ required_error: 'Confirm password is required' }),
-    email: z
-      .string({ required_error: 'Email is required' })
-      .min(1, "Email is required.")
-      .email("Please provide a valid email address.")
-      .regex(emailRegex, "Email format is invalid."),
-  }),
-});
+// const singnUpZodSchema = z.object({
+//   body: z.object({
+//     role: z.string({ required_error: "You must give your account type"}),
+//     fullName: z.string({ required_error: 'Full Name is required' }),
+//     phone: z.string().optional(),
+//     password: z.string({ required_error: 'Password is required' }),
+//     confirmPassword: z.string({ required_error: 'Confirm password is required' }),
+
+//     email: z
+//       .string({ required_error: 'Email is required' })
+//       .min(1, "Email is required.")
+//       .email("Please provide a valid email address.")
+//       .regex(emailRegex, "Email format is invalid."),
+//   }),
+// });
 
 const signInZodSchema = z.object({
   body: z.object({
@@ -169,7 +170,7 @@ const ratingZodSchema = z.object({
 
 
 export const Validation = {
-  singnUpZodSchema,
+  // singnUpZodSchema,
   ratingZodSchema,
   filterData,
   signInZodSchema,
