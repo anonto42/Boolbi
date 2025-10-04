@@ -51,14 +51,14 @@ router
 router
     .route('/privacy')
     .get(
-        auth( USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        // auth( USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
         UserController.privacy
     )
 
 router
     .route('/condition')
     .get(
-        auth( USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        // auth( USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
         UserController.condition
     )
 
