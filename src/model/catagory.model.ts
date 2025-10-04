@@ -11,7 +11,8 @@ const categorySchema = new Schema<ICatagory>({
     required: true,
   },
   subCatagroys: [{
-    type: Schema.Types.ObjectId
+    type: Schema.Types.ObjectId,
+    ref: "subcatagory"
   }]
 },{
   timestamps: true
