@@ -121,9 +121,9 @@ const payments = catchAsync(
 
 const catagroys = catchAsync(
     async( req: Request, res: Response ) => {
-        const Payload = (req as any).user;
+        // const Payload = (req as any).user;
         const {...data} = req.body;
-        const result = await AdminService.allCatagorys(Payload,data);
+        const result = await AdminService.allCatagorys(data);
 
         sendResponse(res, {
             success: true,

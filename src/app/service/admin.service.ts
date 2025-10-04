@@ -417,34 +417,15 @@ const APayments = async (
 }
 
 const allCatagorys = async (
-    payload: JwtPayload,
     pagination: {
       page: number,
       limit: number,
       query?: string
     }
 ) => {
-    const { page = 1, limit = 10, query } = pagination;
-    const { userID } = payload;
-    const objID = new mongoose.Types.ObjectId(userID);
-    
-    const isUserExist = await User.findById(objID);
-    
-    if (!isUserExist) {
-      throw new ApiError(
-        StatusCodes.NOT_FOUND,
-        "User not found!"
-      );
-    }
-    if (
-      isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
-      isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
-    ) {
-      throw new ApiError(
-        StatusCodes.FORBIDDEN,
-        `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
-      );
-    }
+
+
+    const { limit= 200, page=1, query } = pagination;
 
     const skip = (page - 1) * limit;
 
@@ -1248,37 +1229,37 @@ const intractVerificationRequest = async (
 }
 
 export const AdminService = {
-    overview,
-    engagementData,
-    allCustomers,
-    intractVerificationRequest,
-    aCustomer,
-    updateUserAccountStatus,
-    allProvider,
-    allPayments,
-    APayments,
-    allCatagorys,
-    addNewCatagory,
-    deleteCatagory,
-    updateCatagory,
-    announcements,
-    singleAnnouncement,
-    createAnnouncement,
-    deleteAnnouncement,
-    updateAnnounsments,
-    statusAnnounsments,
-    privacyPolicy,
-    aVerification,
-    editePrivacyPolicy,
-    conditions,
-    editeConditions,
-    allAdmins,
-    addNewAdmin,
-    deleteAdmin,
-    allSupportRequests,
-    giveSupport,
-    addSubCatagorys,
-    deleteSubCatagory,
-    updateSubCatagory,
-    allVericifationRequestes
+  overview,
+  engagementData,
+  allCustomers,
+  intractVerificationRequest,
+  aCustomer,
+  updateUserAccountStatus,
+  allProvider,
+  allPayments,
+  APayments,
+  allCatagorys,
+  addNewCatagory,
+  deleteCatagory,
+  updateCatagory,
+  announcements,
+  singleAnnouncement,
+  createAnnouncement,
+  deleteAnnouncement,
+  updateAnnounsments,
+  statusAnnounsments,
+  privacyPolicy,
+  aVerification,
+  editePrivacyPolicy,
+  conditions,
+  editeConditions,
+  allAdmins,
+  addNewAdmin,
+  deleteAdmin,
+  allSupportRequests,
+  giveSupport,
+  addSubCatagorys,
+  deleteSubCatagory,
+  updateSubCatagory,
+  allVericifationRequestes
 }

@@ -57,7 +57,7 @@ router
 router
     .route("/category")
     .get(
-        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER ),
+        // auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER ),
         AdminController.catagroys
     )
     .post(
@@ -79,7 +79,7 @@ router
 router
     .route("/sub_category")
     .get(
-        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER,USER_ROLES.SERVICE_PROVIDER),
+        // auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER,USER_ROLES.SERVICE_PROVIDER),
         AdminController.allSubCatagroy
     )
     .post(
