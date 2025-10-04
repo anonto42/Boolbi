@@ -123,8 +123,8 @@ const status = catchAsync(
 
 const privacy = catchAsync(
     async( req:Request, res:Response ) => {
-        const payload = (req as any)?.user;
-        const result = await UserServices.privacy(payload)
+        // const payload = (req as any)?.user;
+        const result = await UserServices.privacy()
 
         sendResponse(res, {
             success: true,
@@ -137,8 +137,8 @@ const privacy = catchAsync(
 
 const condition = catchAsync(
     async( req:Request, res:Response ) => {
-        const payload = (req as any)?.user;
-        const result = await UserServices.conditions(payload)
+        // const payload = (req as any)?.user;
+        const result = await UserServices.conditions()
 
         sendResponse(res, {
             success: true,
@@ -444,8 +444,7 @@ const filterPosts = catchAsync(
             lat: Number(req.query.lat),
             lng: Number(req.query.lng),
             distance: Number(req.query.distance),
-        }   
-        console.log(data)
+        }
         const result = await UserServices.getPostsOrProviders(data);
 
         sendResponse(res, {
