@@ -5,6 +5,8 @@ export type ISignUpData = {
     address: string,
     email: string, 
     password: string, 
+    category: string,
+    subCategory: string
     confirmPassword: string, 
     phone?: string, 
     role: "USER" | "SERVICE_PROVIDER",
