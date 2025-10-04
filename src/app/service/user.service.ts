@@ -1883,7 +1883,6 @@ const getPostsOrProviders = async ({
         populate: { path: "form", select: "fullName email phone address profileImage" },
       })
       .sort({ createdAt: -1 })
-      .select("-latLng")
       .skip(skip)
       .limit(limit)
       .lean();
