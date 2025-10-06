@@ -322,12 +322,11 @@ const createGestUser = async () => {
     let token;
     if(!isGestUserExist){
         const newGestUser = await User.create({
-            fullName: "gest user",
+            fullName: "Guest User",
             userVerification: true,
             email: "gest@mail.com",
             role: USER_ROLES.USER,
             password: "12345678"
-            
         } as IUser)
         
         token = jwtHelper.createToken({language: newGestUser.language, role: newGestUser.role, userID: newGestUser._id});

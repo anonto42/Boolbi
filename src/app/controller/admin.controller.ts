@@ -453,9 +453,9 @@ const deleteAdmin = catchAsync(
 const supportReques = catchAsync(
     async( req: Request, res: Response ) => {
         const Payload = (req as any).user;
-        const { page, limit }: { page?: any, limit?: any} = req.query;
+        const { page, limit, status }: { status?: "solved" | "pending", page?: any, limit?: any} = req.query;
 
-        const result = await AdminService.allSupportRequests(Payload,{page: Number(page || 1),limit: Number(limit || 10)})
+        const result = await AdminService.allSupportRequests(Payload,{page: Number(page || 1),limit: Number(limit || 10), status})
 
         sendResponse(res, {
             success: true,
