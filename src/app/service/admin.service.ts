@@ -990,11 +990,12 @@ const allSupportRequests = async (
   payload: JwtPayload,
   params: {
     page: number,
-    limit: number
+    limit: number,
+    status: "solved" | "pending" | undefined
   }
 ) => {
   const { userID } = payload;
-  const { page = 1, limit = 10 } = params;
+  const { page = 1, limit = 10, status } = params;
   const skip = (page - 1) * limit;
 
   const isAdmin = await User.findById(userID);
@@ -1011,9 +1012,15 @@ const allSupportRequests = async (
     );
   }
 
-  const total = await Support.countDocuments();
+  const total = await Support.countDocuments({
+    isAdmin: { $ne: true },
+    status: status == 'solved'? "SOLVED" : status == 'pending'? "PENDING" : { $ne: null }
+  });
 
-  const supports = await Support.find()
+  const supports = await Support.find({
+    isAdmin: { $ne: true },
+    status: status == 'solved'? "SOLVED" : status == 'pending'? "PENDING" : { $ne: null }
+  })
     .populate({ path: 'for', select: 'fullName email' })
     .sort({ createdAt: -1 })
     .skip(skip)
@@ -1070,7 +1077,8 @@ const giveSupport = async (
       message,
       isAdmin: true,
       isImage: image? true : false,
-      image: image? image : ""
+      image: image? image : "",
+      status: "SOLVED"
     });
 
     //@ts-ignore
@@ -1095,9 +1103,7 @@ const giveSupport = async (
       )
     };
     
-    return {
-      
-    }
+    return 
 }
 
 const allVericifationRequestes = async (
