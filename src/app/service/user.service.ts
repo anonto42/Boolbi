@@ -1829,17 +1829,6 @@ export const getPostsOrProviders = async ({
   distance = 50,
 }: GetRecommendedPostsOptions & FilterPost) => {
 
-  console.log({  payload,
-  page ,
-  limit,
-  query,
-  category,
-  subCategory,
-  lat,
-  lng,
-  distance,
-})
-
   const { userID } = payload;
   const skip = (page - 1) * limit;
 
@@ -1857,10 +1846,6 @@ export const getPostsOrProviders = async ({
   }
 
   const isServiceProvider = user.role === USER_ROLES.SERVICE_PROVIDER;
-
-  if (isServiceProvider) {
-    
-  }
 
   // Fuzzy regexes
   const qRegex = rx(query);
@@ -1947,13 +1932,27 @@ export const getPostsOrProviders = async ({
     { accountStatus: ACCOUNT_STATUS.ACTIVE },
   ];
 
-  if (qRegex) andFilters.push({ $or: [{ fullName: qRegex }, { category: qRegex }, { subCategory: qRegex }] });
-  if (catRegex) andFilters.push({ category: catRegex });    
-  if (subCatRegex) andFilters.push({ subCategory: subCatRegex });  
+  if (qRegex) andFilters.push({ $or: [
+    { fullName: qRegex }, 
+    // { category: qRegex }, 
+    // { subCategory: qRegex }
+    ] 
+  });
+  // if (catRegex) andFilters.push({ category: catRegex });    
+  // if (subCatRegex) andFilters.push({ subCategory: subCatRegex });  
 
-  const providerQuery: any = andFilters.length ? { $and: andFilters } : {};
+  // const providerQuery: any = andFilters.length ? { $and: andFilters } : {};
 
-  let providers = await User.find(providerQuery)
+  let providers = await User.find( query? {
+    fullName: qRegex,
+    role: USER_ROLES.SERVICE_PROVIDER,
+  }: !query && category != "" && subCategory != ""? {
+    category,
+    subCategory,
+    role: USER_ROLES.SERVICE_PROVIDER,
+  } : {
+    role: USER_ROLES.SERVICE_PROVIDER,
+  })
     .select(
       "-password -otpVerification -isSocialAccount -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v"
     )
@@ -1974,25 +1973,25 @@ export const getPostsOrProviders = async ({
     filteredProviders = withDist.filter((p) => Number.isFinite(p.distance) && (p.distance as number) <= (distN <= 1 ? 50 : distN ));
   }
 
-  if (noInputFilters || filteredProviders.length === 0) {
-    const all = await User.find({
-      role: USER_ROLES.SERVICE_PROVIDER,
-      accountStatus: ACCOUNT_STATUS.ACTIVE,
-    })
-      .select(
-        "-password -otpVerification -isSocialAccount -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v"
-      )
-      .lean();
+  // if (noInputFilters || filteredProviders.length === 0) {
+  //   const all = await User.find({
+  //     role: USER_ROLES.SERVICE_PROVIDER,
+  //     accountStatus: ACCOUNT_STATUS.ACTIVE,
+  //   })
+  //     .select(
+  //       "-password -otpVerification -isSocialAccount -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v"
+  //     )
+  //     .lean();
 
-    const pageRand = shuffle(all).slice(skip, skip + limit).map((p: any) => {
-      const pLat = p?.latLng?.coordinates?.[1];
-      const pLng = p?.latLng?.coordinates?.[0];
-      const dKm = hasCoords ? calculateDistanceInKm(latN, lngN, pLat, pLng) : undefined;
-      return { ...p, distance: dKm };
-    });
+  //   const pageRand = shuffle(all).slice(skip, skip + limit).map((p: any) => {
+  //     const pLat = p?.latLng?.coordinates?.[1];
+  //     const pLng = p?.latLng?.coordinates?.[0];
+  //     const dKm = hasCoords ? calculateDistanceInKm(latN, lngN, pLat, pLng) : undefined;
+  //     return { ...p, distance: dKm };
+  //   });
 
-    return pageRand;
-  }
+  //   return pageRand;
+  // }
 
   return filteredProviders;
 };
