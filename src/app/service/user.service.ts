@@ -1817,7 +1817,7 @@ const shuffle = <T,>(arr: T[]) => arr.sort(() => Math.random() - 0.5);
 const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const rx = (s?: string) => (s && s.trim() ? { $regex: esc(s.trim()), $options: "i" } : undefined);
 
-export const getPostsOrProviders = async ({
+const getPostsOrProviders = async ({
   payload,
   page = 1,
   limit = 20,
@@ -1828,7 +1828,7 @@ export const getPostsOrProviders = async ({
   lng,
   distance = 50,
 }: GetRecommendedPostsOptions & FilterPost) => {
-
+  
   const { userID } = payload;
   const skip = (page - 1) * limit;
 
@@ -1847,22 +1847,48 @@ export const getPostsOrProviders = async ({
 
   const isServiceProvider = user.role === USER_ROLES.SERVICE_PROVIDER;
 
-  // Fuzzy regexes
-  const qRegex = rx(query);
-  const catRegex = rx(category);
-  const subCatRegex = rx(subCategory);
-
-  const noInputFilters = !qRegex && !catRegex && !subCatRegex && !hasCoords;
 
   if (isServiceProvider) {
+    
+    if (!category && !subCategory && !query ) {
 
-    let posts = await Post.find( !query ? {
-      category: category
-    }: {
-      projectName: { $regex: query, $options: "i" },
-      subCategory: subCatRegex,
-      category: catRegex
-    })
+      const all = await Post.find()
+        .populate({
+          path: "offers",
+          populate: { path: "form", select: "fullName email phone address profileImage" },
+        })
+        .lean();
+
+      // const pageRand = shuffle(all).slice(skip, skip + limit).map((p: any) => {
+      //   const pLat = p?.latLng?.coordinates?.[1];
+      //   const pLng = p?.latLng?.coordinates?.[0];
+      //   const dKm = hasCoords ? calculateDistanceInKm(latN, lngN, pLat, pLng) : undefined;
+      //   return {
+      //     ...p,
+      //     isValid: new Date(p.deadline).getTime() > Date.now(),
+      //     isOfferSend: false,
+      //     distance: dKm,
+      //   };
+      // });
+
+      return all;
+    }
+
+    const queryFilters: any = {};
+
+    if (category) {
+      queryFilters.category = category;
+    }
+
+    if (subCategory) {
+      queryFilters.subCategory = subCategory;
+    }
+
+    if (query) {
+      queryFilters.projectName = { $regex: query, $options: "i" };
+    }
+
+    let posts = await Post.find(queryFilters)
       .populate({
         path: "offers",
         populate: { path: "form", select: "fullName email phone address profileImage" },
@@ -1872,9 +1898,14 @@ export const getPostsOrProviders = async ({
       .limit(limit)
       .lean();
 
-    const subCategoryFilter = posts.filter( e => e.subCategory == subCategory);
+      console.log("This is from the log => ",{
+        posts,
+        queryFilters
+      })
 
-    const data = subCategory ? subCategoryFilter : posts
+    const subCategoryFilter = posts.filter((e) => e.subCategory == subCategory);
+
+    const data = subCategory ? subCategoryFilter : posts;
 
     const enriched = await Promise.all(
       data.map(async (post: any) => {
@@ -1898,61 +1929,52 @@ export const getPostsOrProviders = async ({
 
     let filtered = enriched;
     if (hasCoords && hasDist) {
-      filtered = enriched.filter((p) => Number.isFinite(p.distance) && (p.distance as number) <= (distN <= 1 ? 50 : distN ));
-    }
-
-    if (noInputFilters) {
-      const all = await Post.find({})
-        .populate({
-          path: "offers",
-          populate: { path: "form", select: "fullName email phone address profileImage" },
-        })
-        .lean();
-
-      const pageRand = shuffle(all).slice(skip, skip + limit).map((p: any) => {
-        const pLat = p?.latLng?.coordinates?.[1];
-        const pLng = p?.latLng?.coordinates?.[0];
-        const dKm = hasCoords ? calculateDistanceInKm(latN, lngN, pLat, pLng) : undefined;
-        return {
-          ...p,
-          isValid: new Date(p.deadline).getTime() > Date.now(),
-          isOfferSend: false,
-          distance: dKm,
-        };
-      });
-
-      return pageRand;
+      filtered = enriched.filter(
+        (p) => Number.isFinite(p.distance) && (p.distance as number) <= (distN <= 1 ? 50 : distN)
+      );
     }
 
     return filtered;
   }
 
-  const andFilters: any[] = [
-    { role: USER_ROLES.SERVICE_PROVIDER },
-    { accountStatus: ACCOUNT_STATUS.ACTIVE },
-  ];
+  // General user query for service providers
 
-  if (qRegex) andFilters.push({ $or: [
-    { fullName: qRegex }, 
-    // { category: qRegex }, 
-    // { subCategory: qRegex }
-    ] 
-  });
-  // if (catRegex) andFilters.push({ category: catRegex });    
-  // if (subCatRegex) andFilters.push({ subCategory: subCatRegex });  
+  const queryFilters: any = {
+    role: USER_ROLES.SERVICE_PROVIDER,
+    accountStatus: ACCOUNT_STATUS.ACTIVE
+  };
 
-  // const providerQuery: any = andFilters.length ? { $and: andFilters } : {};
+    if (category) {
+      queryFilters.category = category;
+    }
 
-  let providers = await User.find( query? {
-    fullName: qRegex,
-    role: USER_ROLES.SERVICE_PROVIDER,
-  }: !query && category != "" && subCategory != ""? {
-    category,
-    subCategory,
-    role: USER_ROLES.SERVICE_PROVIDER,
-  } : {
-    role: USER_ROLES.SERVICE_PROVIDER,
-  })
+    if (subCategory) {
+      queryFilters.subCategory = subCategory;
+    }
+
+    if (query) {
+      queryFilters.fullName = { $regex: query, $options: "i" };
+    }
+
+  // if (query) andFilters.push({ $or: [{ fullName: { $regex: query, $options: "i" } }] });
+
+
+  let providers = await User.find( queryFilters )
+    // query
+    //   ? {
+    //       fullName: query,
+    //       role: USER_ROLES.SERVICE_PROVIDER,
+    //     }
+    //   : !query && category && subCategory
+    //   ? {
+    //       category: category ? category : undefined, 
+    //       subCategory: subCategory ? subCategory : undefined,
+    //       role: USER_ROLES.SERVICE_PROVIDER,
+    //     }
+    //   : {
+    //       role: USER_ROLES.SERVICE_PROVIDER,
+    //     }
+  // )
     .select(
       "-password -otpVerification -isSocialAccount -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v"
     )
@@ -1970,28 +1992,10 @@ export const getPostsOrProviders = async ({
 
   let filteredProviders = withDist;
   if (hasCoords && hasDist) {
-    filteredProviders = withDist.filter((p) => Number.isFinite(p.distance) && (p.distance as number) <= (distN <= 1 ? 50 : distN ));
+    filteredProviders = withDist.filter(
+      (p) => Number.isFinite(p.distance) && (p.distance as number) <= (distN <= 1 ? 50 : distN)
+    );
   }
-
-  // if (noInputFilters || filteredProviders.length === 0) {
-  //   const all = await User.find({
-  //     role: USER_ROLES.SERVICE_PROVIDER,
-  //     accountStatus: ACCOUNT_STATUS.ACTIVE,
-  //   })
-  //     .select(
-  //       "-password -otpVerification -isSocialAccount -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v"
-  //     )
-  //     .lean();
-
-  //   const pageRand = shuffle(all).slice(skip, skip + limit).map((p: any) => {
-  //     const pLat = p?.latLng?.coordinates?.[1];
-  //     const pLng = p?.latLng?.coordinates?.[0];
-  //     const dKm = hasCoords ? calculateDistanceInKm(latN, lngN, pLat, pLng) : undefined;
-  //     return { ...p, distance: dKm };
-  //   });
-
-  //   return pageRand;
-  // }
 
   return filteredProviders;
 };
