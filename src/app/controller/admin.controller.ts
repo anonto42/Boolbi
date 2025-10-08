@@ -12,7 +12,8 @@ import mongoose from "mongoose";
 const overView = catchAsync(
     async( req: Request, res: Response ) => {
         const Payload = (req as any).user;
-        const result = await AdminService.overview(Payload);
+        const { userJoinedYear, revenueYear }: { userJoinedYear? : string, revenueYear?: string } = req.query;
+        const result = await AdminService.overview(Payload, revenueYear, userJoinedYear );
 
         sendResponse(res, {
             success: true,
