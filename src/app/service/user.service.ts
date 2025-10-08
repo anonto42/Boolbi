@@ -2027,25 +2027,30 @@ const allNotifications = async (
 
 const updateNotifications = async (
   payload: JwtPayload,
-  data: { ids: string[] }
+  data: { notifications: string[] }
 ) => {
- //Convert the ids to mongoodb ObjectID
-  const objIds = data.ids?.map( e => new mongoose.Types.ObjectId(e));
+  // Convert the ids to MongoDB ObjectId
+  const objIds = data.notifications?.map((e) => new mongoose.Types.ObjectId(e));
 
-  //Update the notifications status to isRead = true
-  const result = await Notification.updateMany({
-    _id:{
-      $in: objIds
-    }
-    }, 
+  // Check if objIds is valid and not empty
+  if (!objIds || objIds.length === 0) {
+    throw new Error("Invalid or empty notification IDs");
+  }
+
+  // Update the notifications status to isRead = true
+  const result = await Notification.updateMany(
+    {
+      _id: {
+        $in: objIds,
+      },
+    },
     {
       $set: { isRead: true },
     }
   );
 
-  //Response the count of updated document
+  // Return the count of updated documents
   return { totalUpdated: result.modifiedCount };
-  
 };
 
 const addRating = async ( 
