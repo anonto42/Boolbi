@@ -20,13 +20,22 @@ import Order from "../../model/order.model";
 import { PaginationParams } from "../../types/user";
 import mongoose from "mongoose";
 
-export const overview = async (payload: JwtPayload) => {
+const overview = async (payload: JwtPayload, revenueYear = "2025", userJoinedYear = "2025") => {
   const { userID } = payload;
   const user = await User.findById(userID);
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found!");
   }
 
+  const months = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  ];
+
+  const numericRevenueYear = parseInt(revenueYear);
+  const numericUserJoinedYear = parseInt(userJoinedYear);
+
+  // Total number of users, job requests, and job posts
   const totalUser = await User.countDocuments();
   const totalJobRequest = await Offer.countDocuments();
   const totalJobPost = await Post.countDocuments();
@@ -43,15 +52,13 @@ export const overview = async (payload: JwtPayload) => {
   ]);
   const commissionSum = totalCommission[0]?.totalCommission || 0;
 
-  // Yearly commission revenue
-  const currentYear = new Date().getFullYear();
-
-  const result = await Payment.aggregate([
+  // Yearly commission revenue aggregation for `revenueYear`
+  const revenuePipeline = [
     {
       $match: {
         createdAt: {
-          $gte: new Date(`${currentYear}-01-01`),
-          $lt: new Date(`${currentYear + 1}-01-01`),
+          $gte: new Date(`${numericRevenueYear}-01-01T00:00:00Z`),
+          $lt: new Date(`${numericRevenueYear + 1}-01-01T00:00:00Z`),
         },
         status: PAYMENT_STATUS.SUCCESS,
       },
@@ -62,15 +69,12 @@ export const overview = async (payload: JwtPayload) => {
         totalCommission: { $sum: "$commission" },
       },
     },
-  ]);
-
-  const months = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
   ];
 
+  const revenueResult = await Payment.aggregate(revenuePipeline);
+
   const commissionMap = new Map<number, number>();
-  result.forEach((entry) => {
+  revenueResult.forEach((entry) => {
     commissionMap.set(entry._id, entry.totalCommission);
   });
 
@@ -79,16 +83,14 @@ export const overview = async (payload: JwtPayload) => {
     commission: commissionMap.get(index + 1) || 0,
   }));
 
-  // ===========================
-  // Yearly user join breakdown
-  // ===========================
-  const startOfYear = new Date(`${currentYear}-01-01`);
-  const endOfYear = new Date(`${currentYear + 1}-01-01`);
-
-  const userMonthlyData = await User.aggregate([
+  // Yearly user join breakdown for `userJoinedYear`
+  const userJoinPipeline = [
     {
       $match: {
-        createdAt: { $gte: startOfYear, $lt: endOfYear },
+        createdAt: {
+          $gte: new Date(`${numericUserJoinedYear}-01-01T00:00:00Z`),
+          $lt: new Date(`${numericUserJoinedYear + 1}-01-01T00:00:00Z`),
+        },
         role: { $in: [USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER] },
       },
     },
@@ -106,7 +108,9 @@ export const overview = async (payload: JwtPayload) => {
         count: 1,
       },
     },
-  ]);
+  ];
+
+  const userMonthlyData = await User.aggregate(userJoinPipeline);
 
   const userJoined = months.map((monthName, index) => {
     const userCount =
