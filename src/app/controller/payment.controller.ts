@@ -69,7 +69,7 @@ const verifyUser = catchAsync(async (req: Request, res: Response) => {
         type: "account_onboarding"
     });
 
-    res.send({ url: onboardLink.url });
+    res.send({ data:{url: onboardLink.url} });
 })
 
 const successFullSession = catchAsync(
@@ -173,7 +173,7 @@ const refreshSesstion = catchAsync(
             type: "account_onboarding"
         });
 
-        res.send({ url: onboardLInk.url })
+        res.send({ data:{ url: onboardLInk.url } })
     }
 )
 
