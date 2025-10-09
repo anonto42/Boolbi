@@ -173,7 +173,7 @@ const refreshSesstion = catchAsync(
             type: "account_onboarding"
         });
 
-        res.send(reconnectURL(onboardLInk.url))
+        res.send({ url: onboardLInk.url })
     }
 )
 
