@@ -19,6 +19,7 @@ import { PAYMENT_STATUS } from "../../enums/payment.enum";
 import Order from "../../model/order.model";
 import { PaginationParams } from "../../types/user";
 import mongoose from "mongoose";
+import { IUser } from "../../Interfaces/User.interface";
 
 const overview = async (payload: JwtPayload, revenueYear = "2025", userJoinedYear = "2025") => {
   const { userID } = payload;
@@ -908,11 +909,11 @@ const allAdmins = async (
   }
 
   const total = await User.countDocuments({
-    role: { $in: [USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN] }
+    role: { $in: [USER_ROLES.ADMIN] }
   });
 
   const admins = await User.find({
-    role: { $in: [USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN] }
+    role: { $in: [USER_ROLES.ADMIN] }
   })
     .select("-password -isSocialAccount -isVerified -otpVerification -termsConditions -privacyPolicy -__v -accountBalance -samplePictures -orders -myOffer -iOffered -favouriteServices -job")
     .sort({ createdAt: -1 })
@@ -962,14 +963,20 @@ const addNewAdmin = async (
     };
 
     const hasedPassword = await bcryptjs.Hash(password);
-    const admin = await User.create({fullName,email,password:hasedPassword,role: USER_ROLES.ADMIN});
+    const admin = await User.create({
+      fullName,
+      email,
+      password:hasedPassword,
+      role: USER_ROLES.ADMIN,
+      userVerification: true
+    }) as IUser;
 
     return {
       role: admin.role,
       name: admin.fullName,
       email: admin.email,
       language: admin.language,
-      userVerification: true
+      userVerification: true,
     }
 };
 
