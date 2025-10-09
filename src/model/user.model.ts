@@ -163,14 +163,7 @@ const userSchema = new Schema<IUser>({
       type: String
     }
   },
-  paymentCartDetails:{
-    customerID:{
-      type: String
-    },
-    accountID:{
-      type: String
-    }
-  },
+  paymentCartDetails:{type:String},
   ratings: [
     {
       stars: {

@@ -58,22 +58,43 @@ router
 
 router
     .route("/return")
-    .get(async (req, res)=>{
-
+    .get(async (req, res) => {
         const { accountId, userId } = req.query;
 
-        if (!userId && !accountId) {
+        if (!userId || !accountId) {
             throw new ApiError(
                 StatusCodes.BAD_GATEWAY,
-                "We don't found the Details"
-            )
+                "We can't find the details for userId and accountId"
+            );
         }
-        const user = await User.findById( new mongoose.Types.ObjectId(userId as string) )
-        user.paymentCartDetails.accountID
-        await user.save();
 
-        res.send("Successfully setup the account!")
-    })
+        try {
+            
+            const user = await User.findByIdAndUpdate(
+                new mongoose.Types.ObjectId(userId as string), 
+                { $set: { paymentCartDetails: accountId } },
+                { new: true } 
+            );
+
+            if (!user) {
+                throw new ApiError(
+                    StatusCodes.NOT_FOUND,
+                    `User with ID ${userId} not found`
+                );
+            }
+
+            console.log('Updated User:', user);
+
+            res.send("Successfully set up the account!");
+        } catch (error) {
+            console.error(error);
+            throw new ApiError(
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                "An error occurred while setting up the account"
+            );
+        }
+    });
+
 
 router
     .route("/failed")

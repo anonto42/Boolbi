@@ -15,6 +15,7 @@ import { PaginationParams } from "../../types/user";
 import { OFFER_STATUS } from "../../enums/offer.enum";
 import Chat from "../../model/chat.model";
 import { transfers } from "../router/payment.route";
+import { makeAmountWithFee } from "../../helpers/fee";
 
 const singleOrder = async (
     payload: JwtPayload,
@@ -654,10 +655,10 @@ const reqestAction = async (
                 .populate("offerID")
 
     const budget = order.offerID.budget;
-    const amountAfterFee = Math.round(budget * 0.95 * 100);
 
+    const amountAfterFee = ( makeAmountWithFee(budget) - budget ) * 100;
 
-    if (!order.provider.paymentCartDetails.accountID) {
+    if (!order.provider.paymentCartDetails) {
         throw new ApiError(
             StatusCodes.CONFLICT,
             "You provider was not added the payment methord!"
@@ -683,7 +684,7 @@ const reqestAction = async (
     await transfers.create({
         amount: amountAfterFee,
         currency: 'usd',
-        destination: order.provider.paymentCartDetails.accountID,
+        destination: order.provider.paymentCartDetails,
         transfer_group: `order_${order._id}`
     });
 

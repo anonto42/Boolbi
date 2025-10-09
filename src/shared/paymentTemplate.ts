@@ -105,7 +105,6 @@ export const cardAddedSuccessfull = `<html lang="en">
     <div class="checkmark">✓</div>
     <h2>Card Added Successfully!</h2>
     <p>Your card has been added and is ready to use for payments.</p>
-    <a class="btn" href="/">Go Home</a>
   </div>
 </body>
 </html>`;

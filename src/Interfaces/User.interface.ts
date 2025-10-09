@@ -44,10 +44,7 @@ export interface IUser extends Document {
         isSocal: boolean;
         socialIdentity: string;
     };
-    paymentCartDetails:{
-        customerID: string;
-        cardID: string;
-    };
+    paymentCartDetails: string;
     ratings: {
         stars: number;
         feedback: string;

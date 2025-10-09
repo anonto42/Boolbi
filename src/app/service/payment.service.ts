@@ -6,6 +6,7 @@ import ApiError from "../../errors/ApiError";
 import { accountLinks, accounts, checkout, customers, paymentIntents, transfers } from "../router/payment.route";
 import Order from "../../model/order.model";
 import Offer from "../../model/offer.model";
+import { makeAmountWithFee } from "../../helpers/fee";
 
 const createSession = async (
     payload: JwtPayload,
@@ -61,7 +62,7 @@ const createSession = async (
         cancel_url: `${protocol}://${host}/api/v1/payment/cancel`,
         line_items: lineItems,
         metadata: {
-            commission: offer.budget * 0.05,
+            commission: makeAmountWithFee(offer.budget),
             userId: String(userID),
             offerID: String(offer._id.toString()),
         },
@@ -94,7 +95,7 @@ const verifyProvider = async (
         throw new ApiError(StatusCodes.FORBIDDEN, `Your account was ${user.accountStatus.toLowerCase()}!`);
     };
 
-    if ( user.paymentCartDetails.accountID ) {
+    if ( user.paymentCartDetails !== "" || user.paymentCartDetails != undefined || user.paymentCartDetails !== null ) {
         throw new ApiError(
             StatusCodes.BAD_REQUEST,
             "You account was already verifyed!"
@@ -149,15 +150,15 @@ const payoutToUser = async (
         throw new ApiError(StatusCodes.BAD_REQUEST, "You haven't completed the order process!");
     }
 
-    if (!user.paymentCartDetails.accountID) {
+    if (!user.paymentCartDetails) {
         throw new ApiError(StatusCodes.EXPECTATION_FAILED, "We didn't find your payment method!");
     }
 
     // Create transfer to user
     const transfer = await transfers.create({
-        amount: Math.round(order.offerID.budget * 100), // Convert to cents
+        amount: makeAmountWithFee( order.offerID.budget  ) * 100, // Convert to cents
         currency: 'usd',
-        destination: user.paymentCartDetails.accountID,
+        destination: user.paymentCartDetails,
     });
 
     if (!transfer) {

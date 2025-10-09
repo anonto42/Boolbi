@@ -14,6 +14,8 @@ import { ACCOUNT_STATUS, USER_ROLES } from "../../enums/user.enums";
 import { OFFER_STATUS } from "../../enums/offer.enum";
 import { accountBindSuccessfull, reconnectURL } from "../../shared/stripeTemplate";
 import Post from "../../model/post.model";
+import mongoose from "mongoose";
+import { IUser } from "../../Interfaces/User.interface";
 
 const payForService = catchAsync(
     async( req: Request, res: Response ) => {
@@ -42,64 +44,116 @@ const payForService = catchAsync(
     }
 )
 
-const verifyUser = catchAsync(
-    async( req: Request, res: Response ) => {
-        const payload = (req as any).user;
-        const host = req.headers.host as string;
-        const protocol = req.protocol as string;
-        const result = await PaymentService.verifyProvider( payload, { host, protocol } );
+const verifyUser = catchAsync(async (req: Request, res: Response) => {
 
-        sendResponse(res, {
-            success: true,
-            statusCode: StatusCodes.OK,
-            message: "Verify service provider!",
-            data: result
-        })
+    const payload = req.user;
+
+    const user = await User.findById(payload.userID).lean().exec() as IUser;
+    if( !user ) throw new ApiError( StatusCodes.NOT_FOUND, "User not found !")
+    if ( user.paymentCartDetails) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, "Account already verified");
     }
-)
+
+    const account = await accounts.create({
+        type: 'express',
+        email: user.email,
+        country: 'US',
+        capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
+        metadata: { userId: user._id.toString() }
+    });
+
+    const onboardLink = await accountLinks.create({
+        account: account.id,
+        refresh_url: `${req.protocol}://${req.headers.host}/api/v1/payment/refresh/${account.id}`,
+        return_url: `${req.protocol}://${req.headers.host}/api/v1/payment/success/${account.id}`,
+        type: "account_onboarding"
+    });
+
+    res.send({ url: onboardLink.url });
+})
 
 const successFullSession = catchAsync(
     async( req: Request, res: Response ) => {
+
+        const { id } = req.params;
+        const account = await accounts.update(id, {});
         
-    const { id } = req.params;
-    const account = await accounts.update(id, {});
+        if (account?.requirements?.disabled_reason) {
+            return res.redirect(`${req.protocol}://${req.get('host')}/api/v1/payment/refresh/${id}`);
+        }
+
+        if (!account.payouts_enabled || !account.charges_enabled) {
+            return res.redirect(`${req.protocol}://${req.get('host')}/api/v1/payment/refresh/${id}`);
+        }
+
+        try {
+
+            const updatedAccount = await accounts.retrieve(id);
+            const metadata = updatedAccount.metadata;
+            if (!metadata) throw new ApiError( StatusCodes.NOT_ACCEPTABLE, "We don't have your account!")
+
+            const user = await User.findByIdAndUpdate(
+                new mongoose.Types.ObjectId(metadata.userId as string),
+                { $set: { paymentCartDetails: id } },
+                { new: true }
+            );
+
+            if (!user) {
+                throw new ApiError(
+                    StatusCodes.NOT_FOUND,
+                    `User with ID ${metadata.userId} not found`
+                );
+            }
+            
+        } catch (error) {
+            console.log(error)
+            throw new ApiError (
+                500,
+                "Some this was wrong!"
+            )
+        }
+
+        res.send(accountBindSuccessfull);
+        
+    // const { id } = req.params;
+    // const account = await accounts.update(id, {});
     
-    if (
-        account?.requirements?.disabled_reason &&
-        account?.requirements?.disabled_reason.indexOf('rejected') > -1
-    ) {
-        return res.redirect(
-        `${req.protocol + '://' + req.get('host')}/api/v1/payment/refresh/${id}`,
-        );
-    }
-    if (
-        account?.requirements?.disabled_reason &&
-        account?.requirements?.currently_due &&
-        account?.requirements?.currently_due?.length > 0
-    ) {
-        return res.redirect(
-        `${req.protocol + '://' + req.get('host')}/api/v1/payment/refresh/${id}`,
-        );
-    }
-    if (!account.payouts_enabled) {
-        return res.redirect(
-        `${req.protocol + '://' + req.get('host')}/api/v1/payment/refresh/${id}`,
-        );
-    }
-    if (!account.charges_enabled) {
-        return res.redirect(
-        `${req.protocol + '://' + req.get('host')}/api/v1/payment/refresh/${id}`,
-        );
-    }
+    // if (
+    //     account?.requirements?.disabled_reason &&
+    //     account?.requirements?.disabled_reason.indexOf('rejected') > -1
+    // ) {
+    //     return res.redirect(
+    //     `${req.protocol + '://' + req.get('host')}/api/v1/payment/refresh/${id}`,
+    //     );
+    // }
+    // if (
+    //     account?.requirements?.disabled_reason &&
+    //     account?.requirements?.currently_due &&
+    //     account?.requirements?.currently_due?.length > 0
+    // ) {
+    //     return res.redirect(
+    //     `${req.protocol + '://' + req.get('host')}/api/v1/payment/refresh/${id}`,
+    //     );
+    // }
+    // if (!account.payouts_enabled) {
+    //     return res.redirect(
+    //     `${req.protocol + '://' + req.get('host')}/api/v1/payment/refresh/${id}`,
+    //     );
+    // }
+    // if (!account.charges_enabled) {
+    //     return res.redirect(
+    //     `${req.protocol + '://' + req.get('host')}/api/v1/payment/refresh/${id}`,
+    //     );
+    // }
     
-    if (
-        account?.requirements?.pending_verification &&
-        account?.requirements?.pending_verification?.length > 0
-    ) {
-        return res.redirect(`${req.protocol + '://' + req.get('host')}/payment/refresh/${id}`);
-    }
+    // if (
+    //     account?.requirements?.pending_verification &&
+    //     account?.requirements?.pending_verification?.length > 0
+    // ) {
+    //     return res.redirect(`${req.protocol + '://' + req.get('host')}/payment/refresh/${id}`);
+    // }
     
-    res.send(accountBindSuccessfull)
+    // res.send(accountBindSuccessfull)
     }
 )
 
