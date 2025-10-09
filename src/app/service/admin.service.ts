@@ -37,7 +37,9 @@ const overview = async (payload: JwtPayload, revenueYear = "2025", userJoinedYea
   const numericUserJoinedYear = parseInt(userJoinedYear);
 
   // Total number of users, job requests, and job posts
-  const totalUser = await User.countDocuments({ role: { $ne: { $in: [USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN]}}});
+  const totalUser = await User.countDocuments({
+    role: { $nin: [USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN] }
+  });
   const totalJobRequest = await Offer.countDocuments();
   const totalJobPost = await Post.countDocuments();
 
