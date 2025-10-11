@@ -7,7 +7,6 @@ const VerificationSchema = new Schema({
   },
   doc:{
     type: String,
-    required: true
   },
   image:[{
     type: String
