@@ -104,8 +104,9 @@ const profle = async (
     const { userID } = payload;
     const objID = new mongoose.Types.ObjectId(userID);
 
-    const isExist = await User.findById(objID).select("-password -otpVerification -isSocialAccount -latLng -__v -searchedCatagory -job -favouriteServices -iOffered -myOffer -orders -ratings -favouriteProvider -counterOffers")
+    const isExist = await User.findById(objID).select("-password -otpVerification -isSocialAccount -__v -searchedCatagory -job -favouriteServices -iOffered -myOffer -orders -ratings -favouriteProvider -counterOffers")
     .lean() as any;
+
     if (!isExist) {
       throw new ApiError(StatusCodes.NOT_ACCEPTABLE,"User not exist!")
     };
@@ -156,7 +157,12 @@ const UP = async (
     );
   }
 
-   await User.findByIdAndUpdate(isExist._id, data, { new: true }).select("-password -otpVerification -isSocialAccount -latLng -__v -searchedCatagory -job -favouriteServices -iOffered -myOffer -orders -ratings -favouriteProvider -counterOffers").lean().exec();
+  data.latLng = {
+    type: "Point", //@ts-ignore
+    coordinates: [Number(data.latLng.lan), Number(data.latLng.lat)]
+  }
+
+  await User.findByIdAndUpdate(isExist._id, data, { new: true }).select("-password -otpVerification -isSocialAccount -__v -searchedCatagory -job -favouriteServices -iOffered -myOffer -orders -ratings -favouriteProvider -counterOffers").lean().exec();
 
   return data;
 };
@@ -1813,10 +1819,6 @@ const calculateDistanceInKm = (lat1?: number, lon1?: number, lat2?: number, lon2
   return 2 * R * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 };
 
-const shuffle = <T,>(arr: T[]) => arr.sort(() => Math.random() - 0.5);
-const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const rx = (s?: string) => (s && s.trim() ? { $regex: esc(s.trim()), $options: "i" } : undefined);
-
 const getPostsOrProviders = async ({
   payload,
   page = 1,
@@ -1826,9 +1828,9 @@ const getPostsOrProviders = async ({
   subCategory,
   lat,
   lng,
-  distance = 50,
+  distance = 10,
 }: GetRecommendedPostsOptions & FilterPost) => {
-  
+
   const { userID } = payload;
   const skip = (page - 1) * limit;
 
@@ -1859,7 +1861,39 @@ const getPostsOrProviders = async ({
         })
         .lean();
 
-      return all;
+        const subCategoryFilter = all.filter((e) => e.subCategory == subCategory);
+
+        const data = subCategory ? subCategoryFilter : all;
+
+        const enriched = await Promise.all(
+          data.map(async (post: any) => {
+            const existingOffer = await Offer.findOne({
+              projectID: post._id,
+              $or: [{ to: user._id }, { form: user._id }],
+            });
+
+            const pLat = post?.latLng?.coordinates?.[1];
+            const pLng = post?.latLng?.coordinates?.[0];
+            const dKm = hasCoords ? calculateDistanceInKm(latN, lngN, pLat, pLng) : undefined;
+
+            return {
+              ...post,
+              isValid: new Date(post.deadline).getTime() > Date.now(),
+              isOfferSend: !!existingOffer,
+              distance: dKm,
+            };
+          })
+        );
+
+        let filtered = enriched;
+        if (hasCoords && hasDist) {
+          filtered = enriched.filter(
+            (p) => Number.isFinite(p.distance) && (p.distance as number) <= (distN <= 1 ? 50 : distN)
+          );
+        }
+
+        return filtered;
+
     }
 
     const queryFilters: any = {};
@@ -1913,7 +1947,7 @@ const getPostsOrProviders = async ({
     let filtered = enriched;
     if (hasCoords && hasDist) {
       filtered = enriched.filter(
-        (p) => Number.isFinite(p.distance) && (p.distance as number) <= (distN <= 1 ? 50 : distN)
+        (p) => Number.isFinite(p.distance) && (p.distance as number) <= (distN <= 1 ? 10 : distN)
       );
     }
 
@@ -1939,25 +1973,7 @@ const getPostsOrProviders = async ({
       queryFilters.fullName = { $regex: query, $options: "i" };
     }
 
-  // if (query) andFilters.push({ $or: [{ fullName: { $regex: query, $options: "i" } }] });
-
-
   let providers = await User.find( queryFilters )
-    // query
-    //   ? {
-    //       fullName: query,
-    //       role: USER_ROLES.SERVICE_PROVIDER,
-    //     }
-    //   : !query && category && subCategory
-    //   ? {
-    //       category: category ? category : undefined, 
-    //       subCategory: subCategory ? subCategory : undefined,
-    //       role: USER_ROLES.SERVICE_PROVIDER,
-    //     }
-    //   : {
-    //       role: USER_ROLES.SERVICE_PROVIDER,
-    //     }
-  // )
     .select(
       "-password -otpVerification -isSocialAccount -job -favouriteServices -iOffered -myOffer -orders -searchedCatagory -__v"
     )
@@ -1976,7 +1992,7 @@ const getPostsOrProviders = async ({
   let filteredProviders = withDist;
   if (hasCoords && hasDist) {
     filteredProviders = withDist.filter(
-      (p) => Number.isFinite(p.distance) && (p.distance as number) <= (distN <= 1 ? 50 : distN)
+      (p) => Number.isFinite(p.distance) && (p.distance as number) <= (distN <= 1 ? 10 : distN)
     );
   }
 
