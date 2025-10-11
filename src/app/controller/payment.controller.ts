@@ -12,7 +12,7 @@ import Payment from "../../model/payment.model";
 import Order from "../../model/order.model";
 import { ACCOUNT_STATUS, USER_ROLES } from "../../enums/user.enums";
 import { OFFER_STATUS } from "../../enums/offer.enum";
-import { accountBindSuccessfull, reconnectURL } from "../../shared/stripeTemplate";
+import { accountBindSuccessfull } from "../../shared/stripeTemplate";
 import Post from "../../model/post.model";
 import mongoose from "mongoose";
 import { IUser } from "../../Interfaces/User.interface";
