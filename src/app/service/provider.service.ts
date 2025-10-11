@@ -817,7 +817,7 @@ const DelivaryRequestForTimeExtends = async (
 const providerAccountVerification = async (
     user: JwtPayload,
     images: string[],
-    doc: string
+    doc?: string
 ) => {
     const { userID } = user;
 
@@ -864,8 +864,7 @@ const providerAccountVerification = async (
 
     if (
         !images || 
-        images.length < 1 || 
-        !doc 
+        images.length < 1
     ) {
         throw new ApiError(
             StatusCodes.BAD_GATEWAY, 
@@ -890,7 +889,7 @@ const providerAccountVerification = async (
 
     await Verification.create({
         user: isUser._id,
-        doc,
+        doc: doc,
         image: images
     })
 
