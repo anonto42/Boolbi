@@ -3,10 +3,11 @@ import User from "../../model/user.model";
 import { StatusCodes } from "http-status-codes";
 import { ACCOUNT_STATUS } from "../../enums/user.enums";
 import ApiError from "../../errors/ApiError";
-import { accountLinks, accounts, checkout, customers, paymentIntents, transfers } from "../router/payment.route";
+import { accountLinks, accounts, checkout, transfers } from "../router/payment.route";
 import Order from "../../model/order.model";
 import Offer from "../../model/offer.model";
 import { makeAmountWithFee } from "../../helpers/fee";
+import { OFFER_STATUS } from "../../enums/offer.enum";
 
 const createSession = async (
     payload: JwtPayload,
@@ -41,6 +42,15 @@ const createSession = async (
        )
     };
 
+    if (offer.status == OFFER_STATUS.PAID) {
+        throw new ApiError(
+            StatusCodes.BAD_REQUEST,
+            "This offer was already payed and a project was already started!"
+        )
+    }
+
+    const paymentAmout = Math.floor(offer.budget * 100);
+
     const lineItems = [
         {
             price_data: {
@@ -48,7 +58,7 @@ const createSession = async (
                 product_data: {
                     name: 'Amount',
                 },
-                unit_amount: offer.budget * 100,
+                unit_amount: paymentAmout,
             },
             quantity: 1,
         },
