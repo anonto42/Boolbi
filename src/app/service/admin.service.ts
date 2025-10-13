@@ -1051,11 +1051,11 @@ const allSupportRequests = async (
 const giveSupport = async (
     payload: JwtPayload,
     {
-      supportID,
+      supportId,
       message,
       image
     }:{
-      supportID: string,
+      supportId: string,
       message: string
       image: string
     }
@@ -1076,7 +1076,7 @@ const giveSupport = async (
     };
 
     const supportUpdated = await Support.findByIdAndUpdate(
-      supportID,
+      supportId,
       {
         adminReply: message, 
         status: "SOLVED"
