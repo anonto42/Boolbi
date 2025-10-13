@@ -698,18 +698,21 @@ const singlePost = async (
     postData.isFavourite = isSaved;
 
     const chat = await Chat.findOne({
-      users: { $in: [ post.creatorID, isUserExist._id ]}
-    })    
+      users: { $all: [post.creatorID, isUserExist._id], $size: 2 }
+    }).populate("users","fullName")
     
     if (isUserExist.role != USER_ROLES.USER) {
       //@ts-ignore
       postData.createdBy = post.creatorID
     }
+
+    const offerStatus = await Offer.findById(post.acceptedOffer).lean();
     
     //@ts-ignore
     delete postData?.creatorID
     return {
       ...postData,
+      isOfferPaid: offerStatus?.status == OFFER_STATUS.PAID? true : false ,
       chatID: chat? chat._id : "",//@ts-ignore
       oppositeUser: post.acceptedOffer?.to?._id?.toString() == isUserExist._id.toString() ? post.acceptedOffer?.form || null : post.acceptedOffer?.to || null,
     };
@@ -1001,7 +1004,7 @@ const getAOffer = async (
   const offer = await Offer
     .findById(offerId)
     .populate("to","fullName profileImage")
-    .populate("form","fullName email")
+    .populate("form","fullName email profileImage")
     .lean() as IOffer;
   if (!offer) {
     throw new ApiError(
@@ -2026,10 +2029,19 @@ const allNotifications = async (
 
 const updateNotifications = async (
   payload: JwtPayload,
-  data: { notifications: string[] }
+  data: { ids: string[] , notifications : string[] }
 ) => {
-  // Convert the ids to MongoDB ObjectId
-  const objIds = data.notifications?.map((e) => new mongoose.Types.ObjectId(e));
+  
+  let objIds;
+
+  if( payload.role == USER_ROLES.ADMIN || payload.role == USER_ROLES.SUPER_ADMIN ){
+    
+    objIds = data.notifications?.map((e) => new mongoose.Types.ObjectId(e));
+
+  } else {
+    
+    objIds = data.ids?.map((e) => new mongoose.Types.ObjectId(e));
+  }
 
   // Check if objIds is valid and not empty
   if (!objIds || objIds.length === 0) {
@@ -2471,8 +2483,9 @@ const doCounter = async (
 ) => {
 
   const user = await User.findById(
-    new mongoose.Types.ObjectId( payload.userId )
+    new mongoose.Types.ObjectId( payload.userID )
   ).lean();
+  
   if (!user) {
     throw new ApiError(
       StatusCodes.NOT_FOUND,
@@ -2483,7 +2496,7 @@ const doCounter = async (
   //@ts-ignore
   if (user.role == USER_ROLES.SERVICE_PROVIDER) {
     //@ts-ignore
-        if ( !isUserExist.paymentCartDetails ) {
+        if ( !user.paymentCartDetails ) {
           throw new ApiError(
             StatusCodes.BAD_REQUEST,
             "You must add your payment details to be able to send an offer to a customer"
