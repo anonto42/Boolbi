@@ -9,6 +9,7 @@ import Chat from "../../model/chat.model";
 import { ACCOUNT_STATUS } from "../../enums/user.enums";
 import { socketHelper } from "../../helpers/socketHelper";
 import { socketMessage } from "../../types/message";
+import { messageSend } from "../../helpers/firebaseHelper";
 
 const addMessage = async (
   payload: JwtPayload,
@@ -70,6 +71,20 @@ const addMessage = async (
       const targetSocketId = socketHelper.connectedUsers.get(userId.toString());
       if (targetSocketId) {
         io.to(targetSocketId).emit(`socket:message:${userId}`, socketMessage);
+      }
+      try {
+        const pushNotificationFor = await User.findById(userId)!
+        if (pushNotificationFor.deviceID) {
+          await messageSend({
+            notification: {
+              title: `${ user.fullName } send you a message`,
+              body: `${socketMessage.message}`
+            },
+            token: pushNotificationFor.deviceID
+          });
+        }
+      } catch ( e ) {
+        console.log(e)
       }
     }
   }
