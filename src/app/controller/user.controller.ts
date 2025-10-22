@@ -361,7 +361,7 @@ const IOffer = catchAsync(
             success: true,
             statusCode: StatusCodes.OK,
             //@ts-ignore
-            message: result?.isDecline? result.message : "Successfully order placed",
+            message: result?.isDecline? result.message : "Successfully offer intraction",
             data: result
         })
     }
