@@ -1,4 +1,3 @@
-import { initializeApp, cert  } from "firebase-admin/app";
 import admin from "firebase-admin";
 import { getMessaging } from "firebase-admin/messaging";
 import ApiError from "../errors/ApiError";
