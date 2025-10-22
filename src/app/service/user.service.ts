@@ -969,7 +969,8 @@ const iOfferd = async (
 
   const offer = await Offer.find({
     form: isUserExist._id,
-    projectID: { $eq: null }
+    projectID: { $eq: null },
+    status: { $ne: OFFER_STATUS.DECLINE }
   }).limit(limit).skip(skip).lean();
 
   const data = isUserExist?.iOffered || [];
@@ -1253,8 +1254,7 @@ const intracatOffer = async(
             provider = user1;
           }
   
-          isOfferExist.projectID = post._id,
-          await isOfferExist.save()
+          isOfferExist.projectID = post._id;
   
           const notification = await Notification.create({
             for: post.creatorID,
@@ -1305,6 +1305,9 @@ const intracatOffer = async(
           
         } else {
 
+          isOfferExist.status = OFFER_STATUS.DECLINE;
+          await isOfferExist.save();
+
           const notification = await Notification.create({
             for: isOfferExist.form,
             content: `Your offer was declined!`
@@ -1330,8 +1333,7 @@ const intracatOffer = async(
             console.log(error)
           }
           
-          
-          return 
+          return { message: "Offer Decline", isDecline: true}
         }
 
       } else {
